@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Поштар
 
-## Getting Started
+Сервіс для рутинних задач поштаря: облік пенсіонерів, налаштування їхніх щомісячних виплат у різні дні місяця та формування щоденних обходів із розрахунком запланованої, фактичної та залишкової сум.
 
-First, run the development server:
+## Стек
+
+- Next.js 16 (App Router, TypeScript)
+- Prisma 6 + SQLite
+- Tailwind CSS v4
+- Server Actions для мутацій
+
+## Сутності
+
+- **Пенсіонер** — ФІО, адреса (вулиця / будинок / квартира), телефон, паспорт, день виплати пенсії, примітки.
+- **Тип виплати (`Payment`)** — довідник (Назва, Код).
+- **Шаблон виплати пенсіонера** — тип виплати + день місяця + сума за замовчуванням.
+- **Обхід (`Round`)** — дата + поштар + набір "Поточних виплат".
+- **Поточна виплата (`CurrentPayment`)** — виплата в конкретному обході (пенсіонер, тип, дата, сума, прапорець "Виплачено").
+
+## Запуск
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npx prisma migrate dev         # створити БД
+npm run db:seed                # (опційно) тестові дані
+npm run dev                    # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Екрани
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `/` — головна зі статистикою.
+- `/payments` — довідник типів виплат.
+- `/postmen` — список поштарів.
+- `/pensioners` — список + створення/редагування пенсіонерів із шаблонами виплат.
+- `/rounds` — список обходів із підсумками.
+- `/rounds/new` — новий обхід: поточна дата за замовчуванням, автопідбір пенсіонерів на цей день (за `pensionPaymentDay` або днем шаблону), ручне додавання, префіл сум із шаблонів.
+- `/rounds/[id]` — деталі обходу: чекбокси "Виплачено", редагування сум, додавання виплат вручну, розрахунки **Запланована / Фактично виплачено / Залишок**.

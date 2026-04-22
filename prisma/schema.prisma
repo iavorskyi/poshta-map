@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Postman {
+  id     Int     @id @default(autoincrement())
+  name   String
+  rounds Round[]
+}
+
+model Pensioner {
+  id                Int                        @id @default(autoincrement())
+  fullName          String
+  street            String
+  house             String
+  apartment         String?
+  phone             String?
+  passportNumber    String?
+  pensionPaymentDay Int
+  notes             String?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  templates         PensionerPaymentTemplate[]
+  currentPayments   CurrentPayment[]
+}
+
+model Payment {
+  id              Int                        @id @default(autoincrement())
+  name            String
+  code            String                     @unique
+  templates       PensionerPaymentTemplate[]
+  currentPayments CurrentPayment[]
+}
+
+model PensionerPaymentTemplate {
+  id            Int       @id @default(autoincrement())
+  pensionerId   Int
+  paymentId     Int
+  dayOfMonth    Int
+  defaultAmount Float
+  pensioner     Pensioner @relation(fields: [pensionerId], references: [id], onDelete: Cascade)
+  payment       Payment   @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@unique([pensionerId, paymentId, dayOfMonth])
+}
+
+model Round {
+  id              Int              @id @default(autoincrement())
+  date            DateTime
+  postmanId       Int?
+  notes           String?
+  createdAt       DateTime         @default(now())
+  postman         Postman?         @relation(fields: [postmanId], references: [id], onDelete: SetNull)
+  currentPayments CurrentPayment[]
+}
+
+model CurrentPayment {
+  id          Int       @id @default(autoincrement())
+  roundId     Int
+  pensionerId Int
+  paymentId   Int
+  date        DateTime
+  amount      Float
+  isPaid      Boolean   @default(false)
+  round       Round     @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  pensioner   Pensioner @relation(fields: [pensionerId], references: [id], onDelete: Cascade)
+  payment     Payment   @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+}

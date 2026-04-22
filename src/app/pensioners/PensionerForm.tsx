@@ -1,0 +1,287 @@
+"use client";
+
+import Link from "next/link";
+import { useState, useTransition } from "react";
+import { createPensioner, updatePensioner, deletePensioner } from "./actions";
+
+type Payment = { id: number; name: string; code: string };
+
+type Template = {
+  paymentId: number | "";
+  dayOfMonth: number | "";
+  defaultAmount: number | "";
+};
+
+type Pensioner = {
+  id: number;
+  fullName: string;
+  street: string;
+  house: string;
+  apartment: string | null;
+  phone: string | null;
+  passportNumber: string | null;
+  pensionPaymentDay: number;
+  notes: string | null;
+  templates: { paymentId: number; dayOfMonth: number; defaultAmount: number }[];
+};
+
+export function PensionerForm({
+  pensioner,
+  payments,
+}: {
+  pensioner?: Pensioner;
+  payments: Payment[];
+}) {
+  const [templates, setTemplates] = useState<Template[]>(
+    pensioner?.templates.map((t) => ({
+      paymentId: t.paymentId,
+      dayOfMonth: t.dayOfMonth,
+      defaultAmount: t.defaultAmount,
+    })) ?? []
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const addTemplate = () =>
+    setTemplates((ts) => [...ts, { paymentId: "", dayOfMonth: "", defaultAmount: "" }]);
+  const updateTemplate = (idx: number, patch: Partial<Template>) =>
+    setTemplates((ts) => ts.map((t, i) => (i === idx ? { ...t, ...patch } : t)));
+  const removeTemplate = (idx: number) =>
+    setTemplates((ts) => ts.filter((_, i) => i !== idx));
+
+  const onSubmit = (formData: FormData) => {
+    setError(null);
+    // Validate templates client-side
+    const normalized = templates.map((t) => ({
+      paymentId: Number(t.paymentId),
+      dayOfMonth: Number(t.dayOfMonth),
+      defaultAmount: Number(t.defaultAmount),
+    }));
+    formData.set("templates", JSON.stringify(normalized));
+
+    startTransition(async () => {
+      if (pensioner) {
+        const res = await updatePensioner(pensioner.id, formData);
+        if (res?.error) setError(res.error);
+      } else {
+        const res = await createPensioner(formData);
+        if (res && "error" in res && res.error) setError(res.error);
+      }
+    });
+  };
+
+  const onDelete = () => {
+    if (!pensioner) return;
+    if (!confirm("Видалити пенсіонера? Це видалить і шаблони виплат.")) return;
+    startTransition(async () => {
+      const res = await deletePensioner(pensioner.id);
+      if (res?.error) setError(res.error);
+    });
+  };
+
+  return (
+    <form action={onSubmit} className="space-y-6">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
+        <h2 className="font-medium">Особисті дані</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Field label="ФІО" required>
+            <input
+              name="fullName"
+              required
+              defaultValue={pensioner?.fullName ?? ""}
+              className="input"
+            />
+          </Field>
+          <Field label="Телефон">
+            <input name="phone" defaultValue={pensioner?.phone ?? ""} className="input" />
+          </Field>
+          <Field label="Вулиця" required>
+            <input
+              name="street"
+              required
+              defaultValue={pensioner?.street ?? ""}
+              className="input"
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="№ будинку" required>
+              <input
+                name="house"
+                required
+                defaultValue={pensioner?.house ?? ""}
+                className="input"
+              />
+            </Field>
+            <Field label="Квартира">
+              <input
+                name="apartment"
+                defaultValue={pensioner?.apartment ?? ""}
+                className="input"
+              />
+            </Field>
+          </div>
+          <Field label="№ паспорту">
+            <input
+              name="passportNumber"
+              defaultValue={pensioner?.passportNumber ?? ""}
+              className="input"
+            />
+          </Field>
+          <Field label="День виплати пенсії (1..31)" required>
+            <input
+              name="pensionPaymentDay"
+              type="number"
+              min={1}
+              max={31}
+              required
+              defaultValue={pensioner?.pensionPaymentDay ?? ""}
+              className="input"
+            />
+          </Field>
+        </div>
+        <Field label="Примітки">
+          <textarea
+            name="notes"
+            rows={3}
+            defaultValue={pensioner?.notes ?? ""}
+            className="input"
+          />
+        </Field>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-medium">Шаблони виплат</h2>
+          <button
+            type="button"
+            onClick={addTemplate}
+            className="text-sm rounded border border-slate-300 px-2 py-1 hover:bg-slate-50"
+          >
+            + Додати шаблон
+          </button>
+        </div>
+        {payments.length === 0 && (
+          <div className="text-sm text-slate-500">
+            Спочатку додайте хоча б один{" "}
+            <Link href="/payments" className="text-blue-600 hover:underline">
+              тип виплати
+            </Link>
+            .
+          </div>
+        )}
+        {templates.length === 0 ? (
+          <div className="text-sm text-slate-500">Шаблонів немає.</div>
+        ) : (
+          <div className="space-y-2">
+            {templates.map((t, idx) => (
+              <div
+                key={idx}
+                className="grid grid-cols-1 md:grid-cols-[1fr_120px_140px_auto] gap-2 items-end border border-slate-100 rounded p-2 bg-slate-50"
+              >
+                <Field label="Тип виплати">
+                  <select
+                    value={t.paymentId}
+                    onChange={(e) =>
+                      updateTemplate(idx, { paymentId: e.target.value ? Number(e.target.value) : "" })
+                    }
+                    className="input"
+                  >
+                    <option value="">— оберіть —</option>
+                    {payments.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.code})
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="День місяця">
+                  <input
+                    type="number"
+                    min={1}
+                    max={31}
+                    value={t.dayOfMonth}
+                    onChange={(e) =>
+                      updateTemplate(idx, {
+                        dayOfMonth: e.target.value ? Number(e.target.value) : "",
+                      })
+                    }
+                    className="input"
+                  />
+                </Field>
+                <Field label="Сума за замовч.">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    value={t.defaultAmount}
+                    onChange={(e) =>
+                      updateTemplate(idx, {
+                        defaultAmount: e.target.value ? Number(e.target.value) : "",
+                      })
+                    }
+                    className="input"
+                  />
+                </Field>
+                <button
+                  type="button"
+                  onClick={() => removeTemplate(idx)}
+                  className="text-sm text-red-600 hover:underline self-center"
+                >
+                  Видалити
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {error && <div className="text-sm text-red-600">{error}</div>}
+
+      <div className="flex items-center gap-2">
+        <button
+          type="submit"
+          disabled={isPending}
+          className="rounded bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700 disabled:opacity-60"
+        >
+          {pensioner ? "Зберегти" : "Створити"}
+        </button>
+        <Link
+          href={pensioner ? `/pensioners/${pensioner.id}` : "/pensioners"}
+          className="rounded border border-slate-300 px-4 py-2 text-sm"
+        >
+          Скасувати
+        </Link>
+        {pensioner && (
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={isPending}
+            className="ml-auto rounded border border-red-300 text-red-700 px-4 py-2 text-sm hover:bg-red-50 disabled:opacity-60"
+          >
+            Видалити пенсіонера
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+function Field({
+  label,
+  children,
+  required,
+}: {
+  label: string;
+  children: React.ReactNode;
+  required?: boolean;
+}) {
+  return (
+    <label className="flex flex-col gap-1 text-sm">
+      <span className="text-xs text-slate-600">
+        {label}
+        {required && <span className="text-red-500"> *</span>}
+      </span>
+      {children}
+    </label>
+  );
+}
