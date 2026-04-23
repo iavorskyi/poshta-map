@@ -14,23 +14,37 @@ type Pensioner = {
 type Payment = { id: number; name: string; code: string };
 type Postman = { id: number; name: string };
 
+type ExistingCP = {
+  id: number;
+  paymentId: number;
+  amount: number;
+  isPaid: boolean;
+  roundId: number | null;
+};
+
+type DraftItem = {
+  key: string;
+  existingId?: number;
+  paymentId: number | "";
+  amount: number | "";
+  isPaid: boolean;
+};
+
 type Draft = {
   pensionerId: number;
-  items: {
-    key: string;
-    paymentId: number | "";
-    amount: number | "";
-  }[];
+  items: DraftItem[];
 };
 
 export function NewRoundClient({
   pensioners,
   payments,
   postmen,
+  pensionerMonthPayments,
 }: {
   pensioners: Pensioner[];
   payments: Payment[];
   postmen: Postman[];
+  pensionerMonthPayments: Record<number, ExistingCP[]>;
 }) {
   const today = useMemo(() => toDateInputValue(new Date()), []);
   const [date, setDate] = useState(today);
@@ -52,19 +66,25 @@ export function NewRoundClient({
   }, [pensioners, selectedDay, drafts]);
 
   const addPensioner = (pensionerId: number) => {
-    setDrafts((ds) => [
-      ...ds,
-      {
-        pensionerId,
-        items: [
+    const existing = pensionerMonthPayments[pensionerId] ?? [];
+    const items: DraftItem[] = existing.length
+      ? existing.map((cp) => ({
+          key: `${pensionerId}-ex-${cp.id}`,
+          existingId: cp.id,
+          paymentId: cp.paymentId,
+          amount: cp.amount,
+          isPaid: cp.isPaid,
+        }))
+      : [
           {
             key: `${pensionerId}-init-${Date.now()}`,
             paymentId: "",
             amount: "",
+            isPaid: false,
           },
-        ],
-      },
-    ]);
+        ];
+
+    setDrafts((ds) => [...ds, { pensionerId, items }]);
   };
 
   const removePensioner = (pensionerId: number) =>
@@ -78,7 +98,12 @@ export function NewRoundClient({
               ...d,
               items: [
                 ...d.items,
-                { key: `${pensionerId}-new-${Date.now()}`, paymentId: "", amount: "" },
+                {
+                  key: `${pensionerId}-new-${Date.now()}`,
+                  paymentId: "",
+                  amount: "",
+                  isPaid: false,
+                },
               ],
             }
           : d
@@ -89,7 +114,7 @@ export function NewRoundClient({
   const updateItem = (
     pensionerId: number,
     key: string,
-    patch: Partial<Draft["items"][number]>
+    patch: Partial<DraftItem>
   ) => {
     setDrafts((ds) =>
       ds.map((d) =>
@@ -118,7 +143,13 @@ export function NewRoundClient({
 
   const onSubmit = (formData: FormData) => {
     setError(null);
-    const initial: { pensionerId: number; paymentId: number; amount: number }[] = [];
+    const initial: {
+      pensionerId: number;
+      paymentId: number;
+      amount: number;
+      existingId?: number;
+      isPaid?: boolean;
+    }[] = [];
     for (const d of drafts) {
       for (const it of d.items) {
         if (!it.paymentId || it.amount === "" || Number.isNaN(Number(it.amount))) {
@@ -129,6 +160,8 @@ export function NewRoundClient({
           pensionerId: d.pensionerId,
           paymentId: Number(it.paymentId),
           amount: Number(it.amount),
+          existingId: it.existingId,
+          isPaid: it.isPaid,
         });
       }
     }
@@ -276,49 +309,65 @@ export function NewRoundClient({
                     </div>
                   </div>
                   <div className="space-y-2">
-                    {d.items.map((it) => (
-                      <div
-                        key={it.key}
-                        className="grid grid-cols-[1fr_140px_auto] gap-2 items-center"
-                      >
-                        <select
-                          value={it.paymentId}
-                          onChange={(e) =>
-                            updateItem(d.pensionerId, it.key, {
-                              paymentId: e.target.value ? Number(e.target.value) : "",
-                            })
-                          }
-                          className="input"
+                    {d.items.map((it) => {
+                      const paid = it.isPaid;
+                      return (
+                        <div
+                          key={it.key}
+                          className={`grid grid-cols-[1fr_140px_auto] gap-2 items-center ${
+                            paid ? "opacity-50" : ""
+                          }`}
                         >
-                          <option value="">— тип виплати —</option>
-                          {payments.map((pay) => (
-                            <option key={pay.id} value={pay.id}>
-                              {pay.name} ({pay.code})
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min={0}
-                          placeholder="Сума"
-                          value={it.amount}
-                          onChange={(e) =>
-                            updateItem(d.pensionerId, it.key, {
-                              amount: e.target.value ? Number(e.target.value) : "",
-                            })
-                          }
-                          className="input"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeItem(d.pensionerId, it.key)}
-                          className="text-sm text-red-600 hover:underline"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
+                          <select
+                            value={it.paymentId}
+                            disabled={paid}
+                            onChange={(e) =>
+                              updateItem(d.pensionerId, it.key, {
+                                paymentId: e.target.value ? Number(e.target.value) : "",
+                              })
+                            }
+                            className="input disabled:bg-slate-100 disabled:cursor-not-allowed"
+                          >
+                            <option value="">— тип виплати —</option>
+                            {payments.map((pay) => (
+                              <option key={pay.id} value={pay.id}>
+                                {pay.name} ({pay.code})
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min={0}
+                            placeholder="Сума"
+                            value={it.amount}
+                            disabled={paid}
+                            onChange={(e) =>
+                              updateItem(d.pensionerId, it.key, {
+                                amount: e.target.value ? Number(e.target.value) : "",
+                              })
+                            }
+                            className="input disabled:bg-slate-100 disabled:cursor-not-allowed"
+                          />
+                          {paid ? (
+                            <span
+                              className="text-xs text-slate-500 px-2"
+                              title="Ця виплата вже оплачена в цьому місяці"
+                            >
+                              оплачено
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => removeItem(d.pensionerId, it.key)}
+                              className="text-sm text-red-600 hover:underline"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                     <button
                       type="button"
                       onClick={() => addItem(d.pensionerId)}

@@ -9,6 +9,8 @@ type InitialPaymentInput = {
   pensionerId: number;
   paymentId: number;
   amount: number;
+  existingId?: number;
+  isPaid?: boolean;
 };
 
 export async function createRound(formData: FormData) {
@@ -28,23 +30,44 @@ export async function createRound(formData: FormData) {
     initial = [];
   }
 
-  const round = await prisma.round.create({
-    data: {
-      date,
-      postmanId,
-      notes,
-      currentPayments: {
-        create: initial.map((p) => ({
-          pensionerId: p.pensionerId,
-          paymentId: p.paymentId,
-          amount: p.amount,
-          date,
-        })),
+  const existing = initial.filter((p) => p.existingId);
+  const fresh = initial.filter((p) => !p.existingId);
+
+  const round = await prisma.$transaction(async (tx) => {
+    const created = await tx.round.create({
+      data: {
+        date,
+        postmanId,
+        notes,
+        currentPayments: {
+          create: fresh.map((p) => ({
+            pensionerId: p.pensionerId,
+            paymentId: p.paymentId,
+            amount: p.amount,
+            date,
+          })),
+        },
       },
-    },
+    });
+
+    for (const p of existing) {
+      await tx.currentPayment.update({
+        where: { id: p.existingId! },
+        data: p.isPaid
+          ? { roundId: created.id }
+          : {
+              roundId: created.id,
+              paymentId: p.paymentId,
+              amount: p.amount,
+            },
+      });
+    }
+
+    return created;
   });
 
   revalidatePath("/rounds");
+  revalidatePath("/current-payments");
   redirect(`/rounds/${round.id}`);
 }
 
