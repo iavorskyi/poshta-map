@@ -6,12 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function NewRoundPage() {
   const [pensioners, payments, postmen] = await Promise.all([
-    prisma.pensioner.findMany({
-      orderBy: { fullName: "asc" },
-      include: {
-        templates: { include: { payment: true } },
-      },
-    }),
+    prisma.pensioner.findMany({ orderBy: { fullName: "asc" } }),
     prisma.payment.findMany({ orderBy: { name: "asc" } }),
     prisma.postman.findMany({ orderBy: { name: "asc" } }),
   ]);
@@ -21,14 +16,6 @@ export default async function NewRoundPage() {
     fullName: p.fullName,
     address: `${p.street}, ${p.house}${p.apartment ? `, кв. ${p.apartment}` : ""}`,
     pensionPaymentDay: p.pensionPaymentDay,
-    templates: p.templates.map((t) => ({
-      id: t.id,
-      paymentId: t.paymentId,
-      paymentName: t.payment.name,
-      paymentCode: t.payment.code,
-      dayOfMonth: t.dayOfMonth,
-      defaultAmount: t.defaultAmount,
-    })),
   }));
 
   return (

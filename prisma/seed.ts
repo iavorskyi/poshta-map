@@ -4,16 +4,12 @@ import { PrismaClient } from "../src/generated/prisma";
 const prisma = new PrismaClient();
 
 async function main() {
-  // Postmen
-  const [postman1] = await Promise.all([
-    prisma.postman.upsert({
-      where: { id: 1 },
-      update: {},
-      create: { name: "Іваненко І. І." },
-    }),
-  ]);
+  const postman1 = await prisma.postman.upsert({
+    where: { id: 1 },
+    update: {},
+    create: { name: "Іваненко І. І." },
+  });
 
-  // Payment types
   const pension = await prisma.payment.upsert({
     where: { code: "PENSION" },
     update: {},
@@ -30,7 +26,6 @@ async function main() {
     create: { name: "Допомога", code: "HELP" },
   });
 
-  // Pensioners
   const today = new Date();
   const day = today.getDate();
 
@@ -46,12 +41,6 @@ async function main() {
       passportNumber: "АА123456",
       pensionPaymentDay: day,
       notes: "Живе на 3-му поверсі, ліфта немає.",
-      templates: {
-        create: [
-          { paymentId: pension.id, dayOfMonth: day, defaultAmount: 3500 },
-          { paymentId: subsidy.id, dayOfMonth: day, defaultAmount: 850 },
-        ],
-      },
     },
   });
 
@@ -67,9 +56,6 @@ async function main() {
       passportNumber: "ВВ654321",
       pensionPaymentDay: day,
       notes: "Глухий — стукати голосно.",
-      templates: {
-        create: [{ paymentId: pension.id, dayOfMonth: day, defaultAmount: 4100 }],
-      },
     },
   });
 
@@ -85,13 +71,18 @@ async function main() {
       passportNumber: "ММ999888",
       pensionPaymentDay: ((day + 1) % 28) + 1,
       notes: null,
-      templates: {
-        create: [
-          { paymentId: pension.id, dayOfMonth: ((day + 1) % 28) + 1, defaultAmount: 2800 },
-          { paymentId: help.id, dayOfMonth: ((day + 1) % 28) + 1, defaultAmount: 500 },
-        ],
-      },
     },
+  });
+
+  // Seed a handful of current payments spread across the month
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  await prisma.currentPayment.createMany({
+    data: [
+      { pensionerId: p1.id, paymentId: pension.id, date: new Date(monthStart.getFullYear(), monthStart.getMonth(), day), amount: 3500, isPaid: false },
+      { pensionerId: p1.id, paymentId: subsidy.id, date: new Date(monthStart.getFullYear(), monthStart.getMonth(), day), amount: 850, isPaid: false },
+      { pensionerId: p2.id, paymentId: pension.id, date: new Date(monthStart.getFullYear(), monthStart.getMonth(), day), amount: 4100, isPaid: true },
+      { pensionerId: p3.id, paymentId: help.id, date: new Date(monthStart.getFullYear(), monthStart.getMonth(), Math.min(day + 2, 28)), amount: 500, isPaid: false },
+    ],
   });
 
   console.log("Seeded:", { postman1: postman1.id, p1: p1.id, p2: p2.id, p3: p3.id });

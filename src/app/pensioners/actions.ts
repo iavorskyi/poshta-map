@@ -4,12 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
-type TemplateInput = {
-  paymentId: number;
-  dayOfMonth: number;
-  defaultAmount: number;
-};
-
 function parsePensionerForm(formData: FormData) {
   const fullName = String(formData.get("fullName") ?? "").trim();
   const street = String(formData.get("street") ?? "").trim();
@@ -20,15 +14,7 @@ function parsePensionerForm(formData: FormData) {
   const pensionPaymentDay = Number(formData.get("pensionPaymentDay") ?? 0);
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
-  const templatesRaw = String(formData.get("templates") ?? "[]");
-  let templates: TemplateInput[] = [];
-  try {
-    templates = JSON.parse(templatesRaw);
-  } catch {
-    templates = [];
-  }
-
-  return { fullName, street, house, apartment, phone, passportNumber, pensionPaymentDay, notes, templates };
+  return { fullName, street, house, apartment, phone, passportNumber, pensionPaymentDay, notes };
 }
 
 function validate(data: ReturnType<typeof parsePensionerForm>) {
@@ -36,13 +22,6 @@ function validate(data: ReturnType<typeof parsePensionerForm>) {
   if (!data.street || !data.house) return "Вулиця і номер будинку обов'язкові";
   if (!data.pensionPaymentDay || data.pensionPaymentDay < 1 || data.pensionPaymentDay > 31)
     return "День виплати пенсії має бути 1..31";
-  for (const t of data.templates) {
-    if (!t.paymentId) return "Вкажіть тип виплати у шаблоні";
-    if (!t.dayOfMonth || t.dayOfMonth < 1 || t.dayOfMonth > 31)
-      return "День шаблону має бути 1..31";
-    if (t.defaultAmount == null || Number.isNaN(t.defaultAmount) || t.defaultAmount < 0)
-      return "Сума шаблону має бути невід'ємною";
-  }
   return null;
 }
 
@@ -51,19 +30,7 @@ export async function createPensioner(formData: FormData) {
   const err = validate(data);
   if (err) return { error: err };
 
-  const { templates, ...fields } = data;
-  const created = await prisma.pensioner.create({
-    data: {
-      ...fields,
-      templates: {
-        create: templates.map((t) => ({
-          paymentId: t.paymentId,
-          dayOfMonth: t.dayOfMonth,
-          defaultAmount: t.defaultAmount,
-        })),
-      },
-    },
-  });
+  const created = await prisma.pensioner.create({ data });
   revalidatePath("/pensioners");
   redirect(`/pensioners/${created.id}`);
 }
@@ -73,23 +40,7 @@ export async function updatePensioner(id: number, formData: FormData) {
   const err = validate(data);
   if (err) return { error: err };
 
-  const { templates, ...fields } = data;
-
-  await prisma.$transaction([
-    prisma.pensioner.update({
-      where: { id },
-      data: fields,
-    }),
-    prisma.pensionerPaymentTemplate.deleteMany({ where: { pensionerId: id } }),
-    prisma.pensionerPaymentTemplate.createMany({
-      data: templates.map((t) => ({
-        pensionerId: id,
-        paymentId: t.paymentId,
-        dayOfMonth: t.dayOfMonth,
-        defaultAmount: t.defaultAmount,
-      })),
-    }),
-  ]);
+  await prisma.pensioner.update({ where: { id }, data });
 
   revalidatePath("/pensioners");
   revalidatePath(`/pensioners/${id}`);
@@ -100,7 +51,7 @@ export async function deletePensioner(id: number) {
   try {
     await prisma.pensioner.delete({ where: { id } });
   } catch {
-    return { error: "Не вдалося видалити (можливо, є звʼязані виплати)" };
+    return { error: "Не вдалося видалити" };
   }
   revalidatePath("/pensioners");
   redirect("/pensioners");

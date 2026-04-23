@@ -15,7 +15,7 @@ model Postman {
 }
 
 model Pensioner {
-  id                Int                        @id @default(autoincrement())
+  id                Int              @id @default(autoincrement())
   fullName          String
   street            String
   house             String
@@ -24,30 +24,16 @@ model Pensioner {
   passportNumber    String?
   pensionPaymentDay Int
   notes             String?
-  createdAt         DateTime                   @default(now())
-  updatedAt         DateTime                   @updatedAt
-  templates         PensionerPaymentTemplate[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
   currentPayments   CurrentPayment[]
 }
 
 model Payment {
-  id              Int                        @id @default(autoincrement())
+  id              Int              @id @default(autoincrement())
   name            String
-  code            String                     @unique
-  templates       PensionerPaymentTemplate[]
+  code            String           @unique
   currentPayments CurrentPayment[]
-}
-
-model PensionerPaymentTemplate {
-  id            Int       @id @default(autoincrement())
-  pensionerId   Int
-  paymentId     Int
-  dayOfMonth    Int
-  defaultAmount Float
-  pensioner     Pensioner @relation(fields: [pensionerId], references: [id], onDelete: Cascade)
-  payment       Payment   @relation(fields: [paymentId], references: [id], onDelete: Restrict)
-
-  @@unique([pensionerId, paymentId, dayOfMonth])
 }
 
 model Round {
@@ -62,13 +48,16 @@ model Round {
 
 model CurrentPayment {
   id          Int       @id @default(autoincrement())
-  roundId     Int
+  roundId     Int?
   pensionerId Int
   paymentId   Int
   date        DateTime
   amount      Float
   isPaid      Boolean   @default(false)
-  round       Round     @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  round       Round?    @relation(fields: [roundId], references: [id], onDelete: SetNull)
   pensioner   Pensioner @relation(fields: [pensionerId], references: [id], onDelete: Cascade)
   payment     Payment   @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@index([date])
+  @@index([pensionerId, date])
 }

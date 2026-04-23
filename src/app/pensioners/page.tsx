@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default async function PensionersPage() {
   const pensioners = await prisma.pensioner.findMany({
     orderBy: { fullName: "asc" },
-    include: { _count: { select: { templates: true } } },
+    include: { _count: { select: { currentPayments: true } } },
   });
 
   return (
@@ -29,7 +29,7 @@ export default async function PensionersPage() {
               <th className="text-left px-3 py-2">Адреса</th>
               <th className="text-left px-3 py-2">Телефон</th>
               <th className="text-left px-3 py-2">День пенсії</th>
-              <th className="text-left px-3 py-2">Шаблонів</th>
+              <th className="text-left px-3 py-2">Виплат</th>
             </tr>
           </thead>
           <tbody>
@@ -56,7 +56,7 @@ export default async function PensionersPage() {
                 </td>
                 <td className="px-3 py-2">{p.phone ?? "—"}</td>
                 <td className="px-3 py-2">{p.pensionPaymentDay}</td>
-                <td className="px-3 py-2">{p._count.templates}</td>
+                <td className="px-3 py-2">{p._count.currentPayments}</td>
               </tr>
             ))}
           </tbody>

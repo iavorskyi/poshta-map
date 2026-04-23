@@ -24,6 +24,9 @@ export default function RootLayout({
               <Link href="/rounds" className="hover:text-blue-600">
                 Обходи
               </Link>
+              <Link href="/current-payments" className="hover:text-blue-600">
+                Поточні виплати
+              </Link>
               <Link href="/pensioners" className="hover:text-blue-600">
                 Пенсіонери
               </Link>

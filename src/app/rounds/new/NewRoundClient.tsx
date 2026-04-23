@@ -4,21 +4,11 @@ import { useMemo, useState, useTransition } from "react";
 import { createRound } from "../actions";
 import { formatUAH, toDateInputValue, fromDateInputValue } from "@/lib/format";
 
-type Template = {
-  id: number;
-  paymentId: number;
-  paymentName: string;
-  paymentCode: string;
-  dayOfMonth: number;
-  defaultAmount: number;
-};
-
 type Pensioner = {
   id: number;
   fullName: string;
   address: string;
   pensionPaymentDay: number;
-  templates: Template[];
 };
 
 type Payment = { id: number; name: string; code: string };
@@ -27,10 +17,9 @@ type Postman = { id: number; name: string };
 type Draft = {
   pensionerId: number;
   items: {
-    key: string; // unique per draft
+    key: string;
     paymentId: number | "";
     amount: number | "";
-    fromTemplateId?: number;
   }[];
 };
 
@@ -56,35 +45,26 @@ export function NewRoundClient({
 
   const suggested = useMemo(() => {
     if (selectedDay == null) return [];
-    return pensioners
-      .filter((p) => {
-        if (drafts.some((d) => d.pensionerId === p.id)) return false;
-        const byPensionDay = p.pensionPaymentDay === selectedDay;
-        const byTemplateDay = p.templates.some((t) => t.dayOfMonth === selectedDay);
-        return byPensionDay || byTemplateDay;
-      })
-      .map((p) => ({
-        pensioner: p,
-        matchingTemplates: p.templates.filter((t) => t.dayOfMonth === selectedDay),
-      }));
+    return pensioners.filter((p) => {
+      if (drafts.some((d) => d.pensionerId === p.id)) return false;
+      return p.pensionPaymentDay === selectedDay;
+    });
   }, [pensioners, selectedDay, drafts]);
 
-  const addPensioner = (pensionerId: number, autoTemplates: Template[]) => {
-    const items: Draft["items"] = autoTemplates.map((t, i) => ({
-      key: `${pensionerId}-${t.id}-${i}-${Date.now()}`,
-      paymentId: t.paymentId,
-      amount: t.defaultAmount,
-      fromTemplateId: t.id,
-    }));
-    // If no matching templates, still add pensioner with empty slot
-    if (items.length === 0) {
-      items.push({
-        key: `${pensionerId}-manual-${Date.now()}`,
-        paymentId: "",
-        amount: "",
-      });
-    }
-    setDrafts((ds) => [...ds, { pensionerId, items }]);
+  const addPensioner = (pensionerId: number) => {
+    setDrafts((ds) => [
+      ...ds,
+      {
+        pensionerId,
+        items: [
+          {
+            key: `${pensionerId}-init-${Date.now()}`,
+            paymentId: "",
+            amount: "",
+          },
+        ],
+      },
+    ]);
   };
 
   const removePensioner = (pensionerId: number) =>
@@ -132,8 +112,7 @@ export function NewRoundClient({
 
   const totalPlanned = drafts.reduce(
     (sum, d) =>
-      sum +
-      d.items.reduce((s, it) => s + (typeof it.amount === "number" ? it.amount : 0), 0),
+      sum + d.items.reduce((s, it) => s + (typeof it.amount === "number" ? it.amount : 0), 0),
     0
   );
 
@@ -218,23 +197,18 @@ export function NewRoundClient({
       {suggested.length > 0 && (
         <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 space-y-2">
           <div className="font-medium text-sm">
-            Пропозиції на {selectedDay}-е число ({suggested.length}):
+            Пропозиції на {selectedDay}-е число (день виплати пенсії, {suggested.length}):
           </div>
           <div className="flex flex-wrap gap-2">
-            {suggested.map(({ pensioner, matchingTemplates }) => (
+            {suggested.map((pensioner) => (
               <button
                 type="button"
                 key={pensioner.id}
-                onClick={() => addPensioner(pensioner.id, matchingTemplates)}
+                onClick={() => addPensioner(pensioner.id)}
                 className="text-left rounded border border-blue-300 bg-white px-3 py-2 text-sm hover:bg-blue-100"
               >
                 <div className="font-medium">{pensioner.fullName}</div>
                 <div className="text-xs text-slate-500">{pensioner.address}</div>
-                <div className="text-xs text-blue-700 mt-1">
-                  {matchingTemplates.length > 0
-                    ? matchingTemplates.map((t) => `${t.paymentCode} ${formatUAH(t.defaultAmount)}`).join(", ")
-                    : "пенсія"}
-                </div>
               </button>
             ))}
           </div>
@@ -262,10 +236,7 @@ export function NewRoundClient({
               disabled={!manualPensionerId}
               onClick={() => {
                 if (!manualPensionerId) return;
-                const p = pensionerById[manualPensionerId];
-                // When adding manually, prefill with templates matching selected day if any
-                const auto = p.templates.filter((t) => t.dayOfMonth === selectedDay);
-                addPensioner(manualPensionerId, auto);
+                addPensioner(Number(manualPensionerId));
                 setManualPensionerId("");
               }}
               className="rounded border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-50"

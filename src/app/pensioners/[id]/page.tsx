@@ -2,38 +2,54 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PensionerForm } from "../PensionerForm";
+import { parseRange } from "@/lib/dateRange";
+import { formatDate, formatUAH } from "@/lib/format";
+import { CurrentPaymentsFilter } from "@/app/current-payments/CurrentPaymentsFilter";
+import { CurrentPaymentsTable } from "@/app/current-payments/CurrentPaymentsTable";
+import { AddCurrentPayment } from "@/app/current-payments/AddCurrentPayment";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditPensionerPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string; to?: string }>;
 }) {
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!Number.isFinite(id)) notFound();
 
-  const [pensioner, payments] = await Promise.all([
-    prisma.pensioner.findUnique({
-      where: { id },
-      include: {
-        templates: { include: { payment: true }, orderBy: { dayOfMonth: "asc" } },
-      },
-    }),
+  const sp = await searchParams;
+  const { from, to, fromStr, toStr } = parseRange(sp.from, sp.to);
+
+  const [pensioner, payments, currentPayments] = await Promise.all([
+    prisma.pensioner.findUnique({ where: { id } }),
     prisma.payment.findMany({ orderBy: { name: "asc" } }),
+    prisma.currentPayment.findMany({
+      where: { pensionerId: id, date: { gte: from, lte: to } },
+      include: { pensioner: true, payment: true },
+      orderBy: [{ date: "asc" }, { id: "asc" }],
+    }),
   ]);
 
   if (!pensioner) notFound();
 
+  const totals = {
+    planned: currentPayments.reduce((s, it) => s + it.amount, 0),
+    paid: currentPayments.filter((i) => i.isPaid).reduce((s, it) => s + it.amount, 0),
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
         <Link href="/pensioners" className="text-sm text-blue-600 hover:underline">
           ← До списку
         </Link>
         <h1 className="text-2xl font-semibold mt-1">{pensioner.fullName}</h1>
       </div>
+
       <PensionerForm
         pensioner={{
           id: pensioner.id,
@@ -45,14 +61,57 @@ export default async function EditPensionerPage({
           passportNumber: pensioner.passportNumber,
           pensionPaymentDay: pensioner.pensionPaymentDay,
           notes: pensioner.notes,
-          templates: pensioner.templates.map((t) => ({
-            paymentId: t.paymentId,
-            dayOfMonth: t.dayOfMonth,
-            defaultAmount: t.defaultAmount,
-          })),
         }}
-        payments={payments}
       />
+
+      <div className="space-y-3 pt-4 border-t border-slate-200">
+        <div>
+          <h2 className="text-lg font-semibold">Поточні виплати</h2>
+          <p className="text-sm text-slate-600">
+            Період: {formatDate(from)} — {formatDate(to)}. Разом заплановано{" "}
+            <strong>{formatUAH(totals.planned)}</strong>, виплачено{" "}
+            <strong className="text-green-700">{formatUAH(totals.paid)}</strong>, залишок{" "}
+            <strong className="text-orange-700">{formatUAH(totals.planned - totals.paid)}</strong>
+            .
+          </p>
+        </div>
+
+        <CurrentPaymentsFilter
+          fromStr={fromStr}
+          toStr={toStr}
+          pensionerId={null}
+          pensioners={[]}
+          mode="pensioner"
+          pensionerIdForLink={id}
+        />
+
+        <AddCurrentPayment
+          pensioners={[{ id: pensioner.id, fullName: pensioner.fullName }]}
+          payments={payments}
+          defaultDate={fromStr}
+          defaultPensionerId={pensioner.id}
+        />
+
+        {currentPayments.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500 text-sm">
+            У вибраному періоді виплат немає.
+          </div>
+        ) : (
+          <CurrentPaymentsTable
+            items={currentPayments.map((it) => ({
+              id: it.id,
+              date: it.date.toISOString(),
+              pensionerId: it.pensionerId,
+              pensionerName: it.pensioner.fullName,
+              paymentName: it.payment.name,
+              paymentCode: it.payment.code,
+              amount: it.amount,
+              isPaid: it.isPaid,
+              roundId: it.roundId,
+            }))}
+          />
+        )}
+      </div>
     </div>
   );
 }

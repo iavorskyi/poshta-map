@@ -4,14 +4,6 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { createPensioner, updatePensioner, deletePensioner } from "./actions";
 
-type Payment = { id: number; name: string; code: string };
-
-type Template = {
-  paymentId: number | "";
-  dayOfMonth: number | "";
-  defaultAmount: number | "";
-};
-
 type Pensioner = {
   id: number;
   fullName: string;
@@ -22,43 +14,14 @@ type Pensioner = {
   passportNumber: string | null;
   pensionPaymentDay: number;
   notes: string | null;
-  templates: { paymentId: number; dayOfMonth: number; defaultAmount: number }[];
 };
 
-export function PensionerForm({
-  pensioner,
-  payments,
-}: {
-  pensioner?: Pensioner;
-  payments: Payment[];
-}) {
-  const [templates, setTemplates] = useState<Template[]>(
-    pensioner?.templates.map((t) => ({
-      paymentId: t.paymentId,
-      dayOfMonth: t.dayOfMonth,
-      defaultAmount: t.defaultAmount,
-    })) ?? []
-  );
+export function PensionerForm({ pensioner }: { pensioner?: Pensioner }) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const addTemplate = () =>
-    setTemplates((ts) => [...ts, { paymentId: "", dayOfMonth: "", defaultAmount: "" }]);
-  const updateTemplate = (idx: number, patch: Partial<Template>) =>
-    setTemplates((ts) => ts.map((t, i) => (i === idx ? { ...t, ...patch } : t)));
-  const removeTemplate = (idx: number) =>
-    setTemplates((ts) => ts.filter((_, i) => i !== idx));
-
   const onSubmit = (formData: FormData) => {
     setError(null);
-    // Validate templates client-side
-    const normalized = templates.map((t) => ({
-      paymentId: Number(t.paymentId),
-      dayOfMonth: Number(t.dayOfMonth),
-      defaultAmount: Number(t.defaultAmount),
-    }));
-    formData.set("templates", JSON.stringify(normalized));
-
     startTransition(async () => {
       if (pensioner) {
         const res = await updatePensioner(pensioner.id, formData);
@@ -72,7 +35,7 @@ export function PensionerForm({
 
   const onDelete = () => {
     if (!pensioner) return;
-    if (!confirm("Видалити пенсіонера? Це видалить і шаблони виплат.")) return;
+    if (!confirm("Видалити пенсіонера? Його поточні виплати теж будуть видалені.")) return;
     startTransition(async () => {
       const res = await deletePensioner(pensioner.id);
       if (res?.error) setError(res.error);
@@ -147,92 +110,6 @@ export function PensionerForm({
             className="input"
           />
         </Field>
-      </div>
-
-      <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-medium">Шаблони виплат</h2>
-          <button
-            type="button"
-            onClick={addTemplate}
-            className="text-sm rounded border border-slate-300 px-2 py-1 hover:bg-slate-50"
-          >
-            + Додати шаблон
-          </button>
-        </div>
-        {payments.length === 0 && (
-          <div className="text-sm text-slate-500">
-            Спочатку додайте хоча б один{" "}
-            <Link href="/payments" className="text-blue-600 hover:underline">
-              тип виплати
-            </Link>
-            .
-          </div>
-        )}
-        {templates.length === 0 ? (
-          <div className="text-sm text-slate-500">Шаблонів немає.</div>
-        ) : (
-          <div className="space-y-2">
-            {templates.map((t, idx) => (
-              <div
-                key={idx}
-                className="grid grid-cols-1 md:grid-cols-[1fr_120px_140px_auto] gap-2 items-end border border-slate-100 rounded p-2 bg-slate-50"
-              >
-                <Field label="Тип виплати">
-                  <select
-                    value={t.paymentId}
-                    onChange={(e) =>
-                      updateTemplate(idx, { paymentId: e.target.value ? Number(e.target.value) : "" })
-                    }
-                    className="input"
-                  >
-                    <option value="">— оберіть —</option>
-                    {payments.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.code})
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="День місяця">
-                  <input
-                    type="number"
-                    min={1}
-                    max={31}
-                    value={t.dayOfMonth}
-                    onChange={(e) =>
-                      updateTemplate(idx, {
-                        dayOfMonth: e.target.value ? Number(e.target.value) : "",
-                      })
-                    }
-                    className="input"
-                  />
-                </Field>
-                <Field label="Сума за замовч.">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    value={t.defaultAmount}
-                    onChange={(e) =>
-                      updateTemplate(idx, {
-                        defaultAmount: e.target.value ? Number(e.target.value) : "",
-                      })
-                    }
-                    className="input"
-                  />
-                </Field>
-                <button
-                  type="button"
-                  onClick={() => removeTemplate(idx)}
-                  className="text-sm text-red-600 hover:underline self-center"
-                >
-                  Видалити
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {error && <div className="text-sm text-red-600">{error}</div>}
