@@ -114,7 +114,7 @@ export function PensionerForm({ pensioner }: { pensioner?: Pensioner }) {
 
       {error && <div className="text-sm text-red-600">{error}</div>}
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <button
           type="submit"
           disabled={isPending}
@@ -133,7 +133,7 @@ export function PensionerForm({ pensioner }: { pensioner?: Pensioner }) {
             type="button"
             onClick={onDelete}
             disabled={isPending}
-            className="ml-auto rounded border border-red-300 text-red-700 px-4 py-2 text-sm hover:bg-red-50 disabled:opacity-60"
+            className="sm:ml-auto rounded border border-red-300 text-red-700 px-4 py-2 text-sm hover:bg-red-50 disabled:opacity-60"
           >
             Видалити пенсіонера
           </button>

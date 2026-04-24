@@ -7,10 +7,23 @@
 
 body {
   font-family: var(--font-sans);
+  -webkit-text-size-adjust: 100%;
 }
 
 @layer components {
+  /* Base input — 16px font-size prevents iOS auto-zoom on focus.
+     py-2 gives a comfortable touch target height. */
   .input {
-    @apply w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
+    @apply w-full rounded border border-slate-300 bg-white px-3 py-2 text-base outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
+  }
+  @media (min-width: 768px) {
+    .input {
+      @apply px-2 py-1.5 text-sm;
+    }
+  }
+
+  /* Touch-friendly button minimum height on mobile */
+  .btn-touch {
+    @apply min-h-11;
   }
 }

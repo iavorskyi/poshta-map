@@ -16,6 +16,7 @@ export function AddCurrentPayment({
   defaultDate?: string;
   defaultPensionerId?: number | null;
 }) {
+  const [open, setOpen] = useState(false);
   const [pensionerId, setPensionerId] = useState<number | "">(defaultPensionerId ?? "");
   const [paymentId, setPaymentId] = useState<number | "">("");
   const [amount, setAmount] = useState<number | "">("");
@@ -24,8 +25,7 @@ export function AddCurrentPayment({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const canSubmit =
-    pensioners.length > 0 && payments.length > 0;
+  const canSubmit = pensioners.length > 0 && payments.length > 0;
 
   const submit = () => {
     setError(null);
@@ -48,6 +48,7 @@ export function AddCurrentPayment({
       setPaymentId("");
       setAmount("");
       setIsPaid(false);
+      setOpen(false);
     });
   };
 
@@ -67,10 +68,32 @@ export function AddCurrentPayment({
     );
   }
 
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="w-full rounded-lg border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-600 hover:border-blue-400 hover:text-blue-700"
+      >
+        + Додати поточну виплату
+      </button>
+    );
+  }
+
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
-      <div className="font-medium text-sm">Додати поточну виплату</div>
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_150px_140px_auto_auto] gap-2 items-end">
+    <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="font-medium text-sm">Додати поточну виплату</div>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-slate-500 text-sm px-2 py-1"
+          aria-label="Закрити"
+        >
+          ✕
+        </button>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[1fr_1fr_150px_140px] gap-2">
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-xs text-slate-600">Пенсіонер</span>
           <select
@@ -121,19 +144,21 @@ export function AddCurrentPayment({
             className="input"
           />
         </label>
+      </div>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             checked={isPaid}
             onChange={(e) => setIsPaid(e.target.checked)}
-            className="h-4 w-4 accent-blue-600"
+            className="h-5 w-5 accent-blue-600"
           />
           Виплачено
         </label>
         <button
           onClick={submit}
           disabled={isPending}
-          className="rounded bg-blue-600 text-white px-3 py-1.5 text-sm hover:bg-blue-700 disabled:opacity-60"
+          className="rounded bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700 disabled:opacity-60"
         >
           Додати
         </button>

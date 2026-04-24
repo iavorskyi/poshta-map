@@ -50,6 +50,7 @@ export function RoundDetailClient({
   const [postmanId, setPostmanId] = useState<number | "">(round.postmanId ?? "");
   const [notes, setNotes] = useState(round.notes ?? "");
 
+  const [showAdd, setShowAdd] = useState(false);
   const [newPensionerId, setNewPensionerId] = useState<number | "">("");
   const [newPaymentId, setNewPaymentId] = useState<number | "">("");
   const [newAmount, setNewAmount] = useState<number | "">("");
@@ -128,6 +129,7 @@ export function RoundDetailClient({
       setNewPensionerId("");
       setNewPaymentId("");
       setNewAmount("");
+      setShowAdd(false);
     });
   };
 
@@ -139,8 +141,8 @@ export function RoundDetailClient({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="space-y-4 md:space-y-6">
+      <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4">
         {editMeta ? (
           <div className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -181,22 +183,22 @@ export function RoundDetailClient({
               <button
                 onClick={saveMeta}
                 disabled={isPending}
-                className="rounded bg-blue-600 text-white px-3 py-1.5 text-sm"
+                className="rounded bg-blue-600 text-white px-4 py-2 text-sm"
               >
                 Зберегти
               </button>
               <button
                 onClick={() => setEditMeta(false)}
-                className="rounded border border-slate-300 px-3 py-1.5 text-sm"
+                className="rounded border border-slate-300 px-4 py-2 text-sm"
               >
                 Скасувати
               </button>
             </div>
           </div>
         ) : (
-          <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-3">
             <div>
-              <h1 className="text-2xl font-semibold">Обхід {formatDate(round.date)}</h1>
+              <h1 className="text-xl md:text-2xl font-semibold">Обхід {formatDate(round.date)}</h1>
               <div className="text-sm text-slate-600 mt-1">
                 Поштар: {postmen.find((pm) => pm.id === round.postmanId)?.name ?? "—"}
               </div>
@@ -207,13 +209,13 @@ export function RoundDetailClient({
             <div className="flex gap-2">
               <button
                 onClick={() => setEditMeta(true)}
-                className="rounded border border-slate-300 px-3 py-1.5 text-sm"
+                className="rounded border border-slate-300 px-3 py-2 text-sm"
               >
                 Редагувати
               </button>
               <button
                 onClick={removeRound}
-                className="rounded border border-red-300 text-red-700 px-3 py-1.5 text-sm hover:bg-red-50"
+                className="rounded border border-red-300 text-red-700 px-3 py-2 text-sm hover:bg-red-50"
               >
                 Видалити
               </button>
@@ -222,67 +224,89 @@ export function RoundDetailClient({
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Stat title="Запланована сума виплат" value={formatUAH(totals.planned)} />
-        <Stat title="Фактично виплачено" value={formatUAH(totals.paid)} tone="green" />
+      <div className="grid grid-cols-3 gap-2 md:gap-3">
+        <Stat title="План" value={formatUAH(totals.planned)} />
+        <Stat title="Виплачено" value={formatUAH(totals.paid)} tone="green" />
         <Stat title="Залишок" value={formatUAH(totals.remaining)} tone="orange" />
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
-        <div className="font-medium">Додати виплату вручну</div>
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_140px_auto] gap-2 items-end">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-slate-600">Пенсіонер</span>
-            <select
-              value={newPensionerId}
-              onChange={(e) => setNewPensionerId(e.target.value ? Number(e.target.value) : "")}
-              className="input"
+      {showAdd ? (
+        <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="font-medium">Додати виплату вручну</div>
+            <button
+              type="button"
+              onClick={() => setShowAdd(false)}
+              className="text-slate-500 text-sm px-2 py-1"
+              aria-label="Закрити"
             >
-              <option value="">— оберіть —</option>
-              {pensioners.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.fullName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-slate-600">Тип виплати</span>
-            <select
-              value={newPaymentId}
-              onChange={(e) => setNewPaymentId(e.target.value ? Number(e.target.value) : "")}
-              className="input"
+              ✕
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_140px] gap-2">
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-xs text-slate-600">Пенсіонер</span>
+              <select
+                value={newPensionerId}
+                onChange={(e) => setNewPensionerId(e.target.value ? Number(e.target.value) : "")}
+                className="input"
+              >
+                <option value="">— оберіть —</option>
+                {pensioners.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.fullName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-xs text-slate-600">Тип виплати</span>
+              <select
+                value={newPaymentId}
+                onChange={(e) => setNewPaymentId(e.target.value ? Number(e.target.value) : "")}
+                className="input"
+              >
+                <option value="">— оберіть —</option>
+                {payments.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.code})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-xs text-slate-600">Сума</span>
+              <input
+                type="number"
+                step="0.01"
+                min={0}
+                value={newAmount}
+                onChange={(e) => setNewAmount(e.target.value ? Number(e.target.value) : "")}
+                className="input"
+              />
+            </label>
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={addItem}
+              disabled={isPending}
+              className="rounded bg-blue-600 text-white px-4 py-2 text-sm disabled:opacity-60"
             >
-              <option value="">— оберіть —</option>
-              {payments.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.code})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-slate-600">Сума</span>
-            <input
-              type="number"
-              step="0.01"
-              min={0}
-              value={newAmount}
-              onChange={(e) => setNewAmount(e.target.value ? Number(e.target.value) : "")}
-              className="input"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={addItem}
-            disabled={isPending}
-            className="rounded bg-blue-600 text-white px-3 py-1.5 text-sm disabled:opacity-60"
-          >
-            Додати
-          </button>
+              Додати
+            </button>
+          </div>
+          {error && <div className="text-sm text-red-600">{error}</div>}
         </div>
-        {error && <div className="text-sm text-red-600">{error}</div>}
-      </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowAdd(true)}
+          className="w-full rounded-lg border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-600 hover:border-blue-400 hover:text-blue-700"
+        >
+          + Додати виплату
+        </button>
+      )}
 
       <div className="space-y-3">
         {grouped.length === 0 ? (
@@ -298,68 +322,76 @@ export function RoundDetailClient({
             return (
               <div
                 key={g.pensionerId}
-                className="rounded-lg border border-slate-200 bg-white p-4"
+                className="rounded-lg border border-slate-200 bg-white p-3 md:p-4"
               >
-                <div className="flex items-start justify-between">
-                  <div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
                     <div className="font-medium">{g.name}</div>
                     <div className="text-xs text-slate-500">{g.address}</div>
                   </div>
-                  <div className="text-right text-sm">
-                    <div>
-                      План: <span className="font-medium">{formatUAH(subPlanned)}</span>
-                    </div>
-                    <div className="text-green-700">Виплачено: {formatUAH(subPaid)}</div>
+                  <div className="text-right text-sm shrink-0">
+                    <div className="font-medium">{formatUAH(subPlanned)}</div>
+                    <div className="text-xs text-green-700">{formatUAH(subPaid)}</div>
                   </div>
                 </div>
-                <table className="mt-3 w-full text-sm">
-                  <thead>
-                    <tr className="text-slate-500 text-xs">
-                      <th className="text-left font-normal">Тип</th>
-                      <th className="text-left font-normal">Код</th>
-                      <th className="text-right font-normal">Сума</th>
-                      <th className="text-center font-normal w-28">Виплачено</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {g.items.map((it) => (
-                      <tr key={it.id} className="border-t border-slate-100">
-                        <td className="py-2">{it.paymentName}</td>
-                        <td className="py-2 font-mono text-xs">{it.paymentCode}</td>
-                        <td className="py-2 text-right">
-                          <input
-                            type="number"
-                            step="0.01"
-                            min={0}
-                            defaultValue={it.amount}
-                            onBlur={(e) => {
-                              const v = Number(e.target.value);
-                              if (!Number.isNaN(v) && v !== it.amount) changeAmount(it.id, v);
-                            }}
-                            className="input w-28 text-right"
-                          />
-                        </td>
-                        <td className="py-2 text-center">
+
+                <ul className="mt-3 space-y-2">
+                  {g.items.map((it) => (
+                    <li
+                      key={it.id}
+                      className={`rounded border p-2 ${
+                        it.isPaid ? "border-green-200 bg-green-50/30" : "border-slate-200"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm">
+                            {it.paymentName}{" "}
+                            <span className="font-mono text-xs text-slate-500">
+                              ({it.paymentCode})
+                            </span>
+                          </div>
+                        </div>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          defaultValue={it.amount}
+                          onBlur={(e) => {
+                            const v = Number(e.target.value);
+                            if (!Number.isNaN(v) && v !== it.amount) changeAmount(it.id, v);
+                          }}
+                          className="input !w-28 text-right"
+                          aria-label="Сума"
+                        />
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <label className="flex items-center gap-2 text-sm flex-1">
                           <input
                             type="checkbox"
                             checked={it.isPaid}
                             onChange={(e) => toggleIsPaid(it.id, e.target.checked)}
-                            className="h-4 w-4 accent-blue-600"
+                            className="h-5 w-5 accent-blue-600"
                           />
-                        </td>
-                        <td className="py-2 text-right">
-                          <button
-                            onClick={() => removeItem(it.id)}
-                            className="text-red-600 hover:underline text-sm"
+                          <span
+                            className={
+                              it.isPaid ? "text-green-700 font-medium" : "text-slate-600"
+                            }
                           >
-                            Видалити
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                            {it.isPaid ? "Виплачено" : "Відмітити виплаченою"}
+                          </span>
+                        </label>
+                        <button
+                          onClick={() => removeItem(it.id)}
+                          className="text-red-600 text-sm px-2 py-1"
+                          aria-label="Видалити"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
             );
           })
@@ -385,9 +417,9 @@ function Stat({
       ? "text-orange-700"
       : "text-slate-900";
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4">
       <div className="text-xs text-slate-500">{title}</div>
-      <div className={`text-2xl font-semibold mt-1 ${color}`}>{value}</div>
+      <div className={`text-base md:text-2xl font-semibold mt-1 ${color} truncate`}>{value}</div>
     </div>
   );
 }

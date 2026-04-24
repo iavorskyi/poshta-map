@@ -48,7 +48,7 @@ export default async function CurrentPaymentsPage({
         pensioners={pensioners.map((p) => ({ id: p.id, fullName: p.fullName }))}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
         <Stat title="Виплат" value={String(items.length)} />
         <Stat title="Заплановано" value={formatUAH(totals.planned)} />
         <Stat title="Виплачено" value={formatUAH(totals.paid)} tone="green" />
@@ -109,9 +109,9 @@ function Stat({
       ? "text-orange-700"
       : "text-slate-900";
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4">
       <div className="text-xs text-slate-500">{title}</div>
-      <div className={`text-xl font-semibold mt-1 ${color}`}>{value}</div>
+      <div className={`text-base md:text-xl font-semibold mt-1 ${color} truncate`}>{value}</div>
     </div>
   );
 }

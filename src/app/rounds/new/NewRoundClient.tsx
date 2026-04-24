@@ -249,13 +249,13 @@ export function NewRoundClient({
       )}
 
       <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="font-medium">Пенсіонери в обході</div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <select
               value={manualPensionerId}
               onChange={(e) => setManualPensionerId(e.target.value ? Number(e.target.value) : "")}
-              className="input max-w-xs"
+              className="input sm:max-w-xs"
             >
               <option value="">Додати вручну…</option>
               {availableForManual.map((p) => (
@@ -272,7 +272,7 @@ export function NewRoundClient({
                 addPensioner(Number(manualPensionerId));
                 setManualPensionerId("");
               }}
-              className="rounded border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-50"
+              className="rounded border border-slate-300 px-3 py-2 text-sm disabled:opacity-50 shrink-0"
             >
               Додати
             </button>
@@ -314,8 +314,8 @@ export function NewRoundClient({
                       return (
                         <div
                           key={it.key}
-                          className={`grid grid-cols-[1fr_140px_auto] gap-2 items-center ${
-                            paid ? "opacity-50" : ""
+                          className={`grid grid-cols-[1fr_auto] md:grid-cols-[1fr_140px_auto] gap-2 items-center ${
+                            paid ? "opacity-60" : ""
                           }`}
                         >
                           <select
@@ -326,7 +326,7 @@ export function NewRoundClient({
                                 paymentId: e.target.value ? Number(e.target.value) : "",
                               })
                             }
-                            className="input disabled:bg-slate-100 disabled:cursor-not-allowed"
+                            className="input disabled:bg-slate-100 disabled:cursor-not-allowed col-span-2 md:col-span-1"
                           >
                             <option value="">— тип виплати —</option>
                             {payments.map((pay) => (
@@ -351,7 +351,7 @@ export function NewRoundClient({
                           />
                           {paid ? (
                             <span
-                              className="text-xs text-slate-500 px-2"
+                              className="text-xs text-slate-500 px-2 shrink-0"
                               title="Ця виплата вже оплачена в цьому місяці"
                             >
                               оплачено
@@ -360,9 +360,10 @@ export function NewRoundClient({
                             <button
                               type="button"
                               onClick={() => removeItem(d.pensionerId, it.key)}
-                              className="text-sm text-red-600 hover:underline"
+                              className="text-red-600 text-lg px-3 py-1 shrink-0"
+                              aria-label="Видалити"
                             >
-                              ×
+                              ✕
                             </button>
                           )}
                         </div>

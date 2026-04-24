@@ -60,8 +60,8 @@ export function CurrentPaymentsFilter({
       : "md:grid-cols-[160px_160px_1fr_auto_auto]";
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <div className={`grid grid-cols-1 ${gridCols} gap-2 items-end`}>
+    <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4">
+      <div className={`grid grid-cols-2 ${gridCols} gap-2 items-end`}>
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-xs text-slate-600">Від</span>
           <input
@@ -81,7 +81,7 @@ export function CurrentPaymentsFilter({
           />
         </label>
         {mode === "all" && (
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1 text-sm col-span-2 md:col-span-1">
             <span className="text-xs text-slate-600">Пенсіонер</span>
             <select
               value={pid}
@@ -100,14 +100,14 @@ export function CurrentPaymentsFilter({
         <button
           onClick={apply}
           disabled={isPending}
-          className="rounded bg-blue-600 text-white px-3 py-1.5 text-sm hover:bg-blue-700 disabled:opacity-60"
+          className="rounded bg-blue-600 text-white px-3 py-2 text-sm hover:bg-blue-700 disabled:opacity-60"
         >
           Застосувати
         </button>
         <button
           onClick={reset}
           disabled={isPending}
-          className="rounded border border-slate-300 px-3 py-1.5 text-sm"
+          className="rounded border border-slate-300 px-3 py-2 text-sm"
         >
           Скинути
         </button>
