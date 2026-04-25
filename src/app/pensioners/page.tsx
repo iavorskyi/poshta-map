@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { ImportPensioners } from "./ImportPensioners";
 
 export const dynamic = "force-dynamic";
 
@@ -13,12 +14,15 @@ export default async function PensionersPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-semibold">Пенсіонери</h1>
-        <Link
-          href="/pensioners/new"
-          className="rounded bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700"
-        >
-          + Додати пенсіонера
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          <ImportPensioners />
+          <Link
+            href="/pensioners/new"
+            className="rounded bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700"
+          >
+            + Додати пенсіонера
+          </Link>
+        </div>
       </div>
 
       {pensioners.length === 0 ? (
