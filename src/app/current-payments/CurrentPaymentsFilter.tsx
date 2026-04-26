@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { currentMonthRange } from "@/lib/dateRange";
 import { PensionerCombobox } from "@/components/PensionerCombobox";
 
@@ -41,7 +41,16 @@ export function CurrentPaymentsFilter({
 
   const showPaymentFilter = payments.length > 0;
 
-  const apply = () => {
+  // Skip the very first effect run — values came from props/URL, no need to push.
+  const initialMount = useRef(true);
+
+  useEffect(() => {
+    if (initialMount.current) {
+      initialMount.current = false;
+      return;
+    }
+    if (!from || !to) return;
+
     const params = new URLSearchParams(sp.toString());
     params.set("from", from);
     params.set("to", to);
@@ -53,8 +62,17 @@ export function CurrentPaymentsFilter({
       if (payId === "") params.delete("paymentId");
       else params.set("paymentId", String(payId));
     }
-    startTransition(() => router.push(`${pathname}?${params.toString()}`));
-  };
+
+    const next = `${pathname}?${params.toString()}`;
+    const current = `${pathname}?${sp.toString()}`;
+    if (next === current) return;
+
+    const t = setTimeout(() => {
+      startTransition(() => router.push(next));
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [from, to, pid, payId]);
 
   const reset = () => {
     const range = currentMonthRange();
@@ -62,9 +80,6 @@ export function CurrentPaymentsFilter({
     setTo(range.to);
     if (mode === "all") setPid("");
     if (showPaymentFilter) setPayId("");
-    startTransition(() =>
-      router.push(`${pathname}?from=${range.from}&to=${range.to}`)
-    );
   };
 
   return (
@@ -116,18 +131,12 @@ export function CurrentPaymentsFilter({
             </select>
           </label>
         )}
-        <div className="flex gap-2 md:ml-auto">
-          <button
-            onClick={apply}
-            disabled={isPending}
-            className="rounded bg-blue-600 text-white px-3 py-2 text-sm hover:bg-blue-700 disabled:opacity-60 flex-1 md:flex-none"
-          >
-            Застосувати
-          </button>
+        <div className="flex items-center gap-3 md:ml-auto">
+          {isPending && <span className="text-xs text-slate-500">Оновлення…</span>}
           <button
             onClick={reset}
             disabled={isPending}
-            className="rounded border border-slate-300 px-3 py-2 text-sm flex-1 md:flex-none"
+            className="rounded border border-slate-300 px-3 py-2 text-sm"
           >
             Скинути
           </button>
