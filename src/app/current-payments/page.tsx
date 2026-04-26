@@ -12,17 +12,24 @@ export const dynamic = "force-dynamic";
 export default async function CurrentPaymentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; pensionerId?: string }>;
+  searchParams: Promise<{
+    from?: string;
+    to?: string;
+    pensionerId?: string;
+    paymentId?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const { from, to, fromStr, toStr } = parseRange(sp.from, sp.to);
   const pensionerId = sp.pensionerId ? Number(sp.pensionerId) : null;
+  const paymentId = sp.paymentId ? Number(sp.paymentId) : null;
 
   const [items, pensioners, payments] = await Promise.all([
     prisma.currentPayment.findMany({
       where: {
         date: { gte: from, lte: to },
         ...(pensionerId ? { pensionerId } : {}),
+        ...(paymentId ? { paymentId } : {}),
       },
       include: { pensioner: true, payment: true, round: true },
       orderBy: [{ date: "asc" }, { id: "asc" }],
@@ -48,6 +55,8 @@ export default async function CurrentPaymentsPage({
         toStr={toStr}
         pensionerId={pensionerId}
         pensioners={pensioners.map((p) => ({ id: p.id, fullName: p.fullName }))}
+        paymentId={paymentId}
+        payments={payments.map((p) => ({ id: p.id, name: p.name, code: p.code }))}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">

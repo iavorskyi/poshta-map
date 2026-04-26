@@ -10,6 +10,8 @@ type Props = {
   toStr: string;
   pensionerId: number | null;
   pensioners: { id: number; fullName: string }[];
+  paymentId?: number | null;
+  payments?: { id: number; name: string; code: string }[];
   /**
    * When "pensioner" the pensioner selector is hidden (page is already scoped
    * to one pensioner).
@@ -24,6 +26,8 @@ export function CurrentPaymentsFilter({
   toStr,
   pensionerId,
   pensioners,
+  paymentId = null,
+  payments = [],
   mode = "all",
 }: Props) {
   const router = useRouter();
@@ -32,7 +36,10 @@ export function CurrentPaymentsFilter({
   const [from, setFrom] = useState(fromStr);
   const [to, setTo] = useState(toStr);
   const [pid, setPid] = useState<number | "">(pensionerId ?? "");
+  const [payId, setPayId] = useState<number | "">(paymentId ?? "");
   const [isPending, startTransition] = useTransition();
+
+  const showPaymentFilter = payments.length > 0;
 
   const apply = () => {
     const params = new URLSearchParams(sp.toString());
@@ -42,6 +49,10 @@ export function CurrentPaymentsFilter({
       if (pid === "") params.delete("pensionerId");
       else params.set("pensionerId", String(pid));
     }
+    if (showPaymentFilter) {
+      if (payId === "") params.delete("paymentId");
+      else params.set("paymentId", String(payId));
+    }
     startTransition(() => router.push(`${pathname}?${params.toString()}`));
   };
 
@@ -50,20 +61,16 @@ export function CurrentPaymentsFilter({
     setFrom(range.from);
     setTo(range.to);
     if (mode === "all") setPid("");
+    if (showPaymentFilter) setPayId("");
     startTransition(() =>
       router.push(`${pathname}?from=${range.from}&to=${range.to}`)
     );
   };
 
-  const gridCols =
-    mode === "pensioner"
-      ? "md:grid-cols-[160px_160px_auto_auto]"
-      : "md:grid-cols-[160px_160px_1fr_auto_auto]";
-
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4">
-      <div className={`grid grid-cols-2 ${gridCols} gap-2 items-end`}>
-        <label className="flex flex-col gap-1 text-sm">
+      <div className="flex flex-col md:flex-row md:flex-wrap md:items-end gap-2">
+        <label className="flex flex-col gap-1 text-sm md:w-40">
           <span className="text-xs text-slate-600">Від</span>
           <input
             type="date"
@@ -72,7 +79,7 @@ export function CurrentPaymentsFilter({
             className="input"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1 text-sm md:w-40">
           <span className="text-xs text-slate-600">До</span>
           <input
             type="date"
@@ -82,7 +89,7 @@ export function CurrentPaymentsFilter({
           />
         </label>
         {mode === "all" && (
-          <label className="flex flex-col gap-1 text-sm col-span-2 md:col-span-1">
+          <label className="flex flex-col gap-1 text-sm md:flex-1 md:min-w-48">
             <span className="text-xs text-slate-600">Пенсіонер</span>
             <PensionerCombobox
               pensioners={pensioners}
@@ -92,20 +99,39 @@ export function CurrentPaymentsFilter({
             />
           </label>
         )}
-        <button
-          onClick={apply}
-          disabled={isPending}
-          className="rounded bg-blue-600 text-white px-3 py-2 text-sm hover:bg-blue-700 disabled:opacity-60"
-        >
-          Застосувати
-        </button>
-        <button
-          onClick={reset}
-          disabled={isPending}
-          className="rounded border border-slate-300 px-3 py-2 text-sm"
-        >
-          Скинути
-        </button>
+        {showPaymentFilter && (
+          <label className="flex flex-col gap-1 text-sm md:w-56">
+            <span className="text-xs text-slate-600">Тип виплати</span>
+            <select
+              value={payId}
+              onChange={(e) => setPayId(e.target.value ? Number(e.target.value) : "")}
+              className="input"
+            >
+              <option value="">Усі типи</option>
+              {payments.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.code})
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <div className="flex gap-2 md:ml-auto">
+          <button
+            onClick={apply}
+            disabled={isPending}
+            className="rounded bg-blue-600 text-white px-3 py-2 text-sm hover:bg-blue-700 disabled:opacity-60 flex-1 md:flex-none"
+          >
+            Застосувати
+          </button>
+          <button
+            onClick={reset}
+            disabled={isPending}
+            className="rounded border border-slate-300 px-3 py-2 text-sm flex-1 md:flex-none"
+          >
+            Скинути
+          </button>
+        </div>
       </div>
     </div>
   );
