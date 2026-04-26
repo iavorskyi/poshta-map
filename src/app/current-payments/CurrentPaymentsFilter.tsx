@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { currentMonthRange } from "@/lib/dateRange";
+import { PensionerCombobox } from "@/components/PensionerCombobox";
 
 type Props = {
   fromStr: string;
@@ -83,18 +84,12 @@ export function CurrentPaymentsFilter({
         {mode === "all" && (
           <label className="flex flex-col gap-1 text-sm col-span-2 md:col-span-1">
             <span className="text-xs text-slate-600">Пенсіонер</span>
-            <select
+            <PensionerCombobox
+              pensioners={pensioners}
               value={pid}
-              onChange={(e) => setPid(e.target.value ? Number(e.target.value) : "")}
-              className="input"
-            >
-              <option value="">Усі пенсіонери</option>
-              {pensioners.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.fullName}
-                </option>
-              ))}
-            </select>
+              onChange={setPid}
+              placeholder="Усі пенсіонери"
+            />
           </label>
         )}
         <button
