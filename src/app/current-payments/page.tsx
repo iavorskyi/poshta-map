@@ -5,6 +5,7 @@ import { parseRange } from "@/lib/dateRange";
 import { CurrentPaymentsFilter } from "./CurrentPaymentsFilter";
 import { CurrentPaymentsTable } from "./CurrentPaymentsTable";
 import { AddCurrentPayment } from "./AddCurrentPayment";
+import { ImportCurrentPayments } from "./ImportCurrentPayments";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,7 @@ export default async function CurrentPaymentsPage({
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-semibold">Поточні виплати</h1>
+        <ImportCurrentPayments payments={payments} />
       </div>
 
       <CurrentPaymentsFilter
