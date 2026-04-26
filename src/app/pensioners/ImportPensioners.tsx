@@ -24,6 +24,10 @@ export function ImportPensioners() {
       try {
         const res = await importPensioners(fd);
         setResult(res);
+        if (res.errors.length === 0) {
+          setOpen(false);
+          reset();
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Помилка імпорту");
       }
