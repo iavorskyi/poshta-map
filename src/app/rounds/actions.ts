@@ -72,9 +72,17 @@ export async function createRound(formData: FormData) {
 }
 
 export async function deleteRound(id: number) {
-  await prisma.round.delete({ where: { id } });
+  try {
+    await prisma.round.delete({ where: { id } });
+  } catch (e) {
+    return {
+      error: `Не вдалося видалити обхід: ${
+        e instanceof Error ? e.message : "невідома помилка"
+      }`,
+    };
+  }
   revalidatePath("/rounds");
-  redirect("/rounds");
+  return { ok: true };
 }
 
 export async function updateRoundMeta(
@@ -132,7 +140,15 @@ export async function updateCurrentPayment(
 }
 
 export async function deleteCurrentPayment(id: number, roundId: number) {
-  await prisma.currentPayment.delete({ where: { id } });
+  try {
+    await prisma.currentPayment.delete({ where: { id } });
+  } catch (e) {
+    return {
+      error: `Не вдалося видалити виплату: ${
+        e instanceof Error ? e.message : "невідома помилка"
+      }`,
+    };
+  }
   revalidatePath(`/rounds/${roundId}`);
   return { ok: true };
 }

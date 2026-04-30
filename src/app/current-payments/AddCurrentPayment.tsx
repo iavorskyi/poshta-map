@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { createCurrentPayment } from "./actions";
 import { toDateInputValue } from "@/lib/format";
+import { useToast } from "@/components/Toast";
 
 export function AddCurrentPayment({
   pensioners,
@@ -24,6 +25,7 @@ export function AddCurrentPayment({
   const [isPaid, setIsPaid] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { showToast } = useToast();
 
   const canSubmit = pensioners.length > 0 && payments.length > 0;
 
@@ -31,6 +33,7 @@ export function AddCurrentPayment({
     setError(null);
     if (!pensionerId || !paymentId || amount === "" || !date) {
       setError("Заповніть усі поля");
+      showToast("Заповніть усі поля", "error");
       return;
     }
     startTransition(async () => {
@@ -43,12 +46,14 @@ export function AddCurrentPayment({
       });
       if (res?.error) {
         setError(res.error);
+        showToast(res.error, "error");
         return;
       }
       setPaymentId("");
       setAmount("");
       setIsPaid(false);
       setOpen(false);
+      showToast("Виплату додано", "success");
     });
   };
 

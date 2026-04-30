@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { NewRoundClient } from "./NewRoundClient";
+import { BackLink } from "@/components/BackLink";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +10,10 @@ export default async function NewRoundPage() {
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
   const [pensioners, payments, postmen, monthPayments] = await Promise.all([
-    prisma.pensioner.findMany({ orderBy: { fullName: "asc" } }),
+    prisma.pensioner.findMany({
+      orderBy: { fullName: "asc" },
+      include: { building: true },
+    }),
     prisma.payment.findMany({ orderBy: { name: "asc" } }),
     prisma.postman.findMany({ orderBy: { name: "asc" } }),
     prisma.currentPayment.findMany({
@@ -22,7 +25,7 @@ export default async function NewRoundPage() {
   const plainPensioners = pensioners.map((p) => ({
     id: p.id,
     fullName: p.fullName,
-    address: `${p.street}, ${p.house}${p.apartment ? `, кв. ${p.apartment}` : ""}`,
+    address: `${p.building.street}, ${p.building.number}${p.apartment ? `, кв. ${p.apartment}` : ""}`,
     pensionPaymentDay: p.pensionPaymentDay,
   }));
 
@@ -44,9 +47,7 @@ export default async function NewRoundPage() {
   return (
     <div className="space-y-4">
       <div>
-        <Link href="/rounds" className="text-sm text-blue-600 hover:underline">
-          ← До обходів
-        </Link>
+        <BackLink fallbackHref="/rounds" fallbackLabel="До обходів" />
         <h1 className="text-2xl font-semibold mt-1">Новий обхід</h1>
       </div>
       <NewRoundClient

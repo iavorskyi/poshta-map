@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import {
   addCurrentPayment,
@@ -9,11 +11,13 @@ import {
   updateRoundMeta,
 } from "../actions";
 import { formatDate, formatUAH, toDateInputValue } from "@/lib/format";
+import { useToast } from "@/components/Toast";
 
 type Item = {
   id: number;
   pensionerId: number;
   pensionerName: string;
+  pensionerBuildingId: number;
   pensionerAddress: string;
   paymentId: number;
   paymentName: string;
@@ -45,6 +49,8 @@ export function RoundDetailClient({
   payments: Payment[];
   postmen: Postman[];
 }) {
+  const router = useRouter();
+  const { showToast } = useToast();
   const [editMeta, setEditMeta] = useState(false);
   const [date, setDate] = useState(toDateInputValue(round.date));
   const [postmanId, setPostmanId] = useState<number | "">(round.postmanId ?? "");
@@ -65,7 +71,10 @@ export function RoundDetailClient({
   }, [items]);
 
   const grouped = useMemo(() => {
-    const map = new Map<number, { name: string; address: string; items: Item[] }>();
+    const map = new Map<
+      number,
+      { name: string; address: string; buildingId: number; items: Item[] }
+    >();
     for (const it of items) {
       const g = map.get(it.pensionerId);
       if (g) g.items.push(it);
@@ -73,6 +82,7 @@ export function RoundDetailClient({
         map.set(it.pensionerId, {
           name: it.pensionerName,
           address: it.pensionerAddress,
+          buildingId: it.pensionerBuildingId,
           items: [it],
         });
     }
@@ -82,31 +92,55 @@ export function RoundDetailClient({
   const saveMeta = () => {
     setError(null);
     startTransition(async () => {
-      await updateRoundMeta(round.id, {
-        date,
-        postmanId: postmanId === "" ? null : Number(postmanId),
-        notes: notes.trim() || null,
-      });
-      setEditMeta(false);
+      try {
+        await updateRoundMeta(round.id, {
+          date,
+          postmanId: postmanId === "" ? null : Number(postmanId),
+          notes: notes.trim() || null,
+        });
+        setEditMeta(false);
+        showToast("Збережено", "success");
+      } catch (e) {
+        showToast(
+          `Не вдалось зберегти: ${e instanceof Error ? e.message : "невідома помилка"}`,
+          "error"
+        );
+      }
     });
   };
 
   const toggleIsPaid = (id: number, next: boolean) => {
     startTransition(async () => {
-      await updateCurrentPayment(id, round.id, { isPaid: next });
+      try {
+        await updateCurrentPayment(id, round.id, { isPaid: next });
+      } catch (e) {
+        showToast(
+          `Не вдалось оновити статус: ${e instanceof Error ? e.message : "невідома помилка"}`,
+          "error"
+        );
+      }
     });
   };
 
   const changeAmount = (id: number, amount: number) => {
     startTransition(async () => {
-      await updateCurrentPayment(id, round.id, { amount });
+      try {
+        await updateCurrentPayment(id, round.id, { amount });
+      } catch (e) {
+        showToast(
+          `Не вдалось оновити суму: ${e instanceof Error ? e.message : "невідома помилка"}`,
+          "error"
+        );
+      }
     });
   };
 
   const removeItem = (id: number) => {
     if (!confirm("Видалити цю виплату?")) return;
     startTransition(async () => {
-      await deleteCurrentPayment(id, round.id);
+      const res = await deleteCurrentPayment(id, round.id);
+      if (res?.error) showToast(res.error, "error");
+      else showToast("Виплату видалено", "success");
     });
   };
 
@@ -124,19 +158,27 @@ export function RoundDetailClient({
       });
       if (res?.error) {
         setError(res.error);
+        showToast(res.error, "error");
         return;
       }
       setNewPensionerId("");
       setNewPaymentId("");
       setNewAmount("");
       setShowAdd(false);
+      showToast("Виплату додано", "success");
     });
   };
 
   const removeRound = () => {
     if (!confirm("Видалити весь обхід разом з виплатами?")) return;
     startTransition(async () => {
-      await deleteRound(round.id);
+      const res = await deleteRound(round.id);
+      if (res?.error) {
+        showToast(res.error, "error");
+        return;
+      }
+      showToast("Обхід видалено", "success");
+      router.push("/rounds");
     });
   };
 
@@ -206,13 +248,20 @@ export function RoundDetailClient({
                 <div className="text-sm text-slate-600 mt-1">Примітки: {round.notes}</div>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setEditMeta(true)}
                 className="rounded border border-slate-300 px-3 py-2 text-sm"
               >
                 Редагувати
               </button>
+              <Link
+                href={`/rounds/${round.id}/print`}
+                target="_blank"
+                className="rounded border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
+              >
+                Роздрукувати бігунки
+              </Link>
               <button
                 onClick={removeRound}
                 className="rounded border border-red-300 text-red-700 px-3 py-2 text-sm hover:bg-red-50"
@@ -327,7 +376,12 @@ export function RoundDetailClient({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="font-medium">{g.name}</div>
-                    <div className="text-xs text-slate-500">{g.address}</div>
+                    <Link
+                      href={`/district/${g.buildingId}`}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      {g.address}
+                    </Link>
                   </div>
                   <div className="text-right text-sm shrink-0">
                     <div className="font-medium">{formatUAH(subPlanned)}</div>

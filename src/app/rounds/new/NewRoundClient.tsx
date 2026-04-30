@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { createRound } from "../actions";
 import { formatUAH, toDateInputValue, fromDateInputValue } from "@/lib/format";
+import { useToast } from "@/components/Toast";
 
 type Pensioner = {
   id: number;
@@ -54,6 +55,7 @@ export function NewRoundClient({
   const [manualPensionerId, setManualPensionerId] = useState<number | "">("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { showToast } = useToast();
 
   const selectedDay = date ? fromDateInputValue(date).getDate() : null;
 
@@ -154,6 +156,7 @@ export function NewRoundClient({
       for (const it of d.items) {
         if (!it.paymentId || it.amount === "" || Number.isNaN(Number(it.amount))) {
           setError("У кожної виплати має бути тип і сума");
+          showToast("У кожної виплати має бути тип і сума", "error");
           return;
         }
         initial.push({

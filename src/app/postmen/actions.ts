@@ -14,8 +14,12 @@ export async function createPostman(formData: FormData) {
 export async function deletePostman(id: number) {
   try {
     await prisma.postman.delete({ where: { id } });
-  } catch {
-    return { error: "Не вдалося видалити" };
+  } catch (e) {
+    return {
+      error: `Не вдалося видалити поштаря: ${
+        e instanceof Error ? e.message : "невідома помилка"
+      }`,
+    };
   }
   revalidatePath("/postmen");
   return { ok: true };

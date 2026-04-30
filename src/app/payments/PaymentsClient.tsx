@@ -2,38 +2,45 @@
 
 import { useState, useTransition } from "react";
 import { createPayment, deletePayment, updatePayment } from "./actions";
+import { useToast } from "@/components/Toast";
 
 type Payment = { id: number; name: string; code: string };
 
 export function PaymentsClient({ payments }: { payments: Payment[] }) {
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { showToast } = useToast();
 
   const handleCreate = (formData: FormData) => {
-    setError(null);
     startTransition(async () => {
       const res = await createPayment(formData);
-      if (res?.error) setError(res.error);
-      else (document.getElementById("create-payment-form") as HTMLFormElement)?.reset();
+      if (res?.error) {
+        showToast(res.error, "error");
+      } else {
+        (document.getElementById("create-payment-form") as HTMLFormElement)?.reset();
+        showToast("Тип виплати додано", "success");
+      }
     });
   };
 
   const handleUpdate = (id: number, formData: FormData) => {
-    setError(null);
     startTransition(async () => {
       const res = await updatePayment(id, formData);
-      if (res?.error) setError(res.error);
-      else setEditingId(null);
+      if (res?.error) {
+        showToast(res.error, "error");
+      } else {
+        setEditingId(null);
+        showToast("Збережено", "success");
+      }
     });
   };
 
   const handleDelete = (id: number) => {
     if (!confirm("Видалити цей тип виплати?")) return;
-    setError(null);
     startTransition(async () => {
       const res = await deletePayment(id);
-      if (res?.error) setError(res.error);
+      if (res?.error) showToast(res.error, "error");
+      else showToast("Тип виплати видалено", "success");
     });
   };
 
@@ -70,8 +77,6 @@ export function PaymentsClient({ payments }: { payments: Payment[] }) {
           Додати
         </button>
       </form>
-
-      {error && <div className="text-sm text-red-600">{error}</div>}
 
       <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
         <table className="w-full text-sm">

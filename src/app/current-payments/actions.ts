@@ -64,6 +64,25 @@ function normalizeKey(s: string) {
   return s.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+function normalizeStreet(s: string) {
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/^вул\.?\s+/, "")
+    .replace(/^вулиця\s+/, "")
+    .replace(/^просп\.?\s+/, "")
+    .replace(/^проспект\s+/, "")
+    .replace(/^пров\.?\s+/, "")
+    .replace(/^провулок\s+/, "")
+    .replace(/^пл\.?\s+/, "")
+    .replace(/^площа\s+/, "")
+    .replace(/\s+/g, " ");
+}
+
+function normalizeNumber(s: string) {
+  return s.trim().toLowerCase().replace(/\s+/g, "");
+}
+
 export async function importCurrentPayments(formData: FormData): Promise<CpImportResult> {
   const file = formData.get("file");
   const paymentIdRaw = String(formData.get("paymentId") ?? "");
@@ -145,13 +164,20 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
     return { created: 0, warnings: [], errors: parsed.errors };
   }
 
-  // Pre-load pensioners for matching
+  // Pre-load buildings + pensioners for matching
+  const buildings = await prisma.building.findMany({
+    select: { id: true, street: true, number: true },
+  });
+  const buildingByKey = new Map<string, number>();
+  for (const b of buildings) {
+    buildingByKey.set(`${normalizeStreet(b.street)}::${normalizeNumber(b.number)}`, b.id);
+  }
   const pensioners = await prisma.pensioner.findMany({
-    select: { id: true, fullName: true, street: true, house: true },
+    select: { id: true, fullName: true, buildingId: true },
   });
   const pensIndex = new Map<string, number[]>();
   for (const p of pensioners) {
-    const key = [p.fullName, p.street, p.house].map(normalizeKey).join("|");
+    const key = `${normalizeKey(p.fullName)}|${p.buildingId}`;
     const list = pensIndex.get(key) ?? [];
     list.push(p.id);
     pensIndex.set(key, list);
@@ -182,7 +208,17 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
       });
       continue;
     }
-    const key = [r.fullName, r.street, r.house].map(normalizeKey).join("|");
+    const buildingId = buildingByKey.get(
+      `${normalizeStreet(r.street)}::${normalizeNumber(r.house)}`
+    );
+    if (!buildingId) {
+      errors.push({
+        rowNumber: r.rowNumber,
+        message: `Будинок не знайдено в дільниці: ${r.street}, ${r.house}`,
+      });
+      continue;
+    }
+    const key = `${normalizeKey(r.fullName)}|${buildingId}`;
     const matches = pensIndex.get(key);
     if (!matches || matches.length === 0) {
       errors.push({
@@ -240,9 +276,17 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
 }
 
 export async function deleteCurrentPayment(id: number) {
-  const payment = await prisma.currentPayment.delete({ where: { id } });
-  revalidatePath("/current-payments");
-  revalidatePath(`/pensioners/${payment.pensionerId}`);
-  if (payment.roundId) revalidatePath(`/rounds/${payment.roundId}`);
-  return { ok: true };
+  try {
+    const payment = await prisma.currentPayment.delete({ where: { id } });
+    revalidatePath("/current-payments");
+    revalidatePath(`/pensioners/${payment.pensionerId}`);
+    if (payment.roundId) revalidatePath(`/rounds/${payment.roundId}`);
+    return { ok: true };
+  } catch (e) {
+    return {
+      error: `Не вдалося видалити виплату: ${
+        e instanceof Error ? e.message : "невідома помилка"
+      }`,
+    };
+  }
 }

@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { RoundDetailClient } from "./RoundDetailClient";
+import { BackLink } from "@/components/BackLink";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,10 @@ export default async function RoundPage({
       include: {
         postman: true,
         currentPayments: {
-          include: { pensioner: true, payment: true },
+          include: {
+            pensioner: { include: { building: true } },
+            payment: true,
+          },
           orderBy: [{ pensioner: { fullName: "asc" } }, { id: "asc" }],
         },
       },
@@ -35,9 +38,7 @@ export default async function RoundPage({
   return (
     <div className="space-y-4">
       <div>
-        <Link href="/rounds" className="text-sm text-blue-600 hover:underline">
-          ← До обходів
-        </Link>
+        <BackLink fallbackHref="/rounds" fallbackLabel="До обходів" />
       </div>
       <RoundDetailClient
         round={{
@@ -50,7 +51,8 @@ export default async function RoundPage({
           id: cp.id,
           pensionerId: cp.pensionerId,
           pensionerName: cp.pensioner.fullName,
-          pensionerAddress: `${cp.pensioner.street}, ${cp.pensioner.house}${cp.pensioner.apartment ? `, кв. ${cp.pensioner.apartment}` : ""}`,
+          pensionerBuildingId: cp.pensioner.buildingId,
+          pensionerAddress: `${cp.pensioner.building.street}, ${cp.pensioner.building.number}${cp.pensioner.apartment ? `, кв. ${cp.pensioner.apartment}` : ""}`,
           paymentId: cp.paymentId,
           paymentName: cp.payment.name,
           paymentCode: cp.payment.code,

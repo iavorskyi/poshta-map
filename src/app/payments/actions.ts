@@ -32,10 +32,22 @@ export async function updatePayment(id: number, formData: FormData) {
 }
 
 export async function deletePayment(id: number) {
+  const usedCount = await prisma.currentPayment.count({ where: { paymentId: id } });
+  if (usedCount > 0) {
+    return {
+      error: `Не можна видалити тип виплати: він використовується у ${usedCount} ${
+        usedCount === 1 ? "виплаті" : usedCount < 5 ? "виплатах" : "виплатах"
+      }. Спочатку видаліть або змініть ці виплати.`,
+    };
+  }
   try {
     await prisma.payment.delete({ where: { id } });
-  } catch {
-    return { error: "Не можна видалити: виплата використовується" };
+  } catch (e) {
+    return {
+      error: `Не вдалося видалити: ${
+        e instanceof Error ? e.message : "невідома помилка"
+      }`,
+    };
   }
   revalidatePath("/payments");
   return { ok: true };

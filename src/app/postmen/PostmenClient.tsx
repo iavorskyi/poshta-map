@@ -1,29 +1,33 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { createPostman, deletePostman } from "./actions";
+import { useToast } from "@/components/Toast";
 
 type Postman = { id: number; name: string; roundsCount: number };
 
 export function PostmenClient({ postmen }: { postmen: Postman[] }) {
-  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { showToast } = useToast();
 
   const handleCreate = (formData: FormData) => {
-    setError(null);
     startTransition(async () => {
       const res = await createPostman(formData);
-      if (res?.error) setError(res.error);
-      else (document.getElementById("create-postman-form") as HTMLFormElement)?.reset();
+      if (res?.error) {
+        showToast(res.error, "error");
+      } else {
+        (document.getElementById("create-postman-form") as HTMLFormElement)?.reset();
+        showToast("Поштаря додано", "success");
+      }
     });
   };
 
   const handleDelete = (id: number) => {
     if (!confirm("Видалити поштаря?")) return;
-    setError(null);
     startTransition(async () => {
       const res = await deletePostman(id);
-      if (res?.error) setError(res.error);
+      if (res?.error) showToast(res.error, "error");
+      else showToast("Поштаря видалено", "success");
     });
   };
 
@@ -51,8 +55,6 @@ export function PostmenClient({ postmen }: { postmen: Postman[] }) {
           Додати
         </button>
       </form>
-
-      {error && <div className="text-sm text-red-600">{error}</div>}
 
       <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
         <table className="w-full text-sm">
