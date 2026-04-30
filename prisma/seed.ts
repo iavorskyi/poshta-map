@@ -26,6 +26,22 @@ async function main() {
     create: { name: "Допомога", code: "HELP" },
   });
 
+  const b1 = await prisma.building.upsert({
+    where: { street_number: { street: "вул. Шевченка", number: "12" } },
+    update: {},
+    create: { street: "вул. Шевченка", number: "12" },
+  });
+  const b2 = await prisma.building.upsert({
+    where: { street_number: { street: "вул. Франка", number: "4" } },
+    update: {},
+    create: { street: "вул. Франка", number: "4" },
+  });
+  const b3 = await prisma.building.upsert({
+    where: { street_number: { street: "вул. Лесі Українки", number: "27" } },
+    update: {},
+    create: { street: "вул. Лесі Українки", number: "27" },
+  });
+
   const today = new Date();
   const day = today.getDate();
 
@@ -34,8 +50,7 @@ async function main() {
     update: {},
     create: {
       fullName: "Петренко Марія Іванівна",
-      street: "вул. Шевченка",
-      house: "12",
+      buildingId: b1.id,
       apartment: "5",
       phone: "+380501112233",
       passportNumber: "АА123456",
@@ -49,8 +64,7 @@ async function main() {
     update: {},
     create: {
       fullName: "Коваль Олексій Петрович",
-      street: "вул. Франка",
-      house: "4",
+      buildingId: b2.id,
       apartment: "11",
       phone: "+380671234567",
       passportNumber: "ВВ654321",
@@ -64,8 +78,7 @@ async function main() {
     update: {},
     create: {
       fullName: "Сидоренко Ганна Степанівна",
-      street: "вул. Лесі Українки",
-      house: "27",
+      buildingId: b3.id,
       apartment: null,
       phone: null,
       passportNumber: "ММ999888",

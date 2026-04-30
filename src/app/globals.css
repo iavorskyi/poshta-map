@@ -27,3 +27,143 @@ body {
     @apply min-h-11;
   }
 }
+
+/* ===== Print: round payment slips (бігунки) ===== */
+@page {
+  size: A4;
+  margin: 8mm;
+}
+
+.print-area {
+  background: white;
+}
+
+.slip-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4mm;
+}
+
+.slip {
+  border: 1px dashed #94a3b8;
+  border-radius: 4px;
+  padding: 4mm 5mm;
+  background: white;
+  color: #0f172a;
+  font-size: 11pt;
+  line-height: 1.35;
+  page-break-inside: avoid;
+  break-inside: avoid;
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+}
+
+.slip-header {
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 2mm;
+}
+
+.slip-meta {
+  font-size: 9pt;
+  color: #64748b;
+}
+
+.slip-name {
+  font-weight: 600;
+  font-size: 12pt;
+  margin-top: 1mm;
+}
+
+.slip-addr {
+  font-size: 10pt;
+  color: #475569;
+}
+
+.slip-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+}
+
+.slip-items li {
+  display: flex;
+  justify-content: space-between;
+  gap: 4mm;
+  font-size: 10.5pt;
+}
+
+.slip-item-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.slip-item-code {
+  color: #64748b;
+  font-size: 9pt;
+}
+
+.slip-item-amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.slip-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: 2mm;
+  border-top: 1px solid #e2e8f0;
+  font-weight: 600;
+  font-size: 11.5pt;
+}
+
+.slip-total-amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.slip-sign {
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+  font-size: 10pt;
+  color: #334155;
+  margin-top: 1mm;
+}
+
+/* On-screen preview: a soft page-like canvas */
+@media screen {
+  .print-area {
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 8mm;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+  }
+}
+
+@media print {
+  /* Hide chrome */
+  body > header,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .print-area {
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+}

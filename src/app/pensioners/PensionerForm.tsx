@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { createPensioner, updatePensioner, deletePensioner } from "./actions";
+import { BuildingCombobox, type BuildingOption } from "@/components/BuildingCombobox";
+import { useToast } from "@/components/Toast";
 
 type Pensioner = {
   id: number;
   fullName: string;
-  street: string;
-  house: string;
+  buildingId: number;
   apartment: string | null;
   phone: string | null;
   passportNumber: string | null;
@@ -16,19 +17,41 @@ type Pensioner = {
   notes: string | null;
 };
 
-export function PensionerForm({ pensioner }: { pensioner?: Pensioner }) {
+export function PensionerForm({
+  pensioner,
+  buildings,
+}: {
+  pensioner?: Pensioner;
+  buildings: BuildingOption[];
+}) {
   const [error, setError] = useState<string | null>(null);
+  const [buildingId, setBuildingId] = useState<number | "">(pensioner?.buildingId ?? "");
   const [isPending, startTransition] = useTransition();
+  const { showToast } = useToast();
 
   const onSubmit = (formData: FormData) => {
     setError(null);
+    if (!buildingId) {
+      setError("Оберіть будинок з дільниці");
+      showToast("Оберіть будинок з дільниці", "error");
+      return;
+    }
+    formData.set("buildingId", String(buildingId));
     startTransition(async () => {
       if (pensioner) {
         const res = await updatePensioner(pensioner.id, formData);
-        if (res?.error) setError(res.error);
+        if (res?.error) {
+          setError(res.error);
+          showToast(res.error, "error");
+        } else {
+          showToast("Пенсіонера збережено", "success");
+        }
       } else {
         const res = await createPensioner(formData);
-        if (res && "error" in res && res.error) setError(res.error);
+        if (res && "error" in res && res.error) {
+          setError(res.error);
+          showToast(res.error, "error");
+        }
       }
     });
   };
@@ -38,7 +61,10 @@ export function PensionerForm({ pensioner }: { pensioner?: Pensioner }) {
     if (!confirm("Видалити пенсіонера? Його поточні виплати теж будуть видалені.")) return;
     startTransition(async () => {
       const res = await deletePensioner(pensioner.id);
-      if (res?.error) setError(res.error);
+      if (res?.error) {
+        setError(res.error);
+        showToast(res.error, "error");
+      }
     });
   };
 
@@ -58,31 +84,20 @@ export function PensionerForm({ pensioner }: { pensioner?: Pensioner }) {
           <Field label="Телефон">
             <input name="phone" defaultValue={pensioner?.phone ?? ""} className="input" />
           </Field>
-          <Field label="Вулиця" required>
+          <Field label="Будинок (з дільниці)" required>
+            <BuildingCombobox
+              buildings={buildings}
+              value={buildingId}
+              onChange={setBuildingId}
+            />
+          </Field>
+          <Field label="Квартира">
             <input
-              name="street"
-              required
-              defaultValue={pensioner?.street ?? ""}
+              name="apartment"
+              defaultValue={pensioner?.apartment ?? ""}
               className="input"
             />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="№ будинку" required>
-              <input
-                name="house"
-                required
-                defaultValue={pensioner?.house ?? ""}
-                className="input"
-              />
-            </Field>
-            <Field label="Квартира">
-              <input
-                name="apartment"
-                defaultValue={pensioner?.apartment ?? ""}
-                className="input"
-              />
-            </Field>
-          </div>
           <Field label="№ паспорту">
             <input
               name="passportNumber"

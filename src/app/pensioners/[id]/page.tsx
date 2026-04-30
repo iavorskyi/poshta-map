@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PensionerForm } from "../PensionerForm";
@@ -7,6 +6,7 @@ import { formatDate, formatUAH } from "@/lib/format";
 import { CurrentPaymentsFilter } from "@/app/current-payments/CurrentPaymentsFilter";
 import { CurrentPaymentsTable } from "@/app/current-payments/CurrentPaymentsTable";
 import { AddCurrentPayment } from "@/app/current-payments/AddCurrentPayment";
+import { BackLink } from "@/components/BackLink";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +24,7 @@ export default async function EditPensionerPage({
   const sp = await searchParams;
   const { from, to, fromStr, toStr } = parseRange(sp.from, sp.to);
 
-  const [pensioner, payments, currentPayments] = await Promise.all([
+  const [pensioner, payments, currentPayments, buildings] = await Promise.all([
     prisma.pensioner.findUnique({ where: { id } }),
     prisma.payment.findMany({ orderBy: { name: "asc" } }),
     prisma.currentPayment.findMany({
@@ -32,6 +32,7 @@ export default async function EditPensionerPage({
       include: { pensioner: true, payment: true },
       orderBy: [{ date: "asc" }, { id: "asc" }],
     }),
+    prisma.building.findMany({ orderBy: [{ street: "asc" }, { number: "asc" }] }),
   ]);
 
   if (!pensioner) notFound();
@@ -44,9 +45,7 @@ export default async function EditPensionerPage({
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/pensioners" className="text-sm text-blue-600 hover:underline">
-          ← До списку
-        </Link>
+        <BackLink fallbackHref="/pensioners" fallbackLabel="До списку" />
         <h1 className="text-2xl font-semibold mt-1">{pensioner.fullName}</h1>
       </div>
 
@@ -54,14 +53,14 @@ export default async function EditPensionerPage({
         pensioner={{
           id: pensioner.id,
           fullName: pensioner.fullName,
-          street: pensioner.street,
-          house: pensioner.house,
+          buildingId: pensioner.buildingId,
           apartment: pensioner.apartment,
           phone: pensioner.phone,
           passportNumber: pensioner.passportNumber,
           pensionPaymentDay: pensioner.pensionPaymentDay,
           notes: pensioner.notes,
         }}
+        buildings={buildings.map((b) => ({ id: b.id, street: b.street, number: b.number }))}
       />
 
       <div className="space-y-3 pt-4 border-t border-slate-200">

@@ -7,20 +7,19 @@ import { parsePensionersXlsx } from "@/lib/pensionerImport";
 
 function parsePensionerForm(formData: FormData) {
   const fullName = String(formData.get("fullName") ?? "").trim();
-  const street = String(formData.get("street") ?? "").trim();
-  const house = String(formData.get("house") ?? "").trim();
+  const buildingId = Number(formData.get("buildingId") ?? 0);
   const apartment = String(formData.get("apartment") ?? "").trim() || null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const passportNumber = String(formData.get("passportNumber") ?? "").trim() || null;
   const pensionPaymentDay = Number(formData.get("pensionPaymentDay") ?? 0);
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
-  return { fullName, street, house, apartment, phone, passportNumber, pensionPaymentDay, notes };
+  return { fullName, buildingId, apartment, phone, passportNumber, pensionPaymentDay, notes };
 }
 
 function validate(data: ReturnType<typeof parsePensionerForm>) {
   if (!data.fullName) return "ФІО обов'язкове";
-  if (!data.street || !data.house) return "Вулиця і номер будинку обов'язкові";
+  if (!data.buildingId) return "Оберіть будинок з дільниці";
   if (!data.pensionPaymentDay || data.pensionPaymentDay < 1 || data.pensionPaymentDay > 31)
     return "День виплати пенсії має бути 1..31";
   return null;
@@ -58,6 +57,25 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 function normalizeKey(s: string) {
   return s.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function normalizeStreet(s: string) {
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/^вул\.?\s+/, "")
+    .replace(/^вулиця\s+/, "")
+    .replace(/^просп\.?\s+/, "")
+    .replace(/^проспект\s+/, "")
+    .replace(/^пров\.?\s+/, "")
+    .replace(/^провулок\s+/, "")
+    .replace(/^пл\.?\s+/, "")
+    .replace(/^площа\s+/, "")
+    .replace(/\s+/g, " ");
+}
+
+function normalizeNumber(s: string) {
+  return s.trim().toLowerCase().replace(/\s+/g, "");
 }
 
 export async function importPensioners(formData: FormData): Promise<ImportResult> {
@@ -101,27 +119,52 @@ export async function importPensioners(formData: FormData): Promise<ImportResult
   let updated = 0;
   const errors = [...parsed.errors];
 
+  // Pre-load buildings for matching
+  const buildings = await prisma.building.findMany();
+  const buildingByKey = new Map<string, number>();
+  for (const b of buildings) {
+    buildingByKey.set(`${normalizeStreet(b.street)}::${normalizeNumber(b.number)}`, b.id);
+  }
+
   // Pre-load existing pensioners to dedupe locally
   const existing = await prisma.pensioner.findMany({
-    select: { id: true, fullName: true, street: true, house: true, apartment: true },
+    select: { id: true, fullName: true, buildingId: true, apartment: true },
   });
   const existingByKey = new Map<string, number>();
   for (const e of existing) {
-    const key = [e.fullName, e.street, e.house, e.apartment ?? ""].map(normalizeKey).join("|");
+    const key = `${normalizeKey(e.fullName)}|${e.buildingId}|${normalizeKey(e.apartment ?? "")}`;
     existingByKey.set(key, e.id);
   }
 
   for (const r of parsed.rows) {
-    const key = [r.fullName, r.street, r.house, r.apartment ?? ""].map(normalizeKey).join("|");
-    const matchId = existingByKey.get(key);
+    const bKey = `${normalizeStreet(r.street)}::${normalizeNumber(r.house)}`;
+    let buildingId = buildingByKey.get(bKey);
+    if (!buildingId) {
+      // Auto-create building so we don't block import
+      try {
+        const b = await prisma.building.create({
+          data: { street: r.street, number: r.house, notes: "Auto-created during import" },
+        });
+        buildingId = b.id;
+        buildingByKey.set(bKey, b.id);
+      } catch {
+        errors.push({
+          rowNumber: r.rowNumber,
+          message: `Не вдалось створити будинок "${r.street}, ${r.house}"`,
+        });
+        continue;
+      }
+    }
+
+    const dedupeKey = `${normalizeKey(r.fullName)}|${buildingId}|${normalizeKey(r.apartment ?? "")}`;
+    const matchId = existingByKey.get(dedupeKey);
     try {
       if (matchId) {
         await prisma.pensioner.update({
           where: { id: matchId },
           data: {
             fullName: r.fullName,
-            street: r.street,
-            house: r.house,
+            buildingId,
             apartment: r.apartment,
             phone: r.phone,
             passportNumber: r.passportNumber,
@@ -134,8 +177,7 @@ export async function importPensioners(formData: FormData): Promise<ImportResult
         const newP = await prisma.pensioner.create({
           data: {
             fullName: r.fullName,
-            street: r.street,
-            house: r.house,
+            buildingId,
             apartment: r.apartment,
             phone: r.phone,
             passportNumber: r.passportNumber,
@@ -143,7 +185,7 @@ export async function importPensioners(formData: FormData): Promise<ImportResult
             notes: r.notes,
           },
         });
-        existingByKey.set(key, newP.id);
+        existingByKey.set(dedupeKey, newP.id);
         created++;
       }
     } catch (e) {
@@ -164,8 +206,12 @@ export async function importPensioners(formData: FormData): Promise<ImportResult
 export async function deletePensioner(id: number) {
   try {
     await prisma.pensioner.delete({ where: { id } });
-  } catch {
-    return { error: "Не вдалося видалити" };
+  } catch (e) {
+    return {
+      error: `Не вдалося видалити пенсіонера: ${
+        e instanceof Error ? e.message : "невідома помилка"
+      }`,
+    };
   }
   revalidatePath("/pensioners");
   redirect("/pensioners");

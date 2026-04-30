@@ -17,8 +17,7 @@ model Postman {
 model Pensioner {
   id                Int              @id @default(autoincrement())
   fullName          String
-  street            String
-  house             String
+  buildingId        Int
   apartment         String?
   phone             String?
   passportNumber    String?
@@ -26,7 +25,10 @@ model Pensioner {
   notes             String?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
+  building          Building         @relation(fields: [buildingId], references: [id], onDelete: Restrict)
   currentPayments   CurrentPayment[]
+
+  @@index([buildingId])
 }
 
 model Payment {
@@ -44,6 +46,33 @@ model Round {
   createdAt       DateTime         @default(now())
   postman         Postman?         @relation(fields: [postmanId], references: [id], onDelete: SetNull)
   currentPayments CurrentPayment[]
+}
+
+model Building {
+  id         Int         @id @default(autoincrement())
+  street     String
+  number     String
+  notes      String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  entrances  Entrance[]
+  pensioners Pensioner[]
+
+  @@unique([street, number])
+  @@index([street])
+}
+
+model Entrance {
+  id         Int      @id @default(autoincrement())
+  buildingId Int
+  number     Int
+  aptFrom    Int?
+  aptTo      Int?
+  notes      String?
+  building   Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+
+  @@unique([buildingId, number])
+  @@index([buildingId])
 }
 
 model CurrentPayment {
