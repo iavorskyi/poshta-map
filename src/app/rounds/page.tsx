@@ -4,7 +4,57 @@ import { formatDate, formatUAH } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function RoundsPage() {
+type Tab = "pension" | "address";
+
+export default async function RoundsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const sp = await searchParams;
+  const tab: Tab = sp.tab === "address" ? "address" : "pension";
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-2xl font-semibold">Обходи</h1>
+
+      <div className="border-b border-slate-200 flex gap-1 -mb-px">
+        <TabLink active={tab === "pension"} href="/rounds" label="Пенсія" />
+        <TabLink
+          active={tab === "address"}
+          href="/rounds?tab=address"
+          label="По-адресні"
+        />
+      </div>
+
+      {tab === "pension" ? <PensionTab /> : <AddressTab />}
+    </div>
+  );
+}
+
+function TabLink({
+  active,
+  href,
+  label,
+}: {
+  active: boolean;
+  href: string;
+  label: string;
+}) {
+  const cls = active
+    ? "border-blue-600 text-blue-700"
+    : "border-transparent text-slate-600 hover:text-slate-900";
+  return (
+    <Link
+      href={href}
+      className={`px-3 py-2 text-sm border-b-2 ${cls}`}
+    >
+      {label}
+    </Link>
+  );
+}
+
+async function PensionTab() {
   const rounds = await prisma.round.findMany({
     orderBy: { date: "desc" },
     include: {
@@ -15,8 +65,7 @@ export default async function RoundsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="text-2xl font-semibold">Обходи</h1>
+      <div className="flex justify-end">
         <Link
           href="/rounds/new"
           className="rounded bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700"
@@ -31,7 +80,6 @@ export default async function RoundsPage() {
         </div>
       ) : (
         <>
-          {/* Mobile: cards */}
           <ul className="md:hidden space-y-2">
             {rounds.map((r) => {
               const planned = r.currentPayments.reduce((s, p) => s + p.amount, 0);
@@ -65,7 +113,6 @@ export default async function RoundsPage() {
             })}
           </ul>
 
-          {/* Desktop: table */}
           <div className="hidden md:block rounded-lg border border-slate-200 bg-white overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-slate-600">
@@ -103,6 +150,66 @@ export default async function RoundsPage() {
             </table>
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+async function AddressTab() {
+  const rounds = await prisma.addressRound.findMany({
+    orderBy: { date: "desc" },
+    include: {
+      postman: true,
+      _count: { select: { items: true } },
+      items: { select: { done: true } },
+    },
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Link
+          href="/rounds/address/new"
+          className="rounded bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700"
+        >
+          + Новий обхід
+        </Link>
+      </div>
+
+      {rounds.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500">
+          Ще немає по-адресних обходів
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {rounds.map((r) => {
+            const total = r.items.length;
+            const done = r.items.filter((i) => i.done).length;
+            return (
+              <li key={r.id}>
+                <Link
+                  href={`/rounds/address/${r.id}`}
+                  className="block rounded-lg border border-slate-200 bg-white p-3 hover:bg-slate-50"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium text-blue-700">{formatDate(r.date)}</div>
+                      <div className="text-sm text-slate-600 mt-0.5">
+                        {r.postman?.name ?? "без поштаря"} · будинків: {total}
+                      </div>
+                      {r.notes && (
+                        <div className="text-xs text-slate-500 mt-1 line-clamp-2">{r.notes}</div>
+                      )}
+                    </div>
+                    <div className="shrink-0 text-right text-sm">
+                      <div className="text-xs text-green-700">пройдено {done}/{total}</div>
+                    </div>
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );

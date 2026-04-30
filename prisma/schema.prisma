@@ -9,9 +9,10 @@ datasource db {
 }
 
 model Postman {
-  id     Int     @id @default(autoincrement())
-  name   String
-  rounds Round[]
+  id             Int            @id @default(autoincrement())
+  name           String
+  rounds         Round[]
+  addressRounds  AddressRound[]
 }
 
 model Pensioner {
@@ -49,14 +50,15 @@ model Round {
 }
 
 model Building {
-  id         Int         @id @default(autoincrement())
-  street     String
-  number     String
-  notes      String?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  entrances  Entrance[]
-  pensioners Pensioner[]
+  id            Int                    @id @default(autoincrement())
+  street        String
+  number        String
+  notes         String?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  entrances     Entrance[]
+  pensioners    Pensioner[]
+  addressRounds AddressRoundBuilding[]
 
   @@unique([street, number])
   @@index([street])
@@ -72,6 +74,33 @@ model Entrance {
   building   Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
 
   @@unique([buildingId, number])
+  @@index([buildingId])
+}
+
+model AddressRound {
+  id        Int                    @id @default(autoincrement())
+  date      DateTime
+  postmanId Int?
+  notes     String?
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+  postman   Postman?               @relation(fields: [postmanId], references: [id], onDelete: SetNull)
+  items     AddressRoundBuilding[]
+}
+
+model AddressRoundBuilding {
+  id         Int          @id @default(autoincrement())
+  roundId    Int
+  buildingId Int
+  notes      String?
+  done       Boolean      @default(false)
+  position   Int          @default(0)
+  createdAt  DateTime     @default(now())
+  round      AddressRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  building   Building     @relation(fields: [buildingId], references: [id], onDelete: Restrict)
+
+  @@unique([roundId, buildingId])
+  @@index([roundId])
   @@index([buildingId])
 }
 
