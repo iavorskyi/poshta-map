@@ -73,6 +73,24 @@ export async function updateAddressRoundMeta(
   return { ok: true };
 }
 
+export async function setAddressRoundClosed(id: number, closed: boolean) {
+  try {
+    await prisma.addressRound.update({
+      where: { id },
+      data: { closedAt: closed ? new Date() : null },
+    });
+  } catch (e) {
+    return {
+      error: `Не вдалося ${closed ? "закрити" : "відкрити"} обхід: ${
+        e instanceof Error ? e.message : "невідома помилка"
+      }`,
+    };
+  }
+  revalidatePath(`/rounds/address/${id}`);
+  revalidatePath("/rounds");
+  return { ok: true };
+}
+
 export async function deleteAddressRound(id: number) {
   try {
     await prisma.addressRound.delete({ where: { id } });

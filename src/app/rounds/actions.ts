@@ -71,6 +71,24 @@ export async function createRound(formData: FormData) {
   redirect(`/rounds/${round.id}`);
 }
 
+export async function setRoundClosed(id: number, closed: boolean) {
+  try {
+    await prisma.round.update({
+      where: { id },
+      data: { closedAt: closed ? new Date() : null },
+    });
+  } catch (e) {
+    return {
+      error: `Не вдалося ${closed ? "закрити" : "відкрити"} обхід: ${
+        e instanceof Error ? e.message : "невідома помилка"
+      }`,
+    };
+  }
+  revalidatePath(`/rounds/${id}`);
+  revalidatePath("/rounds");
+  return { ok: true };
+}
+
 export async function deleteRound(id: number) {
   try {
     await prisma.round.delete({ where: { id } });

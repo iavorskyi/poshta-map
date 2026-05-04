@@ -7,6 +7,7 @@ import {
   addCurrentPayment,
   deleteCurrentPayment,
   deleteRound,
+  setRoundClosed,
   updateCurrentPayment,
   updateRoundMeta,
 } from "../actions";
@@ -31,6 +32,7 @@ type Round = {
   date: string; // ISO
   postmanId: number | null;
   notes: string | null;
+  closedAt: string | null;
 };
 
 type Payment = { id: number; name: string; code: string };
@@ -182,6 +184,26 @@ export function RoundDetailClient({
     });
   };
 
+  const isClosed = !!round.closedAt;
+  const toggleClosed = () => {
+    const next = !isClosed;
+    if (next) {
+      const unpaid = items.filter((i) => !i.isPaid).length;
+      const msg = unpaid
+        ? `Закрити обхід? Залишилося незакритих виплат: ${unpaid}.`
+        : "Закрити обхід?";
+      if (!confirm(msg)) return;
+    }
+    startTransition(async () => {
+      const res = await setRoundClosed(round.id, next);
+      if (res?.error) {
+        showToast(res.error, "error");
+        return;
+      }
+      showToast(next ? "Обхід закрито" : "Обхід відкрито", "success");
+    });
+  };
+
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4">
@@ -240,12 +262,26 @@ export function RoundDetailClient({
         ) : (
           <div className="space-y-3">
             <div>
-              <h1 className="text-xl md:text-2xl font-semibold">Обхід {formatDate(round.date)}</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl md:text-2xl font-semibold">
+                  Обхід {formatDate(round.date)}
+                </h1>
+                {isClosed && (
+                  <span className="rounded-full bg-slate-200 text-slate-700 px-2 py-0.5 text-xs">
+                    Закритий
+                  </span>
+                )}
+              </div>
               <div className="text-sm text-slate-600 mt-1">
                 Поштар: {postmen.find((pm) => pm.id === round.postmanId)?.name ?? "—"}
               </div>
               {round.notes && (
                 <div className="text-sm text-slate-600 mt-1">Примітки: {round.notes}</div>
+              )}
+              {isClosed && round.closedAt && (
+                <div className="text-xs text-slate-500 mt-1">
+                  Закритий {formatDate(round.closedAt)}
+                </div>
               )}
             </div>
             <div className="flex gap-2 flex-wrap">
@@ -254,6 +290,13 @@ export function RoundDetailClient({
                 className="rounded border border-slate-300 px-3 py-2 text-sm"
               >
                 Редагувати
+              </button>
+              <button
+                onClick={toggleClosed}
+                disabled={isPending}
+                className="rounded border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-60"
+              >
+                {isClosed ? "Відкрити обхід" : "Закрити обхід"}
               </button>
               <Link
                 href={`/rounds/${round.id}/print`}

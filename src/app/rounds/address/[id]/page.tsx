@@ -44,6 +44,7 @@ export default async function AddressRoundPage({
           date: round.date.toISOString(),
           postmanId: round.postmanId,
           notes: round.notes,
+          closedAt: round.closedAt ? round.closedAt.toISOString() : null,
         }}
         items={round.items.map((it) => ({
           id: it.id,

@@ -46,6 +46,7 @@ export default async function RoundPage({
           date: round.date.toISOString(),
           postmanId: round.postmanId,
           notes: round.notes,
+          closedAt: round.closedAt ? round.closedAt.toISOString() : null,
         }}
         items={round.currentPayments.map((cp) => ({
           id: cp.id,

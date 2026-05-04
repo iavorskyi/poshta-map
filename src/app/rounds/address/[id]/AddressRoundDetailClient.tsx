@@ -7,6 +7,7 @@ import {
   addBuildingToAddressRound,
   deleteAddressRound,
   removeBuildingFromAddressRound,
+  setAddressRoundClosed,
   toggleAddressRoundItemDone,
   updateAddressRoundItemNotes,
   updateAddressRoundMeta,
@@ -20,6 +21,7 @@ type Round = {
   date: string;
   postmanId: number | null;
   notes: string | null;
+  closedAt: string | null;
 };
 
 type Item = {
@@ -95,6 +97,26 @@ export function AddressRoundDetailClient({
       }
       showToast("Обхід видалено", "success");
       router.push("/rounds?tab=address");
+    });
+  };
+
+  const isClosed = !!round.closedAt;
+  const toggleClosed = () => {
+    const next = !isClosed;
+    if (next) {
+      const left = items.filter((i) => !i.done).length;
+      const msg = left
+        ? `Закрити обхід? Залишилося непройдених будинків: ${left}.`
+        : "Закрити обхід?";
+      if (!confirm(msg)) return;
+    }
+    startTransition(async () => {
+      const res = await setAddressRoundClosed(round.id, next);
+      if (res?.error) {
+        showToast(res.error, "error");
+        return;
+      }
+      showToast(next ? "Обхід закрито" : "Обхід відкрито", "success");
     });
   };
 
@@ -208,9 +230,16 @@ export function AddressRoundDetailClient({
         ) : (
           <div className="space-y-3">
             <div>
-              <h1 className="text-xl md:text-2xl font-semibold">
-                По-адресний обхід · {formatDate(round.date)}
-              </h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl md:text-2xl font-semibold">
+                  По-адресний обхід · {formatDate(round.date)}
+                </h1>
+                {isClosed && (
+                  <span className="rounded-full bg-slate-200 text-slate-700 px-2 py-0.5 text-xs">
+                    Закритий
+                  </span>
+                )}
+              </div>
               <div className="text-sm text-slate-600 mt-1">
                 Поштар: {postmen.find((pm) => pm.id === round.postmanId)?.name ?? "—"}
               </div>
@@ -220,6 +249,11 @@ export function AddressRoundDetailClient({
               <div className="text-sm text-slate-600 mt-1">
                 Пройдено: <strong>{totals.done}</strong> / {totals.total}
               </div>
+              {isClosed && round.closedAt && (
+                <div className="text-xs text-slate-500 mt-1">
+                  Закритий {formatDate(round.closedAt)}
+                </div>
+              )}
             </div>
             <div className="flex gap-2 flex-wrap">
               <button
@@ -227,6 +261,13 @@ export function AddressRoundDetailClient({
                 className="rounded border border-slate-300 px-3 py-2 text-sm"
               >
                 Редагувати
+              </button>
+              <button
+                onClick={toggleClosed}
+                disabled={isPending}
+                className="rounded border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-60"
+              >
+                {isClosed ? "Відкрити обхід" : "Закрити обхід"}
               </button>
               <button
                 onClick={removeRound}

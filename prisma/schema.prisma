@@ -48,6 +48,7 @@ model Round {
   date            DateTime
   postmanId       Int?
   notes           String?
+  closedAt        DateTime?
   createdAt       DateTime         @default(now())
   postman         Postman?         @relation(fields: [postmanId], references: [id], onDelete: SetNull)
   currentPayments CurrentPayment[]
@@ -86,6 +87,7 @@ model AddressRound {
   date      DateTime
   postmanId Int?
   notes     String?
+  closedAt  DateTime?
   createdAt DateTime               @default(now())
   updatedAt DateTime               @updatedAt
   postman   Postman?               @relation(fields: [postmanId], references: [id], onDelete: SetNull)
