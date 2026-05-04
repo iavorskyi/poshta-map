@@ -375,13 +375,20 @@ export function RoundDetailClient({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="font-medium">{g.name}</div>
                     <Link
-                      href={`/district/${g.buildingId}`}
-                      className="text-xs text-blue-600 hover:underline"
+                      href={`/pensioners/${g.pensionerId}`}
+                      className="font-medium text-blue-700 hover:underline"
                     >
-                      {g.address}
+                      {g.name}
                     </Link>
+                    <div>
+                      <Link
+                        href={`/district/${g.buildingId}`}
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        {g.address}
+                      </Link>
+                    </div>
                   </div>
                   <div className="text-right text-sm shrink-0">
                     <div className="font-medium">{formatUAH(subPlanned)}</div>
