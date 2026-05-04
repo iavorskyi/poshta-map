@@ -10,6 +10,7 @@ export default async function PensionersPage() {
     include: {
       _count: { select: { currentPayments: true } },
       building: true,
+      postman: true,
     },
   });
 
@@ -53,6 +54,7 @@ export default async function PensionersPage() {
                       <div className="text-sm text-slate-600 mt-0.5">{formatAddress(p)}</div>
                       <div className="text-xs text-slate-500 mt-0.5">
                         {p.phone ?? "без телефону"} · пенсія {p.pensionPaymentDay}-го
+                        {p.postman ? ` · ${p.postman.name}` : ""}
                       </div>
                     </div>
                     <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
@@ -73,6 +75,7 @@ export default async function PensionersPage() {
                   <th className="text-left px-3 py-2">Адреса</th>
                   <th className="text-left px-3 py-2">Телефон</th>
                   <th className="text-left px-3 py-2">День пенсії</th>
+                  <th className="text-left px-3 py-2">Поштар</th>
                   <th className="text-left px-3 py-2">Виплат</th>
                 </tr>
               </thead>
@@ -87,6 +90,7 @@ export default async function PensionersPage() {
                     <td className="px-3 py-2">{formatAddress(p)}</td>
                     <td className="px-3 py-2">{p.phone ?? "—"}</td>
                     <td className="px-3 py-2">{p.pensionPaymentDay}</td>
+                    <td className="px-3 py-2">{p.postman?.name ?? "—"}</td>
                     <td className="px-3 py-2">{p._count.currentPayments}</td>
                   </tr>
                 ))}

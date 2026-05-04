@@ -12,9 +12,20 @@ function parsePensionerForm(formData: FormData) {
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const passportNumber = String(formData.get("passportNumber") ?? "").trim() || null;
   const pensionPaymentDay = Number(formData.get("pensionPaymentDay") ?? 0);
+  const postmanIdRaw = String(formData.get("postmanId") ?? "").trim();
+  const postmanId = postmanIdRaw ? Number(postmanIdRaw) : null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
-  return { fullName, buildingId, apartment, phone, passportNumber, pensionPaymentDay, notes };
+  return {
+    fullName,
+    buildingId,
+    apartment,
+    phone,
+    passportNumber,
+    pensionPaymentDay,
+    postmanId,
+    notes,
+  };
 }
 
 function validate(data: ReturnType<typeof parsePensionerForm>) {

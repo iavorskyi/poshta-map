@@ -14,15 +14,18 @@ type Pensioner = {
   phone: string | null;
   passportNumber: string | null;
   pensionPaymentDay: number;
+  postmanId: number | null;
   notes: string | null;
 };
 
 export function PensionerForm({
   pensioner,
   buildings,
+  postmen,
 }: {
   pensioner?: Pensioner;
   buildings: BuildingOption[];
+  postmen: { id: number; name: string }[];
 }) {
   const [error, setError] = useState<string | null>(null);
   const [buildingId, setBuildingId] = useState<number | "">(pensioner?.buildingId ?? "");
@@ -115,6 +118,20 @@ export function PensionerForm({
               defaultValue={pensioner?.pensionPaymentDay ?? ""}
               className="input"
             />
+          </Field>
+          <Field label="Поштар">
+            <select
+              name="postmanId"
+              defaultValue={pensioner?.postmanId ?? ""}
+              className="input"
+            >
+              <option value="">— не обрано —</option>
+              {postmen.map((pm) => (
+                <option key={pm.id} value={pm.id}>
+                  {pm.name}
+                </option>
+              ))}
+            </select>
           </Field>
         </div>
         <Field label="Примітки">

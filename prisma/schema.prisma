@@ -13,6 +13,7 @@ model Postman {
   name           String
   rounds         Round[]
   addressRounds  AddressRound[]
+  pensioners     Pensioner[]
 }
 
 model Pensioner {
@@ -23,13 +24,16 @@ model Pensioner {
   phone             String?
   passportNumber    String?
   pensionPaymentDay Int
+  postmanId         Int?
   notes             String?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   building          Building         @relation(fields: [buildingId], references: [id], onDelete: Restrict)
+  postman           Postman?         @relation(fields: [postmanId], references: [id], onDelete: SetNull)
   currentPayments   CurrentPayment[]
 
   @@index([buildingId])
+  @@index([postmanId])
 }
 
 model Payment {

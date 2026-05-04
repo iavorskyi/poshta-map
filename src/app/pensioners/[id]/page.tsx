@@ -24,7 +24,7 @@ export default async function EditPensionerPage({
   const sp = await searchParams;
   const { from, to, fromStr, toStr } = parseRange(sp.from, sp.to);
 
-  const [pensioner, payments, currentPayments, buildings] = await Promise.all([
+  const [pensioner, payments, currentPayments, buildings, postmen] = await Promise.all([
     prisma.pensioner.findUnique({ where: { id } }),
     prisma.payment.findMany({ orderBy: { name: "asc" } }),
     prisma.currentPayment.findMany({
@@ -33,6 +33,7 @@ export default async function EditPensionerPage({
       orderBy: [{ date: "asc" }, { id: "asc" }],
     }),
     prisma.building.findMany({ orderBy: [{ street: "asc" }, { number: "asc" }] }),
+    prisma.postman.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   if (!pensioner) notFound();
@@ -58,9 +59,11 @@ export default async function EditPensionerPage({
           phone: pensioner.phone,
           passportNumber: pensioner.passportNumber,
           pensionPaymentDay: pensioner.pensionPaymentDay,
+          postmanId: pensioner.postmanId,
           notes: pensioner.notes,
         }}
         buildings={buildings.map((b) => ({ id: b.id, street: b.street, number: b.number }))}
+        postmen={postmen}
       />
 
       <div className="space-y-3 pt-4 border-t border-slate-200">
