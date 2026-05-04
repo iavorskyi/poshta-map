@@ -88,8 +88,17 @@ export function RoundDetailClient({
           items: [it],
         });
     }
-    return Array.from(map.entries()).map(([pid, g]) => ({ pensionerId: pid, ...g }));
+    return Array.from(map.entries()).map(([pid, g]) => {
+      const sortedItems = g.items
+        .slice()
+        .sort((a, b) => Number(a.isPaid) - Number(b.isPaid));
+      const done = g.items.length > 0 && g.items.every((it) => it.isPaid);
+      return { pensionerId: pid, ...g, items: sortedItems, done };
+    });
   }, [items]);
+
+  const todoGroups = useMemo(() => grouped.filter((g) => !g.done), [grouped]);
+  const doneGroups = useMemo(() => grouped.filter((g) => g.done), [grouped]);
 
   const saveMeta = () => {
     setError(null);
@@ -400,107 +409,151 @@ export function RoundDetailClient({
         </button>
       )}
 
-      <div className="space-y-3">
-        {grouped.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500">
-            У цьому обході поки немає виплат.
-          </div>
-        ) : (
-          grouped.map((g) => {
-            const subPlanned = g.items.reduce((s, it) => s + it.amount, 0);
-            const subPaid = g.items
-              .filter((it) => it.isPaid)
-              .reduce((s, it) => s + it.amount, 0);
-            return (
-              <div
-                key={g.pensionerId}
-                className="rounded-lg border border-slate-200 bg-white p-3 md:p-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <Link
-                      href={`/pensioners/${g.pensionerId}`}
-                      className="font-medium text-blue-700 hover:underline"
-                    >
-                      {g.name}
-                    </Link>
-                    <div>
-                      <Link
-                        href={`/district/${g.buildingId}`}
-                        className="text-xs text-blue-600 hover:underline"
-                      >
-                        {g.address}
-                      </Link>
-                    </div>
-                  </div>
-                  <div className="text-right text-sm shrink-0">
-                    <div className="font-medium">{formatUAH(subPlanned)}</div>
-                    <div className="text-xs text-green-700">{formatUAH(subPaid)}</div>
-                  </div>
-                </div>
+      {grouped.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500">
+          У цьому обході поки немає виплат.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {todoGroups.map((g) => (
+            <PensionerGroupCard
+              key={g.pensionerId}
+              group={g}
+              onChangeAmount={changeAmount}
+              onToggleIsPaid={toggleIsPaid}
+              onRemoveItem={removeItem}
+            />
+          ))}
 
-                <ul className="mt-3 space-y-2">
-                  {g.items.map((it) => (
-                    <li
-                      key={it.id}
-                      className={`rounded border p-2 ${
-                        it.isPaid ? "border-green-200 bg-green-50/30" : "border-slate-200"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm">
-                            {it.paymentName}{" "}
-                            <span className="font-mono text-xs text-slate-500">
-                              ({it.paymentCode})
-                            </span>
-                          </div>
-                        </div>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min={0}
-                          defaultValue={it.amount}
-                          onBlur={(e) => {
-                            const v = Number(e.target.value);
-                            if (!Number.isNaN(v) && v !== it.amount) changeAmount(it.id, v);
-                          }}
-                          className="input !w-28 text-right"
-                          aria-label="Сума"
-                        />
-                      </div>
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        <label className="flex items-center gap-2 text-sm flex-1">
-                          <input
-                            type="checkbox"
-                            checked={it.isPaid}
-                            onChange={(e) => toggleIsPaid(it.id, e.target.checked)}
-                            className="h-5 w-5 accent-blue-600"
-                          />
-                          <span
-                            className={
-                              it.isPaid ? "text-green-700 font-medium" : "text-slate-600"
-                            }
-                          >
-                            {it.isPaid ? "Виплачено" : "Відмітити виплаченою"}
-                          </span>
-                        </label>
-                        <button
-                          onClick={() => removeItem(it.id)}
-                          className="text-red-600 text-sm px-2 py-1"
-                          aria-label="Видалити"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+          {doneGroups.length > 0 && (
+            <div className="pt-3">
+              <div className="flex items-center gap-3 text-xs text-slate-500 uppercase tracking-wide mb-2">
+                <span>Виплачені ({doneGroups.length})</span>
+                <span className="flex-1 border-t border-slate-200" />
               </div>
-            );
-          })
-        )}
+              <div className="space-y-3 opacity-80">
+                {doneGroups.map((g) => (
+                  <PensionerGroupCard
+                    key={g.pensionerId}
+                    group={g}
+                    onChangeAmount={changeAmount}
+                    onToggleIsPaid={toggleIsPaid}
+                    onRemoveItem={removeItem}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+type PensionerGroup = {
+  pensionerId: number;
+  name: string;
+  address: string;
+  buildingId: number;
+  items: Item[];
+  done: boolean;
+};
+
+function PensionerGroupCard({
+  group: g,
+  onChangeAmount,
+  onToggleIsPaid,
+  onRemoveItem,
+}: {
+  group: PensionerGroup;
+  onChangeAmount: (id: number, amount: number) => void;
+  onToggleIsPaid: (id: number, next: boolean) => void;
+  onRemoveItem: (id: number) => void;
+}) {
+  const subPlanned = g.items.reduce((s, it) => s + it.amount, 0);
+  const subPaid = g.items.filter((it) => it.isPaid).reduce((s, it) => s + it.amount, 0);
+  return (
+    <div
+      className={`rounded-lg border p-3 md:p-4 ${
+        g.done ? "border-green-200 bg-green-50/40" : "border-slate-200 bg-white"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <Link
+            href={`/pensioners/${g.pensionerId}`}
+            className="font-medium text-blue-700 hover:underline"
+          >
+            {g.name}
+          </Link>
+          <div>
+            <Link
+              href={`/district/${g.buildingId}`}
+              className="text-xs text-blue-600 hover:underline"
+            >
+              {g.address}
+            </Link>
+          </div>
+        </div>
+        <div className="text-right text-sm shrink-0">
+          <div className="font-medium">{formatUAH(subPlanned)}</div>
+          <div className="text-xs text-green-700">{formatUAH(subPaid)}</div>
+        </div>
       </div>
+
+      <ul className="mt-3 space-y-2">
+        {g.items.map((it) => (
+          <li
+            key={it.id}
+            className={`rounded border p-2 ${
+              it.isPaid ? "border-green-200 bg-green-50/30" : "border-slate-200"
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm">
+                  {it.paymentName}{" "}
+                  <span className="font-mono text-xs text-slate-500">({it.paymentCode})</span>
+                </div>
+              </div>
+              <input
+                type="number"
+                step="0.01"
+                min={0}
+                defaultValue={it.amount}
+                onBlur={(e) => {
+                  const v = Number(e.target.value);
+                  if (!Number.isNaN(v) && v !== it.amount) onChangeAmount(it.id, v);
+                }}
+                className="input !w-28 text-right"
+                aria-label="Сума"
+              />
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <label className="flex items-center gap-2 text-sm flex-1">
+                <input
+                  type="checkbox"
+                  checked={it.isPaid}
+                  onChange={(e) => onToggleIsPaid(it.id, e.target.checked)}
+                  className="h-5 w-5 accent-blue-600"
+                />
+                <span
+                  className={it.isPaid ? "text-green-700 font-medium" : "text-slate-600"}
+                >
+                  {it.isPaid ? "Виплачено" : "Відмітити виплаченою"}
+                </span>
+              </label>
+              <button
+                onClick={() => onRemoveItem(it.id)}
+                className="text-red-600 text-sm px-2 py-1"
+                aria-label="Видалити"
+              >
+                ✕
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

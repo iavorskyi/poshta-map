@@ -71,6 +71,9 @@ export function AddressRoundDetailClient({
     return { total, done };
   }, [items]);
 
+  const todoItems = useMemo(() => items.filter((i) => !i.done), [items]);
+  const doneItems = useMemo(() => items.filter((i) => i.done), [items]);
+
   const saveMeta = () => {
     startTransition(async () => {
       const res = await updateAddressRoundMeta(round.id, {
@@ -302,101 +305,167 @@ export function AddressRoundDetailClient({
         </div>
       </div>
 
-      <div className="space-y-2">
-        {items.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500">
-            У цьому обході поки немає будинків.
-          </div>
-        ) : (
-          items.map((it, idx) => {
-            const isEditingNotes = editingNotesId === it.id;
-            return (
-              <div
-                key={it.id}
-                className={`rounded-lg border p-3 md:p-4 ${
-                  it.done ? "border-green-200 bg-green-50/30" : "border-slate-200 bg-white"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <label className="flex items-center pt-1">
-                    <input
-                      type="checkbox"
-                      checked={it.done}
-                      onChange={(e) => toggleDone(it.id, e.target.checked)}
-                      className="h-5 w-5 accent-blue-600"
-                      aria-label="Пройдено"
-                    />
-                  </label>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500">{idx + 1}.</span>
-                      <Link
-                        href={`/district/${it.buildingId}`}
-                        className={`font-medium ${
-                          it.done ? "text-green-800" : "text-blue-700 hover:underline"
-                        }`}
-                      >
-                        {it.buildingStreet}, № {it.buildingNumber}
-                      </Link>
-                    </div>
-                    {isEditingNotes ? (
-                      <div className="mt-2 space-y-2">
-                        <textarea
-                          value={draftNotes}
-                          onChange={(e) => setDraftNotes(e.target.value)}
-                          rows={2}
-                          className="input"
-                          placeholder="Примітка для цього будинку"
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => saveNotes(it.id)}
-                            disabled={isPending}
-                            className="rounded bg-blue-600 text-white px-3 py-1.5 text-sm disabled:opacity-60"
-                          >
-                            Зберегти
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditingNotesId(null)}
-                            className="rounded border border-slate-300 px-3 py-1.5 text-sm"
-                          >
-                            Скасувати
-                          </button>
-                        </div>
-                      </div>
-                    ) : it.notes ? (
-                      <button
-                        type="button"
-                        onClick={() => startEditNotes(it)}
-                        className="text-sm text-slate-600 mt-1 text-left hover:text-slate-900 cursor-text"
-                      >
-                        {it.notes}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => startEditNotes(it)}
-                        className="text-xs text-slate-400 mt-1 hover:text-blue-600"
-                      >
-                        + Додати примітку
-                      </button>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeItem(it.id)}
-                    className="text-red-600 text-sm px-2 py-1 shrink-0"
-                    aria-label="Прибрати"
-                  >
-                    ✕
-                  </button>
-                </div>
+      {items.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500">
+          У цьому обході поки немає будинків.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {todoItems.map((it, idx) => (
+            <AddressItemCard
+              key={it.id}
+              item={it}
+              index={idx + 1}
+              isEditingNotes={editingNotesId === it.id}
+              draftNotes={draftNotes}
+              isPending={isPending}
+              onDraftNotesChange={setDraftNotes}
+              onStartEditNotes={startEditNotes}
+              onCancelEditNotes={() => setEditingNotesId(null)}
+              onSaveNotes={saveNotes}
+              onToggleDone={toggleDone}
+              onRemove={removeItem}
+            />
+          ))}
+
+          {doneItems.length > 0 && (
+            <div className="pt-3">
+              <div className="flex items-center gap-3 text-xs text-slate-500 uppercase tracking-wide mb-2">
+                <span>Пройдені ({doneItems.length})</span>
+                <span className="flex-1 border-t border-slate-200" />
               </div>
-            );
-          })
-        )}
+              <div className="space-y-2 opacity-80">
+                {doneItems.map((it, idx) => (
+                  <AddressItemCard
+                    key={it.id}
+                    item={it}
+                    index={todoItems.length + idx + 1}
+                    isEditingNotes={editingNotesId === it.id}
+                    draftNotes={draftNotes}
+                    isPending={isPending}
+                    onDraftNotesChange={setDraftNotes}
+                    onStartEditNotes={startEditNotes}
+                    onCancelEditNotes={() => setEditingNotesId(null)}
+                    onSaveNotes={saveNotes}
+                    onToggleDone={toggleDone}
+                    onRemove={removeItem}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AddressItemCard({
+  item: it,
+  index,
+  isEditingNotes,
+  draftNotes,
+  isPending,
+  onDraftNotesChange,
+  onStartEditNotes,
+  onCancelEditNotes,
+  onSaveNotes,
+  onToggleDone,
+  onRemove,
+}: {
+  item: Item;
+  index: number;
+  isEditingNotes: boolean;
+  draftNotes: string;
+  isPending: boolean;
+  onDraftNotesChange: (v: string) => void;
+  onStartEditNotes: (item: Item) => void;
+  onCancelEditNotes: () => void;
+  onSaveNotes: (id: number) => void;
+  onToggleDone: (id: number, next: boolean) => void;
+  onRemove: (id: number) => void;
+}) {
+  return (
+    <div
+      className={`rounded-lg border p-3 md:p-4 ${
+        it.done ? "border-green-200 bg-green-50/30" : "border-slate-200 bg-white"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <label className="flex items-center pt-1">
+          <input
+            type="checkbox"
+            checked={it.done}
+            onChange={(e) => onToggleDone(it.id, e.target.checked)}
+            className="h-5 w-5 accent-blue-600"
+            aria-label="Пройдено"
+          />
+        </label>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">{index}.</span>
+            <Link
+              href={`/district/${it.buildingId}`}
+              className={`font-medium ${
+                it.done ? "text-green-800" : "text-blue-700 hover:underline"
+              }`}
+            >
+              {it.buildingStreet}, № {it.buildingNumber}
+            </Link>
+          </div>
+          {isEditingNotes ? (
+            <div className="mt-2 space-y-2">
+              <textarea
+                value={draftNotes}
+                onChange={(e) => onDraftNotesChange(e.target.value)}
+                rows={2}
+                className="input"
+                placeholder="Примітка для цього будинку"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => onSaveNotes(it.id)}
+                  disabled={isPending}
+                  className="rounded bg-blue-600 text-white px-3 py-1.5 text-sm disabled:opacity-60"
+                >
+                  Зберегти
+                </button>
+                <button
+                  type="button"
+                  onClick={onCancelEditNotes}
+                  className="rounded border border-slate-300 px-3 py-1.5 text-sm"
+                >
+                  Скасувати
+                </button>
+              </div>
+            </div>
+          ) : it.notes ? (
+            <button
+              type="button"
+              onClick={() => onStartEditNotes(it)}
+              className="text-sm text-slate-600 mt-1 text-left hover:text-slate-900 cursor-text"
+            >
+              {it.notes}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onStartEditNotes(it)}
+              className="text-xs text-slate-400 mt-1 hover:text-blue-600"
+            >
+              + Додати примітку
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => onRemove(it.id)}
+          className="text-red-600 text-sm px-2 py-1 shrink-0"
+          aria-label="Прибрати"
+        >
+          ✕
+        </button>
       </div>
     </div>
   );
