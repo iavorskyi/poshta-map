@@ -2,8 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { NewRoundClient } from "./NewRoundClient";
 import { BackLink } from "@/components/BackLink";
 
-export const dynamic = "force-dynamic";
-
 export default async function NewRoundPage() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);

@@ -7,8 +7,6 @@ import { CurrentPaymentsTable } from "./CurrentPaymentsTable";
 import { AddCurrentPayment } from "./AddCurrentPayment";
 import { ImportCurrentPayments } from "./ImportCurrentPayments";
 
-export const dynamic = "force-dynamic";
-
 export default async function CurrentPaymentsPage({
   searchParams,
 }: {

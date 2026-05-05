@@ -3,8 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { BuildingDetailClient } from "./BuildingDetailClient";
 import { BackLink } from "@/components/BackLink";
 
-export const dynamic = "force-dynamic";
-
 export default async function BuildingPage({
   params,
 }: {

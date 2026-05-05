@@ -3,8 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { BackLink } from "@/components/BackLink";
 import { AddressRoundDetailClient } from "./AddressRoundDetailClient";
 
-export const dynamic = "force-dynamic";
-
 export default async function AddressRoundPage({
   params,
 }: {

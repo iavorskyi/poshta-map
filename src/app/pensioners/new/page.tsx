@@ -2,8 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { PensionerForm } from "../PensionerForm";
 import { BackLink } from "@/components/BackLink";
 
-export const dynamic = "force-dynamic";
-
 export default async function NewPensionerPage() {
   const [buildings, postmen] = await Promise.all([
     prisma.building.findMany({

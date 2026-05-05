@@ -2,8 +2,6 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatDate, formatUAH } from "@/lib/format";
 
-export const dynamic = "force-dynamic";
-
 type Tab = "pension" | "address";
 
 export default async function RoundsPage({

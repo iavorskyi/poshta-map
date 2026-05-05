@@ -2,8 +2,6 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { AddBuilding } from "./AddBuilding";
 
-export const dynamic = "force-dynamic";
-
 export default async function DistrictPage() {
   const buildings = await prisma.building.findMany({
     orderBy: [{ street: "asc" }, { number: "asc" }],

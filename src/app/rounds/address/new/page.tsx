@@ -2,8 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { BackLink } from "@/components/BackLink";
 import { NewAddressRoundClient } from "./NewAddressRoundClient";
 
-export const dynamic = "force-dynamic";
-
 export default async function NewAddressRoundPage() {
   const [buildings, postmen] = await Promise.all([
     prisma.building.findMany({

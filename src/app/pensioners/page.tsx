@@ -2,8 +2,6 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { ImportPensioners } from "./ImportPensioners";
 
-export const dynamic = "force-dynamic";
-
 export default async function PensionersPage() {
   const pensioners = await prisma.pensioner.findMany({
     orderBy: { fullName: "asc" },

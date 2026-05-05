@@ -3,8 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { RoundDetailClient } from "./RoundDetailClient";
 import { BackLink } from "@/components/BackLink";
 
-export const dynamic = "force-dynamic";
-
 export default async function RoundPage({
   params,
 }: {

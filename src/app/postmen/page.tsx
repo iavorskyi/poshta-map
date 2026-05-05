@@ -1,8 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { PostmenClient } from "./PostmenClient";
 
-export const dynamic = "force-dynamic";
-
 export default async function PostmenPage() {
   const postmen = await prisma.postman.findMany({
     orderBy: { name: "asc" },
