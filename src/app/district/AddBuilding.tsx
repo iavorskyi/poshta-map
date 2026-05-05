@@ -47,7 +47,7 @@ export function AddBuilding({ streets }: { streets: string[] }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-lg border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-600 hover:border-blue-400 hover:text-blue-700"
+        className="w-full rounded-lg border border-dashed border-border bg-surface px-4 py-3 text-sm text-fg-muted hover:border-brand hover:text-fg transition-colors"
       >
         + Додати будинок
       </button>
@@ -55,7 +55,7 @@ export function AddBuilding({ streets }: { streets: string[] }) {
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4 space-y-3">
+    <div className="card p-3 md:p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="font-medium">Новий будинок</div>
         <button
@@ -64,7 +64,7 @@ export function AddBuilding({ streets }: { streets: string[] }) {
             setOpen(false);
             reset();
           }}
-          className="text-slate-500 text-sm px-2 py-1"
+          className="text-fg-subtle hover:text-fg text-sm px-2 py-1"
           aria-label="Закрити"
         >
           ✕
@@ -72,7 +72,7 @@ export function AddBuilding({ streets }: { streets: string[] }) {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-[1fr_140px] gap-2">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs text-slate-600">Вулиця *</span>
+          <span className="text-xs text-fg-muted">Вулиця *</span>
           <input
             list="district-streets"
             value={street}
@@ -87,7 +87,7 @@ export function AddBuilding({ streets }: { streets: string[] }) {
           </datalist>
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs text-slate-600">№ будинку *</span>
+          <span className="text-xs text-fg-muted">№ будинку *</span>
           <input
             value={number}
             onChange={(e) => setNumber(e.target.value)}
@@ -97,14 +97,14 @@ export function AddBuilding({ streets }: { streets: string[] }) {
         </label>
       </div>
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-xs text-slate-600">Примітки</span>
+        <span className="text-xs text-fg-muted">Примітки</span>
         <input
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className="input"
         />
       </label>
-      {error && <div className="text-sm text-red-600">{error}</div>}
+      {error && <div className="text-sm text-danger">{error}</div>}
       <div className="flex justify-end gap-2">
         <button
           type="button"
@@ -112,7 +112,7 @@ export function AddBuilding({ streets }: { streets: string[] }) {
             setOpen(false);
             reset();
           }}
-          className="rounded border border-slate-300 px-4 py-2 text-sm"
+          className="btn-secondary"
         >
           Скасувати
         </button>
@@ -120,7 +120,7 @@ export function AddBuilding({ streets }: { streets: string[] }) {
           type="button"
           onClick={submit}
           disabled={isPending}
-          className="rounded bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700 disabled:opacity-60"
+          className="btn-primary"
         >
           {isPending ? "Збереження…" : "Додати"}
         </button>

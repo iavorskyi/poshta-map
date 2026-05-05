@@ -49,38 +49,38 @@ export function PaymentsClient({ payments }: { payments: Payment[] }) {
       <form
         id="create-payment-form"
         action={handleCreate}
-        className="rounded-lg border border-slate-200 bg-white p-4 flex flex-wrap gap-3 items-end"
+        className="card p-4 flex flex-wrap gap-3 items-end"
       >
         <div className="flex flex-col">
-          <label className="text-xs text-slate-600">Назва</label>
+          <label className="text-xs text-fg-muted">Назва</label>
           <input
             name="name"
             required
-            className="rounded border border-slate-300 px-2 py-1 text-sm"
+            className="rounded border border-border bg-surface text-fg px-2 py-1 text-sm"
             placeholder="Пенсія"
           />
         </div>
         <div className="flex flex-col">
-          <label className="text-xs text-slate-600">Код</label>
+          <label className="text-xs text-fg-muted">Код</label>
           <input
             name="code"
             required
-            className="rounded border border-slate-300 px-2 py-1 text-sm"
+            className="rounded border border-border bg-surface text-fg px-2 py-1 text-sm"
             placeholder="PENSION"
           />
         </div>
         <button
           type="submit"
           disabled={isPending}
-          className="rounded bg-blue-600 text-white px-3 py-1.5 text-sm hover:bg-blue-700 disabled:opacity-60"
+          className="btn-primary"
         >
           Додати
         </button>
       </form>
 
-      <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+      <div className="card overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-slate-600">
+          <thead className="bg-elevated text-fg-muted">
             <tr>
               <th className="text-left px-3 py-2">Назва</th>
               <th className="text-left px-3 py-2">Код</th>
@@ -90,14 +90,14 @@ export function PaymentsClient({ payments }: { payments: Payment[] }) {
           <tbody>
             {payments.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-3 py-6 text-center text-slate-500">
+                <td colSpan={3} className="px-3 py-6 text-center text-fg-subtle">
                   Ще немає типів виплат
                 </td>
               </tr>
             )}
             {payments.map((p) =>
               editingId === p.id ? (
-                <tr key={p.id} className="border-t border-slate-100 bg-blue-50/50">
+                <tr key={p.id} className="border-t border-border bg-elevated">
                   <td colSpan={3} className="px-3 py-2">
                     <form
                       action={(fd) => handleUpdate(p.id, fd)}
@@ -107,25 +107,25 @@ export function PaymentsClient({ payments }: { payments: Payment[] }) {
                         name="name"
                         defaultValue={p.name}
                         required
-                        className="rounded border border-slate-300 px-2 py-1 text-sm"
+                        className="rounded border border-border bg-surface text-fg px-2 py-1 text-sm"
                       />
                       <input
                         name="code"
                         defaultValue={p.code}
                         required
-                        className="rounded border border-slate-300 px-2 py-1 text-sm"
+                        className="rounded border border-border bg-surface text-fg px-2 py-1 text-sm"
                       />
                       <button
                         type="submit"
                         disabled={isPending}
-                        className="rounded bg-blue-600 text-white px-3 py-1 text-sm"
+                        className="btn-primary !px-3 !py-1"
                       >
                         Зберегти
                       </button>
                       <button
                         type="button"
                         onClick={() => setEditingId(null)}
-                        className="rounded border border-slate-300 px-3 py-1 text-sm"
+                        className="btn-secondary !px-3 !py-1"
                       >
                         Скасувати
                       </button>
@@ -133,19 +133,19 @@ export function PaymentsClient({ payments }: { payments: Payment[] }) {
                   </td>
                 </tr>
               ) : (
-                <tr key={p.id} className="border-t border-slate-100">
+                <tr key={p.id} className="border-t border-border">
                   <td className="px-3 py-2">{p.name}</td>
                   <td className="px-3 py-2 font-mono text-xs">{p.code}</td>
                   <td className="px-3 py-2 text-right space-x-2">
                     <button
                       onClick={() => setEditingId(p.id)}
-                      className="text-blue-600 hover:underline"
+                      className="text-link hover:text-link-hover hover:underline"
                     >
                       Редагувати
                     </button>
                     <button
                       onClick={() => handleDelete(p.id)}
-                      className="text-red-600 hover:underline"
+                      className="text-danger hover:underline"
                     >
                       Видалити
                     </button>

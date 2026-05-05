@@ -30,7 +30,7 @@ export function BackLink({
 
   if (!canGoBack) {
     return (
-      <Link href={fallbackHref} className="text-sm text-blue-600 hover:underline">
+      <Link href={fallbackHref} className="text-sm text-link hover:text-link-hover hover:underline">
         ← {fallbackLabel}
       </Link>
     );
@@ -39,7 +39,7 @@ export function BackLink({
     <button
       type="button"
       onClick={() => router.back()}
-      className="text-sm text-blue-600 hover:underline"
+      className="text-sm text-link hover:text-link-hover hover:underline"
     >
       ← Назад
     </button>

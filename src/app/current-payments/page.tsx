@@ -60,8 +60,8 @@ export default async function CurrentPaymentsPage({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
         <Stat title="Виплат" value={String(items.length)} />
         <Stat title="Заплановано" value={formatUAH(totals.planned)} />
-        <Stat title="Виплачено" value={formatUAH(totals.paid)} tone="green" />
-        <Stat title="Залишок" value={formatUAH(totals.planned - totals.paid)} tone="orange" />
+        <Stat title="Виплачено" value={formatUAH(totals.paid)} tone="success" />
+        <Stat title="Залишок" value={formatUAH(totals.planned - totals.paid)} tone="warning" />
       </div>
 
       <AddCurrentPayment
@@ -86,16 +86,16 @@ export default async function CurrentPaymentsPage({
       />
 
       {items.length === 0 && (
-        <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500 text-sm">
+        <div className="rounded-lg border border-dashed border-border p-6 text-center text-fg-subtle text-sm">
           У вибраному періоді виплат немає.{" "}
-          <Link href="/rounds/new" className="text-blue-600 hover:underline">
+          <Link href="/rounds/new" className="link">
             Створити обхід
           </Link>{" "}
           або додайте виплату вручну вище.
         </div>
       )}
 
-      <div className="text-xs text-slate-500">
+      <div className="text-xs text-fg-subtle">
         Період: {formatDate(from)} — {formatDate(to)}
       </div>
     </div>
@@ -109,17 +109,17 @@ function Stat({
 }: {
   title: string;
   value: string;
-  tone?: "green" | "orange";
+  tone?: "success" | "warning";
 }) {
   const color =
-    tone === "green"
-      ? "text-green-700"
-      : tone === "orange"
-      ? "text-orange-700"
-      : "text-slate-900";
+    tone === "success"
+      ? "text-success"
+      : tone === "warning"
+      ? "text-warning"
+      : "text-fg";
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4">
-      <div className="text-xs text-slate-500">{title}</div>
+    <div className="card p-3 md:p-4">
+      <div className="text-xs text-fg-subtle">{title}</div>
       <div className={`text-base md:text-xl font-semibold mt-1 ${color} truncate`}>{value}</div>
     </div>
   );

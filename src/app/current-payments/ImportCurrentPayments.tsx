@@ -76,7 +76,7 @@ export function ImportCurrentPayments({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+        className="btn-secondary"
       >
         Імпорт з Excel
       </button>
@@ -86,9 +86,9 @@ export function ImportCurrentPayments({
   const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1];
 
   return (
-    <div className="fixed inset-0 z-30 bg-slate-900/40 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="w-full sm:max-w-xl bg-white rounded-t-lg sm:rounded-lg border border-slate-200 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-slate-100 sticky top-0 bg-white">
+    <div className="fixed inset-0 z-30 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="w-full sm:max-w-xl bg-surface rounded-t-lg sm:rounded-lg border border-border max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-surface">
           <div className="font-semibold">Імпорт поточних виплат з Excel</div>
           <button
             type="button"
@@ -96,7 +96,7 @@ export function ImportCurrentPayments({
               setOpen(false);
               reset();
             }}
-            className="text-slate-500 px-2 py-1"
+            className="text-fg-subtle hover:text-fg px-2 py-1"
             aria-label="Закрити"
           >
             ✕
@@ -104,7 +104,7 @@ export function ImportCurrentPayments({
         </div>
 
         <div className="p-4 space-y-4">
-          <div className="text-sm text-slate-600 space-y-1">
+          <div className="text-sm text-fg-muted space-y-1">
             <p>
               Колонки: <strong>ФІО</strong>, <strong>Вулиця</strong>, <strong>Будинок</strong>,{" "}
               <strong>День</strong> (1..31), <strong>Сума</strong>, Виплачено
@@ -118,14 +118,14 @@ export function ImportCurrentPayments({
 
           <a
             href="/api/current-payments/template"
-            className="inline-block text-sm text-blue-600 hover:underline"
+            className="inline-block text-sm link"
           >
             ↓ Завантажити шаблон .xlsx
           </a>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <label className="flex flex-col gap-1 text-sm sm:col-span-3">
-              <span className="text-xs text-slate-600">Тип виплати *</span>
+              <span className="text-xs text-fg-muted">Тип виплати *</span>
               <select
                 value={paymentId}
                 onChange={(e) => setPaymentId(e.target.value ? Number(e.target.value) : "")}
@@ -140,7 +140,7 @@ export function ImportCurrentPayments({
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-              <span className="text-xs text-slate-600">Місяць</span>
+              <span className="text-xs text-fg-muted">Місяць</span>
               <select
                 value={month}
                 onChange={(e) => setMonth(Number(e.target.value))}
@@ -154,7 +154,7 @@ export function ImportCurrentPayments({
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs text-slate-600">Рік</span>
+              <span className="text-xs text-fg-muted">Рік</span>
               <select
                 value={year}
                 onChange={(e) => setYear(Number(e.target.value))}
@@ -179,42 +179,42 @@ export function ImportCurrentPayments({
                 setResult(null);
                 setError(null);
               }}
-              className="block w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-slate-200"
+              className="block w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-elevated file:px-3 file:py-2 file:text-sm file:font-medium file:text-fg hover:file:bg-border"
             />
             {file && (
-              <div className="text-xs text-slate-500 mt-1">
+              <div className="text-xs text-fg-subtle mt-1">
                 {file.name} · {(file.size / 1024).toFixed(1)} КБ
               </div>
             )}
           </div>
 
           {error && (
-            <div className="rounded border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">
+            <div className="rounded border border-danger-border bg-danger-bg text-danger px-3 py-2 text-sm">
               {error}
             </div>
           )}
 
           {result && (
             <div className="space-y-2">
-              <div className="rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+              <div className="rounded border border-border bg-elevated px-3 py-2 text-sm">
                 Створено: <strong>{result.created}</strong>
                 {result.warnings.length > 0 && (
                   <>
-                    {" "}· Пропущено: <strong className="text-orange-700">{result.warnings.length}</strong>
+                    {" "}· Пропущено: <strong className="text-warning">{result.warnings.length}</strong>
                   </>
                 )}
                 {result.errors.length > 0 && (
                   <>
-                    {" "}· Помилок: <strong className="text-red-700">{result.errors.length}</strong>
+                    {" "}· Помилок: <strong className="text-danger">{result.errors.length}</strong>
                   </>
                 )}
               </div>
               {result.warnings.length > 0 && (
-                <details className="rounded border border-orange-200 bg-orange-50">
-                  <summary className="cursor-pointer px-3 py-2 text-sm text-orange-700">
+                <details className="rounded border border-warning-border bg-warning-bg">
+                  <summary className="cursor-pointer px-3 py-2 text-sm text-warning">
                     Попередження ({result.warnings.length})
                   </summary>
-                  <ul className="px-3 pb-3 text-xs text-orange-700 space-y-1 max-h-60 overflow-y-auto">
+                  <ul className="px-3 pb-3 text-xs text-warning space-y-1 max-h-60 overflow-y-auto">
                     {result.warnings.map((w, i) => (
                       <li key={i}>
                         Рядок {w.rowNumber}: {w.message}
@@ -224,11 +224,11 @@ export function ImportCurrentPayments({
                 </details>
               )}
               {result.errors.length > 0 && (
-                <details className="rounded border border-red-200 bg-red-50">
-                  <summary className="cursor-pointer px-3 py-2 text-sm text-red-700">
+                <details className="rounded border border-danger-border bg-danger-bg">
+                  <summary className="cursor-pointer px-3 py-2 text-sm text-danger">
                     Помилки ({result.errors.length})
                   </summary>
-                  <ul className="px-3 pb-3 text-xs text-red-700 space-y-1 max-h-60 overflow-y-auto">
+                  <ul className="px-3 pb-3 text-xs text-danger space-y-1 max-h-60 overflow-y-auto">
                     {result.errors.map((err, i) => (
                       <li key={i}>
                         {err.rowNumber > 0 ? `Рядок ${err.rowNumber}: ` : ""}
@@ -241,12 +241,12 @@ export function ImportCurrentPayments({
             </div>
           )}
 
-          <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-slate-100">
+          <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border">
             <button
               type="button"
               onClick={submit}
               disabled={!file || !paymentId || isPending}
-              className="rounded bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700 disabled:opacity-60"
+              className="btn-primary"
             >
               {isPending ? "Імпорт…" : "Імпортувати"}
             </button>
@@ -254,7 +254,7 @@ export function ImportCurrentPayments({
               <button
                 type="button"
                 onClick={reset}
-                className="rounded border border-slate-300 px-4 py-2 text-sm"
+                className="btn-secondary"
               >
                 Імпортувати ще
               </button>
@@ -265,7 +265,7 @@ export function ImportCurrentPayments({
                 setOpen(false);
                 reset();
               }}
-              className="ml-auto rounded border border-slate-300 px-4 py-2 text-sm"
+              className="ml-auto btn-secondary"
             >
               Закрити
             </button>

@@ -64,14 +64,14 @@ export default async function EditPensionerPage({
         postmen={postmen}
       />
 
-      <div className="space-y-3 pt-4 border-t border-slate-200">
+      <div className="space-y-3 pt-4 border-t border-border">
         <div>
           <h2 className="text-lg font-semibold">Поточні виплати</h2>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-fg-muted">
             Період: {formatDate(from)} — {formatDate(to)}. Разом заплановано{" "}
             <strong>{formatUAH(totals.planned)}</strong>, виплачено{" "}
-            <strong className="text-green-700">{formatUAH(totals.paid)}</strong>, залишок{" "}
-            <strong className="text-orange-700">{formatUAH(totals.planned - totals.paid)}</strong>
+            <strong className="text-success">{formatUAH(totals.paid)}</strong>, залишок{" "}
+            <strong className="text-warning">{formatUAH(totals.planned - totals.paid)}</strong>
             .
           </p>
         </div>
@@ -93,7 +93,7 @@ export default async function EditPensionerPage({
         />
 
         {currentPayments.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500 text-sm">
+          <div className="rounded-lg border border-dashed border-border p-6 text-center text-fg-subtle text-sm">
             У вибраному періоді виплат немає.
           </div>
         ) : (

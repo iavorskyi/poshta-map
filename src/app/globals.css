@@ -1,20 +1,104 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-fg: var(--brand-fg);
+  --color-link: var(--link);
+  --color-link-hover: var(--link-hover);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-success-border: var(--success-border);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-border: var(--danger-border);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-border: var(--warning-border);
+}
+
+:root {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --elevated: #f1f5f9;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --fg: #0f172a;
+  --fg-muted: #475569;
+  --fg-subtle: #64748b;
+  --brand: #ffd200;
+  --brand-hover: #f5c500;
+  --brand-fg: #0f172a;
+  --link: #2563eb;
+  --link-hover: #1d4ed8;
+  --success: #047857;
+  --success-bg: #ecfdf5;
+  --success-border: #a7f3d0;
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+  --warning: #c2410c;
+  --warning-bg: #fff7ed;
+  --warning-border: #fed7aa;
+}
+
+.dark {
+  --bg: #0b1220;
+  --surface: #111827;
+  --elevated: #1e293b;
+  --border: #334155;
+  --border-strong: #475569;
+  --fg: #f1f5f9;
+  --fg-muted: #cbd5e1;
+  --fg-subtle: #94a3b8;
+  --brand: #ffd200;
+  --brand-hover: #ffdb33;
+  --brand-fg: #0f172a;
+  --link: #93c5fd;
+  --link-hover: #bfdbfe;
+  --success: #34d399;
+  --success-bg: #052e1d;
+  --success-border: #065f46;
+  --danger: #f87171;
+  --danger-bg: #2a1010;
+  --danger-border: #7f1d1d;
+  --warning: #fdba74;
+  --warning-bg: #2a1a08;
+  --warning-border: #7c2d12;
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
 }
 
 body {
   font-family: var(--font-sans);
   -webkit-text-size-adjust: 100%;
+  background: var(--bg);
+  color: var(--fg);
 }
 
 @layer components {
   /* Base input — 16px font-size prevents iOS auto-zoom on focus.
      py-2 gives a comfortable touch target height. */
   .input {
-    @apply w-full rounded border border-slate-300 bg-white px-3 py-2 text-base outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
+    @apply w-full rounded border border-border bg-surface text-fg px-3 py-2 text-base outline-none transition-colors placeholder:text-fg-subtle focus:border-brand focus:ring-1 focus:ring-brand;
   }
   @media (min-width: 768px) {
     .input {
@@ -26,9 +110,34 @@ body {
   .btn-touch {
     @apply min-h-11;
   }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1 rounded bg-brand text-brand-fg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-hover disabled:opacity-60 disabled:pointer-events-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-1 rounded border border-border bg-surface text-fg px-3 py-2 text-sm transition-colors hover:bg-elevated hover:border-border-strong disabled:opacity-60 disabled:pointer-events-none;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1 rounded px-3 py-2 text-sm text-fg-muted transition-colors hover:bg-elevated hover:text-fg disabled:opacity-60 disabled:pointer-events-none;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-1 rounded border border-danger-border text-danger px-3 py-2 text-sm transition-colors hover:bg-danger-bg disabled:opacity-60 disabled:pointer-events-none;
+  }
+
+  .card {
+    @apply rounded-lg border border-border bg-surface;
+  }
+
+  .link {
+    @apply text-link hover:text-link-hover hover:underline;
+  }
 }
 
-/* ===== Print: round payment slips (бігунки) ===== */
+/* ===== Print: round payment slips (бігунки) =====
+   Print is intentionally light-themed regardless of app theme. */
 @page {
   size: A4;
   margin: 8mm;
@@ -36,6 +145,7 @@ body {
 
 .print-area {
   background: white;
+  color: #0f172a;
 }
 
 .slip-grid {
@@ -154,6 +264,7 @@ body {
   }
   body {
     background: white !important;
+    color: #0f172a !important;
   }
   main {
     max-width: none !important;

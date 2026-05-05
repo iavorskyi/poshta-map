@@ -215,12 +215,12 @@ export function RoundDetailClient({
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4">
+      <div className="card p-3 md:p-4">
         {editMeta ? (
           <div className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <label className="flex flex-col gap-1 text-sm">
-                <span className="text-xs text-slate-600">Дата</span>
+                <span className="text-xs text-fg-muted">Дата</span>
                 <input
                   type="date"
                   value={date}
@@ -229,7 +229,7 @@ export function RoundDetailClient({
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                <span className="text-xs text-slate-600">Поштар</span>
+                <span className="text-xs text-fg-muted">Поштар</span>
                 <select
                   value={postmanId}
                   onChange={(e) => setPostmanId(e.target.value ? Number(e.target.value) : "")}
@@ -244,7 +244,7 @@ export function RoundDetailClient({
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                <span className="text-xs text-slate-600">Примітки</span>
+                <span className="text-xs text-fg-muted">Примітки</span>
                 <input
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -256,13 +256,13 @@ export function RoundDetailClient({
               <button
                 onClick={saveMeta}
                 disabled={isPending}
-                className="rounded bg-blue-600 text-white px-4 py-2 text-sm"
+                className="btn-primary"
               >
                 Зберегти
               </button>
               <button
                 onClick={() => setEditMeta(false)}
-                className="rounded border border-slate-300 px-4 py-2 text-sm"
+                className="btn-secondary"
               >
                 Скасувати
               </button>
@@ -276,19 +276,19 @@ export function RoundDetailClient({
                   Обхід {formatDate(round.date)}
                 </h1>
                 {isClosed && (
-                  <span className="rounded-full bg-slate-200 text-slate-700 px-2 py-0.5 text-xs">
+                  <span className="rounded-full bg-elevated text-fg-muted px-2 py-0.5 text-xs">
                     Закритий
                   </span>
                 )}
               </div>
-              <div className="text-sm text-slate-600 mt-1">
+              <div className="text-sm text-fg-muted mt-1">
                 Поштар: {postmen.find((pm) => pm.id === round.postmanId)?.name ?? "—"}
               </div>
               {round.notes && (
-                <div className="text-sm text-slate-600 mt-1">Примітки: {round.notes}</div>
+                <div className="text-sm text-fg-muted mt-1">Примітки: {round.notes}</div>
               )}
               {isClosed && round.closedAt && (
-                <div className="text-xs text-slate-500 mt-1">
+                <div className="text-xs text-fg-subtle mt-1">
                   Закритий {formatDate(round.closedAt)}
                 </div>
               )}
@@ -296,27 +296,27 @@ export function RoundDetailClient({
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setEditMeta(true)}
-                className="rounded border border-slate-300 px-3 py-2 text-sm"
+                className="btn-secondary"
               >
                 Редагувати
               </button>
               <button
                 onClick={toggleClosed}
                 disabled={isPending}
-                className="rounded border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-60"
+                className="btn-secondary"
               >
                 {isClosed ? "Відкрити обхід" : "Закрити обхід"}
               </button>
               <Link
                 href={`/rounds/${round.id}/print`}
                 target="_blank"
-                className="rounded border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
+                className="btn-secondary"
               >
                 Роздрукувати бігунки
               </Link>
               <button
                 onClick={removeRound}
-                className="rounded border border-red-300 text-red-700 px-3 py-2 text-sm hover:bg-red-50"
+                className="btn-danger"
               >
                 Видалити
               </button>
@@ -327,18 +327,18 @@ export function RoundDetailClient({
 
       <div className="grid grid-cols-3 gap-2 md:gap-3">
         <Stat title="План" value={formatUAH(totals.planned)} />
-        <Stat title="Виплачено" value={formatUAH(totals.paid)} tone="green" />
-        <Stat title="Залишок" value={formatUAH(totals.remaining)} tone="orange" />
+        <Stat title="Виплачено" value={formatUAH(totals.paid)} tone="success" />
+        <Stat title="Залишок" value={formatUAH(totals.remaining)} tone="warning" />
       </div>
 
       {showAdd ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4 space-y-3">
+        <div className="card p-3 md:p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="font-medium">Додати виплату вручну</div>
             <button
               type="button"
               onClick={() => setShowAdd(false)}
-              className="text-slate-500 text-sm px-2 py-1"
+              className="text-fg-subtle hover:text-fg text-sm px-2 py-1"
               aria-label="Закрити"
             >
               ✕
@@ -346,7 +346,7 @@ export function RoundDetailClient({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_140px] gap-2">
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs text-slate-600">Пенсіонер</span>
+              <span className="text-xs text-fg-muted">Пенсіонер</span>
               <select
                 value={newPensionerId}
                 onChange={(e) => setNewPensionerId(e.target.value ? Number(e.target.value) : "")}
@@ -361,7 +361,7 @@ export function RoundDetailClient({
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs text-slate-600">Тип виплати</span>
+              <span className="text-xs text-fg-muted">Тип виплати</span>
               <select
                 value={newPaymentId}
                 onChange={(e) => setNewPaymentId(e.target.value ? Number(e.target.value) : "")}
@@ -376,7 +376,7 @@ export function RoundDetailClient({
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs text-slate-600">Сума</span>
+              <span className="text-xs text-fg-muted">Сума</span>
               <input
                 type="number"
                 step="0.01"
@@ -392,25 +392,25 @@ export function RoundDetailClient({
               type="button"
               onClick={addItem}
               disabled={isPending}
-              className="rounded bg-blue-600 text-white px-4 py-2 text-sm disabled:opacity-60"
+              className="btn-primary"
             >
               Додати
             </button>
           </div>
-          {error && <div className="text-sm text-red-600">{error}</div>}
+          {error && <div className="text-sm text-danger">{error}</div>}
         </div>
       ) : (
         <button
           type="button"
           onClick={() => setShowAdd(true)}
-          className="w-full rounded-lg border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-600 hover:border-blue-400 hover:text-blue-700"
+          className="w-full rounded-lg border border-dashed border-border bg-surface px-4 py-3 text-sm text-fg-muted hover:border-brand hover:text-fg transition-colors"
         >
           + Додати виплату
         </button>
       )}
 
       {grouped.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500">
+        <div className="rounded-lg border border-dashed border-border p-6 text-center text-fg-subtle">
           У цьому обході поки немає виплат.
         </div>
       ) : (
@@ -427,9 +427,9 @@ export function RoundDetailClient({
 
           {doneGroups.length > 0 && (
             <div className="pt-3">
-              <div className="flex items-center gap-3 text-xs text-slate-500 uppercase tracking-wide mb-2">
+              <div className="flex items-center gap-3 text-xs text-fg-subtle uppercase tracking-wide mb-2">
                 <span>Виплачені ({doneGroups.length})</span>
-                <span className="flex-1 border-t border-slate-200" />
+                <span className="flex-1 border-t border-border" />
               </div>
               <div className="space-y-3 opacity-80">
                 {doneGroups.map((g) => (
@@ -475,21 +475,21 @@ function PensionerGroupCard({
   return (
     <div
       className={`rounded-lg border p-3 md:p-4 ${
-        g.done ? "border-green-200 bg-green-50/40" : "border-slate-200 bg-white"
+        g.done ? "border-success-border bg-success-bg/40" : "border-border bg-surface"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Link
             href={`/pensioners/${g.pensionerId}`}
-            className="font-medium text-blue-700 hover:underline"
+            className="font-medium text-link hover:text-link-hover hover:underline"
           >
             {g.name}
           </Link>
           <div>
             <Link
               href={`/district/${g.buildingId}`}
-              className="text-xs text-blue-600 hover:underline"
+              className="text-xs link"
             >
               {g.address}
             </Link>
@@ -497,7 +497,7 @@ function PensionerGroupCard({
         </div>
         <div className="text-right text-sm shrink-0">
           <div className="font-medium">{formatUAH(subPlanned)}</div>
-          <div className="text-xs text-green-700">{formatUAH(subPaid)}</div>
+          <div className="text-xs text-success">{formatUAH(subPaid)}</div>
         </div>
       </div>
 
@@ -506,14 +506,14 @@ function PensionerGroupCard({
           <li
             key={it.id}
             className={`rounded border p-2 ${
-              it.isPaid ? "border-green-200 bg-green-50/30" : "border-slate-200"
+              it.isPaid ? "border-success-border bg-success-bg/30" : "border-border"
             }`}
           >
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <div className="text-sm">
                   {it.paymentName}{" "}
-                  <span className="font-mono text-xs text-slate-500">({it.paymentCode})</span>
+                  <span className="font-mono text-xs text-fg-subtle">({it.paymentCode})</span>
                 </div>
               </div>
               <input
@@ -535,17 +535,17 @@ function PensionerGroupCard({
                   type="checkbox"
                   checked={it.isPaid}
                   onChange={(e) => onToggleIsPaid(it.id, e.target.checked)}
-                  className="h-5 w-5 accent-blue-600"
+                  className="h-5 w-5 accent-brand"
                 />
                 <span
-                  className={it.isPaid ? "text-green-700 font-medium" : "text-slate-600"}
+                  className={it.isPaid ? "text-success font-medium" : "text-fg-muted"}
                 >
                   {it.isPaid ? "Виплачено" : "Відмітити виплаченою"}
                 </span>
               </label>
               <button
                 onClick={() => onRemoveItem(it.id)}
-                className="text-red-600 text-sm px-2 py-1"
+                className="text-danger text-sm px-2 py-1"
                 aria-label="Видалити"
               >
                 ✕
@@ -565,17 +565,17 @@ function Stat({
 }: {
   title: string;
   value: string;
-  tone?: "green" | "orange";
+  tone?: "success" | "warning";
 }) {
   const color =
-    tone === "green"
-      ? "text-green-700"
-      : tone === "orange"
-      ? "text-orange-700"
-      : "text-slate-900";
+    tone === "success"
+      ? "text-success"
+      : tone === "warning"
+      ? "text-warning"
+      : "text-fg";
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4">
-      <div className="text-xs text-slate-500">{title}</div>
+    <div className="card p-3 md:p-4">
+      <div className="text-xs text-fg-subtle">{title}</div>
       <div className={`text-base md:text-2xl font-semibold mt-1 ${color} truncate`}>{value}</div>
     </div>
   );

@@ -73,7 +73,7 @@ export function PensionerForm({
 
   return (
     <form action={onSubmit} className="space-y-6">
-      <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
+      <div className="card p-4 space-y-4">
         <h2 className="font-medium">Особисті дані</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="ФІО" required>
@@ -144,19 +144,19 @@ export function PensionerForm({
         </Field>
       </div>
 
-      {error && <div className="text-sm text-red-600">{error}</div>}
+      {error && <div className="text-sm text-danger">{error}</div>}
 
       <div className="flex items-center gap-2 flex-wrap">
         <button
           type="submit"
           disabled={isPending}
-          className="rounded bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700 disabled:opacity-60"
+          className="btn-primary"
         >
           {pensioner ? "Зберегти" : "Створити"}
         </button>
         <Link
           href={pensioner ? `/pensioners/${pensioner.id}` : "/pensioners"}
-          className="rounded border border-slate-300 px-4 py-2 text-sm"
+          className="btn-secondary"
         >
           Скасувати
         </Link>
@@ -165,7 +165,7 @@ export function PensionerForm({
             type="button"
             onClick={onDelete}
             disabled={isPending}
-            className="sm:ml-auto rounded border border-red-300 text-red-700 px-4 py-2 text-sm hover:bg-red-50 disabled:opacity-60"
+            className="sm:ml-auto btn-danger"
           >
             Видалити пенсіонера
           </button>
@@ -186,9 +186,9 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
-      <span className="text-xs text-slate-600">
+      <span className="text-xs text-fg-muted">
         {label}
-        {required && <span className="text-red-500"> *</span>}
+        {required && <span className="text-danger"> *</span>}
       </span>
       {children}
     </label>

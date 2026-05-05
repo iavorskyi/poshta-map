@@ -103,7 +103,7 @@ export function PensionerCombobox({
           <button
             type="button"
             onClick={() => commit(null)}
-            className="text-slate-400 hover:text-slate-600 px-2 py-1 text-sm"
+            className="text-fg-subtle hover:text-fg px-2 py-1 text-sm"
             aria-label="Очистити"
             tabIndex={-1}
           >
@@ -114,7 +114,7 @@ export function PensionerCombobox({
       {open && filtered.length > 0 && (
         <ul
           role="listbox"
-          className="absolute z-10 left-0 right-0 mt-1 max-h-64 overflow-y-auto rounded border border-slate-200 bg-white shadow-lg text-sm"
+          className="absolute z-10 left-0 right-0 mt-1 max-h-64 overflow-y-auto rounded border border-border bg-surface shadow-lg text-sm"
         >
           {filtered.map((p, i) => (
             <li
@@ -127,7 +127,7 @@ export function PensionerCombobox({
               }}
               onMouseEnter={() => setActiveIdx(i)}
               className={`cursor-pointer px-3 py-2 ${
-                i === activeIdx ? "bg-blue-50 text-blue-700" : ""
+                i === activeIdx ? "bg-elevated text-fg" : "text-fg"
               } ${p.id === value ? "font-medium" : ""}`}
             >
               {p.fullName}
@@ -136,7 +136,7 @@ export function PensionerCombobox({
         </ul>
       )}
       {open && filtered.length === 0 && query.trim() && (
-        <div className="absolute z-10 left-0 right-0 mt-1 rounded border border-slate-200 bg-white shadow-lg px-3 py-2 text-sm text-slate-500">
+        <div className="absolute z-10 left-0 right-0 mt-1 rounded border border-border bg-surface shadow-lg px-3 py-2 text-sm text-fg-subtle">
           Не знайдено
         </div>
       )}

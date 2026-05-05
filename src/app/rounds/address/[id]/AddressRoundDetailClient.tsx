@@ -172,12 +172,12 @@ export function AddressRoundDetailClient({
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4">
+      <div className="card p-3 md:p-4">
         {editMeta ? (
           <div className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <label className="flex flex-col gap-1 text-sm">
-                <span className="text-xs text-slate-600">Дата</span>
+                <span className="text-xs text-fg-muted">Дата</span>
                 <input
                   type="date"
                   value={date}
@@ -186,7 +186,7 @@ export function AddressRoundDetailClient({
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                <span className="text-xs text-slate-600">Поштар</span>
+                <span className="text-xs text-fg-muted">Поштар</span>
                 <select
                   value={postmanId}
                   onChange={(e) => setPostmanId(e.target.value ? Number(e.target.value) : "")}
@@ -201,7 +201,7 @@ export function AddressRoundDetailClient({
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                <span className="text-xs text-slate-600">Примітки</span>
+                <span className="text-xs text-fg-muted">Примітки</span>
                 <input
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -213,7 +213,7 @@ export function AddressRoundDetailClient({
               <button
                 onClick={saveMeta}
                 disabled={isPending}
-                className="rounded bg-blue-600 text-white px-4 py-2 text-sm disabled:opacity-60"
+                className="btn-primary"
               >
                 Зберегти
               </button>
@@ -224,7 +224,7 @@ export function AddressRoundDetailClient({
                   setPostmanId(round.postmanId ?? "");
                   setNotes(round.notes ?? "");
                 }}
-                className="rounded border border-slate-300 px-4 py-2 text-sm"
+                className="btn-secondary"
               >
                 Скасувати
               </button>
@@ -238,22 +238,22 @@ export function AddressRoundDetailClient({
                   По-адресний обхід · {formatDate(round.date)}
                 </h1>
                 {isClosed && (
-                  <span className="rounded-full bg-slate-200 text-slate-700 px-2 py-0.5 text-xs">
+                  <span className="rounded-full bg-elevated text-fg-muted px-2 py-0.5 text-xs">
                     Закритий
                   </span>
                 )}
               </div>
-              <div className="text-sm text-slate-600 mt-1">
+              <div className="text-sm text-fg-muted mt-1">
                 Поштар: {postmen.find((pm) => pm.id === round.postmanId)?.name ?? "—"}
               </div>
               {round.notes && (
-                <div className="text-sm text-slate-600 mt-1">Примітки: {round.notes}</div>
+                <div className="text-sm text-fg-muted mt-1">Примітки: {round.notes}</div>
               )}
-              <div className="text-sm text-slate-600 mt-1">
+              <div className="text-sm text-fg-muted mt-1">
                 Пройдено: <strong>{totals.done}</strong> / {totals.total}
               </div>
               {isClosed && round.closedAt && (
-                <div className="text-xs text-slate-500 mt-1">
+                <div className="text-xs text-fg-subtle mt-1">
                   Закритий {formatDate(round.closedAt)}
                 </div>
               )}
@@ -261,20 +261,20 @@ export function AddressRoundDetailClient({
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setEditMeta(true)}
-                className="rounded border border-slate-300 px-3 py-2 text-sm"
+                className="btn-secondary"
               >
                 Редагувати
               </button>
               <button
                 onClick={toggleClosed}
                 disabled={isPending}
-                className="rounded border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-60"
+                className="btn-secondary"
               >
                 {isClosed ? "Відкрити обхід" : "Закрити обхід"}
               </button>
               <button
                 onClick={removeRound}
-                className="rounded border border-red-300 text-red-700 px-3 py-2 text-sm hover:bg-red-50"
+                className="btn-danger"
               >
                 Видалити
               </button>
@@ -283,7 +283,7 @@ export function AddressRoundDetailClient({
         )}
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4 space-y-3">
+      <div className="card p-3 md:p-4 space-y-3">
         <div className="font-medium">Додати будинок</div>
         <div className="flex items-end gap-2">
           <div className="flex-1">
@@ -298,7 +298,7 @@ export function AddressRoundDetailClient({
             type="button"
             onClick={addBuilding}
             disabled={pickerValue === "" || isPending}
-            className="rounded border border-slate-300 px-3 py-2 text-sm disabled:opacity-50"
+            className="btn-secondary"
           >
             Додати
           </button>
@@ -306,7 +306,7 @@ export function AddressRoundDetailClient({
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500">
+        <div className="rounded-lg border border-dashed border-border p-6 text-center text-fg-subtle">
           У цьому обході поки немає будинків.
         </div>
       ) : (
@@ -330,9 +330,9 @@ export function AddressRoundDetailClient({
 
           {doneItems.length > 0 && (
             <div className="pt-3">
-              <div className="flex items-center gap-3 text-xs text-slate-500 uppercase tracking-wide mb-2">
+              <div className="flex items-center gap-3 text-xs text-fg-subtle uppercase tracking-wide mb-2">
                 <span>Пройдені ({doneItems.length})</span>
-                <span className="flex-1 border-t border-slate-200" />
+                <span className="flex-1 border-t border-border" />
               </div>
               <div className="space-y-2 opacity-80">
                 {doneItems.map((it, idx) => (
@@ -388,7 +388,7 @@ function AddressItemCard({
   return (
     <div
       className={`rounded-lg border p-3 md:p-4 ${
-        it.done ? "border-green-200 bg-green-50/30" : "border-slate-200 bg-white"
+        it.done ? "border-success-border bg-success-bg/30" : "border-border bg-surface"
       }`}
     >
       <div className="flex items-start gap-3">
@@ -397,17 +397,17 @@ function AddressItemCard({
             type="checkbox"
             checked={it.done}
             onChange={(e) => onToggleDone(it.id, e.target.checked)}
-            className="h-5 w-5 accent-blue-600"
+            className="h-5 w-5 accent-brand"
             aria-label="Пройдено"
           />
         </label>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">{index}.</span>
+            <span className="text-xs text-fg-subtle">{index}.</span>
             <Link
               href={`/district/${it.buildingId}`}
               className={`font-medium ${
-                it.done ? "text-green-800" : "text-blue-700 hover:underline"
+                it.done ? "text-success" : "text-link hover:text-link-hover hover:underline"
               }`}
             >
               {it.buildingStreet}, № {it.buildingNumber}
@@ -427,14 +427,14 @@ function AddressItemCard({
                   type="button"
                   onClick={() => onSaveNotes(it.id)}
                   disabled={isPending}
-                  className="rounded bg-blue-600 text-white px-3 py-1.5 text-sm disabled:opacity-60"
+                  className="btn-primary !px-3 !py-1.5"
                 >
                   Зберегти
                 </button>
                 <button
                   type="button"
                   onClick={onCancelEditNotes}
-                  className="rounded border border-slate-300 px-3 py-1.5 text-sm"
+                  className="btn-secondary !px-3 !py-1.5"
                 >
                   Скасувати
                 </button>
@@ -444,7 +444,7 @@ function AddressItemCard({
             <button
               type="button"
               onClick={() => onStartEditNotes(it)}
-              className="text-sm text-slate-600 mt-1 text-left hover:text-slate-900 cursor-text"
+              className="text-sm text-fg-muted mt-1 text-left hover:text-fg cursor-text"
             >
               {it.notes}
             </button>
@@ -452,7 +452,7 @@ function AddressItemCard({
             <button
               type="button"
               onClick={() => onStartEditNotes(it)}
-              className="text-xs text-slate-400 mt-1 hover:text-blue-600"
+              className="text-xs text-fg-subtle mt-1 hover:text-link"
             >
               + Додати примітку
             </button>
@@ -461,7 +461,7 @@ function AddressItemCard({
         <button
           type="button"
           onClick={() => onRemove(it.id)}
-          className="text-red-600 text-sm px-2 py-1 shrink-0"
+          className="text-danger text-sm px-2 py-1 shrink-0"
           aria-label="Прибрати"
         >
           ✕

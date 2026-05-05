@@ -71,10 +71,10 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
 
   const styles =
     toast.type === "error"
-      ? "border-red-300 bg-red-50 text-red-800"
+      ? "border-danger-border bg-danger-bg text-danger"
       : toast.type === "success"
-      ? "border-green-300 bg-green-50 text-green-800"
-      : "border-slate-300 bg-white text-slate-800";
+      ? "border-success-border bg-success-bg text-success"
+      : "border-border bg-surface text-fg";
 
   return (
     <div

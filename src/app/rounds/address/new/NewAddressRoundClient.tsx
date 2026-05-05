@@ -78,10 +78,10 @@ export function NewAddressRoundClient({
 
   return (
     <form action={onSubmit} className="space-y-4">
-      <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+      <div className="card p-4 space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-slate-600">Дата *</span>
+            <span className="text-xs text-fg-muted">Дата *</span>
             <input
               type="date"
               value={date}
@@ -91,7 +91,7 @@ export function NewAddressRoundClient({
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-slate-600">Поштар</span>
+            <span className="text-xs text-fg-muted">Поштар</span>
             <select
               value={postmanId}
               onChange={(e) => setPostmanId(e.target.value ? Number(e.target.value) : "")}
@@ -106,7 +106,7 @@ export function NewAddressRoundClient({
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-slate-600">Примітки</span>
+            <span className="text-xs text-fg-muted">Примітки</span>
             <input
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -117,7 +117,7 @@ export function NewAddressRoundClient({
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+      <div className="card p-4 space-y-3">
         <div className="font-medium">Будинки в обході</div>
         <div className="flex items-end gap-2">
           <div className="flex-1">
@@ -132,14 +132,14 @@ export function NewAddressRoundClient({
             type="button"
             onClick={addPicked}
             disabled={pickerValue === ""}
-            className="rounded border border-slate-300 px-3 py-2 text-sm disabled:opacity-50"
+            className="btn-secondary"
           >
             Додати
           </button>
         </div>
 
         {selectedIds.length === 0 ? (
-          <div className="text-sm text-slate-500">Ще нічого не додано.</div>
+          <div className="text-sm text-fg-subtle">Ще нічого не додано.</div>
         ) : (
           <ol className="space-y-2">
             {selectedIds.map((id, idx) => {
@@ -148,10 +148,10 @@ export function NewAddressRoundClient({
               return (
                 <li
                   key={id}
-                  className="flex items-center justify-between gap-2 rounded border border-slate-200 px-3 py-2"
+                  className="flex items-center justify-between gap-2 rounded border border-border px-3 py-2"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xs text-slate-500 w-6 text-right">{idx + 1}.</span>
+                    <span className="text-xs text-fg-subtle w-6 text-right">{idx + 1}.</span>
                     <span className="truncate">
                       {b.street}, № {b.number}
                     </span>
@@ -161,7 +161,7 @@ export function NewAddressRoundClient({
                       type="button"
                       onClick={() => move(id, -1)}
                       disabled={idx === 0}
-                      className="px-2 py-1 text-slate-500 hover:text-slate-900 disabled:opacity-30"
+                      className="px-2 py-1 text-fg-subtle hover:text-fg disabled:opacity-30"
                       aria-label="Вище"
                     >
                       ↑
@@ -170,7 +170,7 @@ export function NewAddressRoundClient({
                       type="button"
                       onClick={() => move(id, 1)}
                       disabled={idx === selectedIds.length - 1}
-                      className="px-2 py-1 text-slate-500 hover:text-slate-900 disabled:opacity-30"
+                      className="px-2 py-1 text-fg-subtle hover:text-fg disabled:opacity-30"
                       aria-label="Нижче"
                     >
                       ↓
@@ -178,7 +178,7 @@ export function NewAddressRoundClient({
                     <button
                       type="button"
                       onClick={() => remove(id)}
-                      className="text-red-600 px-2 py-1 text-sm"
+                      className="text-danger px-2 py-1 text-sm"
                       aria-label="Видалити"
                     >
                       ✕
@@ -191,13 +191,13 @@ export function NewAddressRoundClient({
         )}
       </div>
 
-      {error && <div className="text-sm text-red-600">{error}</div>}
+      {error && <div className="text-sm text-danger">{error}</div>}
 
       <div className="flex items-center gap-2">
         <button
           type="submit"
           disabled={isPending}
-          className="rounded bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700 disabled:opacity-60"
+          className="btn-primary"
         >
           Створити обхід
         </button>

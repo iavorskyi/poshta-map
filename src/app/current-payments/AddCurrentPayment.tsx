@@ -59,13 +59,13 @@ export function AddCurrentPayment({
 
   if (!canSubmit) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">
+      <div className="card p-4 text-sm text-fg-muted">
         Щоб додавати виплати, потрібно щонайменше один{" "}
-        <Link href="/pensioners" className="text-blue-600 hover:underline">
+        <Link href="/pensioners" className="link">
           пенсіонер
         </Link>{" "}
         і один{" "}
-        <Link href="/payments" className="text-blue-600 hover:underline">
+        <Link href="/payments" className="link">
           тип виплати
         </Link>
         .
@@ -78,7 +78,7 @@ export function AddCurrentPayment({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-lg border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-600 hover:border-blue-400 hover:text-blue-700"
+        className="w-full rounded-lg border border-dashed border-border bg-surface px-4 py-3 text-sm text-fg-muted hover:border-brand hover:text-fg transition-colors"
       >
         + Додати поточну виплату
       </button>
@@ -86,13 +86,13 @@ export function AddCurrentPayment({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4 space-y-3">
+    <div className="card p-3 md:p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="font-medium text-sm">Додати поточну виплату</div>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-slate-500 text-sm px-2 py-1"
+          className="text-fg-subtle hover:text-fg text-sm px-2 py-1"
           aria-label="Закрити"
         >
           ✕
@@ -100,7 +100,7 @@ export function AddCurrentPayment({
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[1fr_1fr_150px_140px] gap-2">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs text-slate-600">Пенсіонер</span>
+          <span className="text-xs text-fg-muted">Пенсіонер</span>
           <select
             value={pensionerId}
             onChange={(e) => setPensionerId(e.target.value ? Number(e.target.value) : "")}
@@ -115,7 +115,7 @@ export function AddCurrentPayment({
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs text-slate-600">Тип виплати</span>
+          <span className="text-xs text-fg-muted">Тип виплати</span>
           <select
             value={paymentId}
             onChange={(e) => setPaymentId(e.target.value ? Number(e.target.value) : "")}
@@ -130,7 +130,7 @@ export function AddCurrentPayment({
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs text-slate-600">Дата</span>
+          <span className="text-xs text-fg-muted">Дата</span>
           <input
             type="date"
             value={date}
@@ -139,7 +139,7 @@ export function AddCurrentPayment({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-xs text-slate-600">Сума</span>
+          <span className="text-xs text-fg-muted">Сума</span>
           <input
             type="number"
             step="0.01"
@@ -156,19 +156,19 @@ export function AddCurrentPayment({
             type="checkbox"
             checked={isPaid}
             onChange={(e) => setIsPaid(e.target.checked)}
-            className="h-5 w-5 accent-blue-600"
+            className="h-5 w-5 accent-brand"
           />
           Виплачено
         </label>
         <button
           onClick={submit}
           disabled={isPending}
-          className="rounded bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700 disabled:opacity-60"
+          className="btn-primary"
         >
           Додати
         </button>
       </div>
-      {error && <div className="text-sm text-red-600">{error}</div>}
+      {error && <div className="text-sm text-danger">{error}</div>}
     </div>
   );
 }

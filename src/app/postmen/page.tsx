@@ -9,7 +9,7 @@ export default async function PostmenPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Поштарі</h1>
-      <p className="text-slate-600 text-sm">Хто йде в обхід.</p>
+      <p className="text-fg-muted text-sm">Хто йде в обхід.</p>
       <PostmenClient postmen={postmen.map((p) => ({ id: p.id, name: p.name, roundsCount: p._count.rounds }))} />
     </div>
   );

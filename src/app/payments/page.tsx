@@ -6,7 +6,7 @@ export default async function PaymentsPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Типи виплат</h1>
-      <p className="text-slate-600 text-sm">
+      <p className="text-fg-muted text-sm">
         Довідник виплат, які може отримувати пенсіонер (напр. Пенсія, Субсидія).
       </p>
       <PaymentsClient payments={payments} />

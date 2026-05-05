@@ -191,10 +191,10 @@ export function NewRoundClient({
       <input type="hidden" name="postmanId" value={postmanId === "" ? "" : String(postmanId)} />
       <input type="hidden" name="notes" value={notes} />
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+      <div className="card p-4 space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-slate-600">Дата обходу *</span>
+            <span className="text-xs text-fg-muted">Дата обходу *</span>
             <input
               type="date"
               value={date}
@@ -204,7 +204,7 @@ export function NewRoundClient({
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-slate-600">Поштар</span>
+            <span className="text-xs text-fg-muted">Поштар</span>
             <select
               value={postmanId}
               onChange={(e) => setPostmanId(e.target.value ? Number(e.target.value) : "")}
@@ -219,7 +219,7 @@ export function NewRoundClient({
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm md:col-span-1">
-            <span className="text-xs text-slate-600">Примітки</span>
+            <span className="text-xs text-fg-muted">Примітки</span>
             <input
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -231,7 +231,7 @@ export function NewRoundClient({
       </div>
 
       {suggested.length > 0 && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 space-y-2">
+        <div className="rounded-lg border border-brand bg-brand/10 p-4 space-y-2">
           <div className="font-medium text-sm">
             Пропозиції на {selectedDay}-е число (день виплати пенсії, {suggested.length}):
           </div>
@@ -241,17 +241,17 @@ export function NewRoundClient({
                 type="button"
                 key={pensioner.id}
                 onClick={() => addPensioner(pensioner.id)}
-                className="text-left rounded border border-blue-300 bg-white px-3 py-2 text-sm hover:bg-blue-100"
+                className="text-left rounded border border-border bg-surface px-3 py-2 text-sm hover:border-brand hover:bg-brand/10 transition-colors"
               >
                 <div className="font-medium">{pensioner.fullName}</div>
-                <div className="text-xs text-slate-500">{pensioner.address}</div>
+                <div className="text-xs text-fg-subtle">{pensioner.address}</div>
               </button>
             ))}
           </div>
         </div>
       )}
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+      <div className="card p-4 space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="font-medium">Пенсіонери в обході</div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -275,7 +275,7 @@ export function NewRoundClient({
                 addPensioner(Number(manualPensionerId));
                 setManualPensionerId("");
               }}
-              className="rounded border border-slate-300 px-3 py-2 text-sm disabled:opacity-50 shrink-0"
+              className="btn-secondary shrink-0"
             >
               Додати
             </button>
@@ -283,7 +283,7 @@ export function NewRoundClient({
         </div>
 
         {drafts.length === 0 ? (
-          <div className="text-sm text-slate-500">Ще нікого не додано.</div>
+          <div className="text-sm text-fg-subtle">Ще нікого не додано.</div>
         ) : (
           <div className="space-y-3">
             {drafts.map((d) => {
@@ -294,18 +294,18 @@ export function NewRoundClient({
                 0
               );
               return (
-                <div key={d.pensionerId} className="rounded border border-slate-200 p-3 space-y-2">
+                <div key={d.pensionerId} className="rounded border border-border p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="font-medium">{p.fullName}</div>
-                      <div className="text-xs text-slate-500">{p.address}</div>
+                      <div className="text-xs text-fg-subtle">{p.address}</div>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-sm font-medium">{formatUAH(subtotal)}</div>
                       <button
                         type="button"
                         onClick={() => removePensioner(d.pensionerId)}
-                        className="text-sm text-red-600 hover:underline"
+                        className="text-sm text-danger hover:underline"
                       >
                         Прибрати
                       </button>
@@ -329,7 +329,7 @@ export function NewRoundClient({
                                 paymentId: e.target.value ? Number(e.target.value) : "",
                               })
                             }
-                            className="input disabled:bg-slate-100 disabled:cursor-not-allowed col-span-2 md:col-span-1"
+                            className="input disabled:bg-elevated disabled:cursor-not-allowed col-span-2 md:col-span-1"
                           >
                             <option value="">— тип виплати —</option>
                             {payments.map((pay) => (
@@ -350,11 +350,11 @@ export function NewRoundClient({
                                 amount: e.target.value ? Number(e.target.value) : "",
                               })
                             }
-                            className="input disabled:bg-slate-100 disabled:cursor-not-allowed"
+                            className="input disabled:bg-elevated disabled:cursor-not-allowed"
                           />
                           {paid ? (
                             <span
-                              className="text-xs text-slate-500 px-2 shrink-0"
+                              className="text-xs text-fg-subtle px-2 shrink-0"
                               title="Ця виплата вже оплачена в цьому місяці"
                             >
                               оплачено
@@ -363,7 +363,7 @@ export function NewRoundClient({
                             <button
                               type="button"
                               onClick={() => removeItem(d.pensionerId, it.key)}
-                              className="text-red-600 text-lg px-3 py-1 shrink-0"
+                              className="text-danger text-lg px-3 py-1 shrink-0"
                               aria-label="Видалити"
                             >
                               ✕
@@ -375,7 +375,7 @@ export function NewRoundClient({
                     <button
                       type="button"
                       onClick={() => addItem(d.pensionerId)}
-                      className="text-sm text-blue-600 hover:underline"
+                      className="text-sm link"
                     >
                       + Додати виплату
                     </button>
@@ -386,19 +386,19 @@ export function NewRoundClient({
           </div>
         )}
 
-        <div className="flex items-center justify-end pt-2 border-t border-slate-100 text-sm">
-          <div className="text-slate-600 mr-2">Разом заплановано:</div>
+        <div className="flex items-center justify-end pt-2 border-t border-border text-sm">
+          <div className="text-fg-muted mr-2">Разом заплановано:</div>
           <div className="font-semibold">{formatUAH(totalPlanned)}</div>
         </div>
       </div>
 
-      {error && <div className="text-sm text-red-600">{error}</div>}
+      {error && <div className="text-sm text-danger">{error}</div>}
 
       <div className="flex items-center gap-2">
         <button
           type="submit"
           disabled={isPending}
-          className="rounded bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700 disabled:opacity-60"
+          className="btn-primary"
         >
           Створити обхід
         </button>

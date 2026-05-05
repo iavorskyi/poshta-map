@@ -48,30 +48,30 @@ export function CurrentPaymentsTable({ items }: { items: Item[] }) {
         {items.map((it) => (
           <li
             key={it.id}
-            className={`rounded-lg border bg-white p-3 ${
-              it.isPaid ? "border-green-200" : "border-slate-200"
+            className={`rounded-lg border bg-surface p-3 ${
+              it.isPaid ? "border-success-border" : "border-border"
             }`}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <Link
                   href={`/pensioners/${it.pensionerId}`}
-                  className="font-medium text-blue-700 hover:underline block truncate"
+                  className="font-medium text-link hover:text-link-hover hover:underline block truncate"
                 >
                   {it.pensionerName}
                 </Link>
-                <div className="text-sm text-slate-600 mt-0.5">
+                <div className="text-sm text-fg-muted mt-0.5">
                   {it.paymentName}{" "}
-                  <span className="font-mono text-xs text-slate-500">({it.paymentCode})</span>
+                  <span className="font-mono text-xs text-fg-subtle">({it.paymentCode})</span>
                 </div>
-                <div className="text-xs text-slate-500 mt-0.5">
+                <div className="text-xs text-fg-subtle mt-0.5">
                   {formatDate(it.date)}
                   {it.roundId && (
                     <>
                       {" · "}
                       <Link
                         href={`/rounds/${it.roundId}`}
-                        className="text-blue-600 hover:underline"
+                        className="link"
                       >
                         обхід #{it.roundId}
                       </Link>
@@ -90,9 +90,9 @@ export function CurrentPaymentsTable({ items }: { items: Item[] }) {
                   checked={it.isPaid}
                   disabled={isPending}
                   onChange={(e) => togglePaid(it.id, e.target.checked)}
-                  className="h-5 w-5 accent-blue-600"
+                  className="h-5 w-5 accent-brand"
                 />
-                <span className={it.isPaid ? "text-green-700 font-medium" : "text-slate-600"}>
+                <span className={it.isPaid ? "text-success font-medium" : "text-fg-muted"}>
                   {it.isPaid ? "Виплачено" : "Відмітити виплаченою"}
                 </span>
               </label>
@@ -111,7 +111,7 @@ export function CurrentPaymentsTable({ items }: { items: Item[] }) {
               />
               <button
                 onClick={() => removeItem(it.id)}
-                className="text-red-600 text-sm px-2 py-1"
+                className="text-danger text-sm px-2 py-1"
                 aria-label="Видалити"
               >
                 ✕
@@ -122,9 +122,9 @@ export function CurrentPaymentsTable({ items }: { items: Item[] }) {
       </ul>
 
       {/* Desktop: table */}
-      <div className="hidden md:block rounded-lg border border-slate-200 bg-white overflow-hidden">
+      <div className="hidden md:block card overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-slate-600">
+          <thead className="bg-elevated text-fg-muted">
             <tr>
               <th className="text-left px-3 py-2">Дата</th>
               <th className="text-left px-3 py-2">Пенсіонер</th>
@@ -137,19 +137,19 @@ export function CurrentPaymentsTable({ items }: { items: Item[] }) {
           </thead>
           <tbody>
             {items.map((it) => (
-              <tr key={it.id} className="border-t border-slate-100">
+              <tr key={it.id} className="border-t border-border">
                 <td className="px-3 py-2">{formatDate(it.date)}</td>
                 <td className="px-3 py-2">
                   <Link
                     href={`/pensioners/${it.pensionerId}`}
-                    className="text-blue-700 hover:underline"
+                    className="text-link hover:text-link-hover hover:underline"
                   >
                     {it.pensionerName}
                   </Link>
                 </td>
                 <td className="px-3 py-2">
                   {it.paymentName}{" "}
-                  <span className="font-mono text-xs text-slate-500">({it.paymentCode})</span>
+                  <span className="font-mono text-xs text-fg-subtle">({it.paymentCode})</span>
                 </td>
                 <td className="px-3 py-2 text-right">
                   <input
@@ -171,22 +171,22 @@ export function CurrentPaymentsTable({ items }: { items: Item[] }) {
                     checked={it.isPaid}
                     disabled={isPending}
                     onChange={(e) => togglePaid(it.id, e.target.checked)}
-                    className="h-4 w-4 accent-blue-600"
+                    className="h-4 w-4 accent-brand"
                   />
                 </td>
                 <td className="px-3 py-2">
                   {it.roundId ? (
-                    <Link href={`/rounds/${it.roundId}`} className="text-blue-600 hover:underline">
+                    <Link href={`/rounds/${it.roundId}`} className="link">
                       #{it.roundId}
                     </Link>
                   ) : (
-                    <span className="text-slate-400">—</span>
+                    <span className="text-fg-subtle">—</span>
                   )}
                 </td>
                 <td className="px-3 py-2 text-right">
                   <button
                     onClick={() => removeItem(it.id)}
-                    className="text-red-600 hover:underline text-sm"
+                    className="text-danger hover:underline text-sm"
                   >
                     Видалити
                   </button>

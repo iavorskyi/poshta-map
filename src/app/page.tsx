@@ -27,7 +27,7 @@ export default async function Home() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Головна</h1>
-        <p className="text-slate-600 mt-1">
+        <p className="text-fg-muted mt-1">
           Сервіс для рутинних задач поштаря — облік пенсіонерів, їх виплат і щоденні обходи.
         </p>
       </div>
@@ -36,9 +36,9 @@ export default async function Home() {
           <Link
             key={c.href}
             href={c.href}
-            className="block rounded-lg border border-slate-200 bg-white p-4 hover:border-blue-400 hover:shadow-sm transition"
+            className="block rounded-lg border border-border bg-surface p-4 hover:border-brand hover:shadow-sm transition"
           >
-            <div className="text-sm text-slate-500">{c.hint}</div>
+            <div className="text-sm text-fg-subtle">{c.hint}</div>
             <div className="text-lg font-medium mt-1">{c.title}</div>
             <div className="text-3xl font-semibold mt-2">{c.count}</div>
           </Link>

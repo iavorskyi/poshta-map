@@ -159,12 +159,12 @@ export function BuildingDetailClient({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4">
+      <div className="card p-3 md:p-4">
         {editMeta ? (
           <div className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-[1fr_140px] gap-2">
               <label className="flex flex-col gap-1 text-sm">
-                <span className="text-xs text-slate-600">Вулиця</span>
+                <span className="text-xs text-fg-muted">Вулиця</span>
                 <input
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
@@ -172,7 +172,7 @@ export function BuildingDetailClient({
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                <span className="text-xs text-slate-600">№ будинку</span>
+                <span className="text-xs text-fg-muted">№ будинку</span>
                 <input
                   value={number}
                   onChange={(e) => setNumber(e.target.value)}
@@ -181,20 +181,20 @@ export function BuildingDetailClient({
               </label>
             </div>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs text-slate-600">Примітки</span>
+              <span className="text-xs text-fg-muted">Примітки</span>
               <input
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="input"
               />
             </label>
-            {error && <div className="text-sm text-red-600">{error}</div>}
+            {error && <div className="text-sm text-danger">{error}</div>}
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={saveMeta}
                 disabled={isPending}
-                className="rounded bg-blue-600 text-white px-4 py-2 text-sm disabled:opacity-60"
+                className="btn-primary"
               >
                 Зберегти
               </button>
@@ -207,7 +207,7 @@ export function BuildingDetailClient({
                   setNotes(building.notes ?? "");
                   setError(null);
                 }}
-                className="rounded border border-slate-300 px-4 py-2 text-sm"
+                className="btn-secondary"
               >
                 Скасувати
               </button>
@@ -220,11 +220,11 @@ export function BuildingDetailClient({
                 {building.street}, № {building.number}
               </h1>
               {building.notes && (
-                <div className="text-sm text-slate-600 mt-1">
+                <div className="text-sm text-fg-muted mt-1">
                   Примітки: {building.notes}
                 </div>
               )}
-              <div className="text-sm text-slate-600 mt-1">
+              <div className="text-sm text-fg-muted mt-1">
                 Парадних: <strong>{entrances.length}</strong>
               </div>
             </div>
@@ -232,14 +232,14 @@ export function BuildingDetailClient({
               <button
                 type="button"
                 onClick={() => setEditMeta(true)}
-                className="rounded border border-slate-300 px-3 py-2 text-sm"
+                className="btn-secondary"
               >
                 Редагувати
               </button>
               <button
                 type="button"
                 onClick={removeBuilding}
-                className="rounded border border-red-300 text-red-700 px-3 py-2 text-sm hover:bg-red-50"
+                className="btn-danger"
               >
                 Видалити
               </button>
@@ -249,7 +249,7 @@ export function BuildingDetailClient({
       </div>
 
       {showAdd ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4 space-y-3">
+        <div className="card p-3 md:p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="font-medium">Нове парадне</div>
             <button
@@ -261,7 +261,7 @@ export function BuildingDetailClient({
                 setNewNotes("");
                 setError(null);
               }}
-              className="text-slate-500 text-sm px-2 py-1"
+              className="text-fg-subtle hover:text-fg text-sm px-2 py-1"
               aria-label="Закрити"
             >
               ✕
@@ -269,7 +269,7 @@ export function BuildingDetailClient({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-[120px_1fr] gap-2">
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs text-slate-600">№ парадного *</span>
+              <span className="text-xs text-fg-muted">№ парадного *</span>
               <input
                 type="number"
                 inputMode="numeric"
@@ -280,7 +280,7 @@ export function BuildingDetailClient({
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs text-slate-600">Діапазон квартир (1-8)</span>
+              <span className="text-xs text-fg-muted">Діапазон квартир (1-8)</span>
               <input
                 value={newRange}
                 onChange={(e) => setNewRange(e.target.value)}
@@ -290,14 +290,14 @@ export function BuildingDetailClient({
             </label>
           </div>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-slate-600">Примітки</span>
+            <span className="text-xs text-fg-muted">Примітки</span>
             <input
               value={newNotes}
               onChange={(e) => setNewNotes(e.target.value)}
               className="input"
             />
           </label>
-          {error && <div className="text-sm text-red-600">{error}</div>}
+          {error && <div className="text-sm text-danger">{error}</div>}
           <div className="flex justify-end gap-2">
             <button
               type="button"
@@ -308,7 +308,7 @@ export function BuildingDetailClient({
                 setNewNotes("");
                 setError(null);
               }}
-              className="rounded border border-slate-300 px-4 py-2 text-sm"
+              className="btn-secondary"
             >
               Скасувати
             </button>
@@ -316,7 +316,7 @@ export function BuildingDetailClient({
               type="button"
               onClick={submitNew}
               disabled={isPending}
-              className="rounded bg-blue-600 text-white px-4 py-2 text-sm disabled:opacity-60"
+              className="btn-primary"
             >
               {isPending ? "Збереження…" : "Додати"}
             </button>
@@ -326,7 +326,7 @@ export function BuildingDetailClient({
         <button
           type="button"
           onClick={() => setShowAdd(true)}
-          className="w-full rounded-lg border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-600 hover:border-blue-400 hover:text-blue-700"
+          className="w-full rounded-lg border border-dashed border-border bg-surface px-4 py-3 text-sm text-fg-muted hover:border-brand hover:text-fg transition-colors"
         >
           + Додати парадне
         </button>
@@ -334,7 +334,7 @@ export function BuildingDetailClient({
 
       <div className="space-y-3">
         {entrances.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500 text-sm">
+          <div className="rounded-lg border border-dashed border-border p-6 text-center text-fg-subtle text-sm">
             Парадних ще немає.
           </div>
         ) : (
@@ -343,13 +343,13 @@ export function BuildingDetailClient({
             return (
               <div
                 key={e.id}
-                className="rounded-lg border border-slate-200 bg-white p-3 md:p-4"
+                className="card p-3 md:p-4"
               >
                 {isEditing ? (
                   <div className="space-y-3">
                     <div className="grid grid-cols-1 md:grid-cols-[120px_1fr] gap-2">
                       <label className="flex flex-col gap-1 text-sm">
-                        <span className="text-xs text-slate-600">№ парадного</span>
+                        <span className="text-xs text-fg-muted">№ парадного</span>
                         <input
                           type="number"
                           inputMode="numeric"
@@ -360,7 +360,7 @@ export function BuildingDetailClient({
                         />
                       </label>
                       <label className="flex flex-col gap-1 text-sm">
-                        <span className="text-xs text-slate-600">
+                        <span className="text-xs text-fg-muted">
                           Діапазон квартир
                         </span>
                         <input
@@ -372,7 +372,7 @@ export function BuildingDetailClient({
                       </label>
                     </div>
                     <label className="flex flex-col gap-1 text-sm">
-                      <span className="text-xs text-slate-600">Примітки</span>
+                      <span className="text-xs text-fg-muted">Примітки</span>
                       <input
                         value={editNotes}
                         onChange={(ev) => setEditNotes(ev.target.value)}
@@ -380,14 +380,14 @@ export function BuildingDetailClient({
                       />
                     </label>
                     {error && (
-                      <div className="text-sm text-red-600">{error}</div>
+                      <div className="text-sm text-danger">{error}</div>
                     )}
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={submitEdit}
                         disabled={isPending}
-                        className="rounded bg-blue-600 text-white px-4 py-2 text-sm disabled:opacity-60"
+                        className="btn-primary"
                       >
                         Зберегти
                       </button>
@@ -397,7 +397,7 @@ export function BuildingDetailClient({
                           setEditingId(null);
                           setError(null);
                         }}
-                        className="rounded border border-slate-300 px-4 py-2 text-sm"
+                        className="btn-secondary"
                       >
                         Скасувати
                       </button>
@@ -408,26 +408,26 @@ export function BuildingDetailClient({
                     <div className="min-w-0 flex-1">
                       <div className="font-medium">Парадне № {e.number}</div>
                       {(e.aptFrom != null || e.aptTo != null) && (
-                        <div className="text-sm text-slate-600 mt-1">
+                        <div className="text-sm text-fg-muted mt-1">
                           Квартири: {formatRange(e.aptFrom, e.aptTo)}
                         </div>
                       )}
                       {e.notes && (
-                        <div className="text-sm text-slate-500 mt-1">{e.notes}</div>
+                        <div className="text-sm text-fg-subtle mt-1">{e.notes}</div>
                       )}
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <button
                         type="button"
                         onClick={() => startEdit(e)}
-                        className="rounded border border-slate-300 px-3 py-1.5 text-sm"
+                        className="btn-secondary !px-3 !py-1.5"
                       >
                         Редагувати
                       </button>
                       <button
                         type="button"
                         onClick={() => removeEntrance(e.id)}
-                        className="rounded border border-red-300 text-red-700 px-3 py-1.5 text-sm hover:bg-red-50"
+                        className="btn-danger !px-3 !py-1.5"
                       >
                         ✕
                       </button>

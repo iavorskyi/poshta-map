@@ -36,19 +36,19 @@ export default async function DistrictPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-semibold">Дільниця</h1>
-        <div className="text-sm text-slate-600">
+        <div className="text-sm text-fg-muted">
           Будинків: <strong>{buildings.length}</strong> · Вулиць:{" "}
           <strong>{streets.length}</strong>
         </div>
       </div>
-      <p className="text-slate-600 text-sm">
+      <p className="text-fg-muted text-sm">
         Будинки, які обслуговує відділення. Натисніть на будинок щоб додати парадні.
       </p>
 
       <AddBuilding streets={streets} />
 
       {sortedGroups.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500 text-sm">
+        <div className="rounded-lg border border-dashed border-border p-6 text-center text-fg-subtle text-sm">
           Поки немає жодного будинку. Додайте перший вище.
         </div>
       ) : (
@@ -56,11 +56,11 @@ export default async function DistrictPage() {
           {sortedGroups.map((g) => (
             <section
               key={g.street}
-              className="rounded-lg border border-slate-200 bg-white p-3 md:p-4"
+              className="card p-3 md:p-4"
             >
               <div className="flex items-baseline justify-between gap-3 mb-2">
                 <h2 className="font-semibold">{g.street}</h2>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-fg-subtle">
                   {g.items.length}{" "}
                   {g.items.length === 1 ? "будинок" : g.items.length < 5 ? "будинки" : "будинків"}
                 </span>
@@ -70,11 +70,11 @@ export default async function DistrictPage() {
                   <li key={b.id}>
                     <Link
                       href={`/district/${b.id}`}
-                      className="inline-flex items-center gap-1 rounded border border-slate-300 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 px-2.5 py-1 text-sm"
+                      className="inline-flex items-center gap-1 rounded border border-border bg-elevated hover:border-brand hover:bg-brand/10 px-2.5 py-1 text-sm text-fg"
                     >
                       <span className="font-medium">№ {b.number}</span>
                       {b.entrancesCount > 0 && (
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-fg-subtle">
                           · {b.entrancesCount}{" "}
                           {b.entrancesCount === 1 ? "пар." : "пар."}
                         </span>

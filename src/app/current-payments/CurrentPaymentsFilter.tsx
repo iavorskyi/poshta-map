@@ -83,10 +83,10 @@ export function CurrentPaymentsFilter({
   };
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3 md:p-4">
+    <div className="card p-3 md:p-4">
       <div className="flex flex-col md:flex-row md:flex-wrap md:items-end gap-2">
         <label className="flex flex-col gap-1 text-sm md:w-40">
-          <span className="text-xs text-slate-600">Від</span>
+          <span className="text-xs text-fg-muted">Від</span>
           <input
             type="date"
             value={from}
@@ -95,7 +95,7 @@ export function CurrentPaymentsFilter({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm md:w-40">
-          <span className="text-xs text-slate-600">До</span>
+          <span className="text-xs text-fg-muted">До</span>
           <input
             type="date"
             value={to}
@@ -105,7 +105,7 @@ export function CurrentPaymentsFilter({
         </label>
         {mode === "all" && (
           <label className="flex flex-col gap-1 text-sm md:flex-1 md:min-w-48">
-            <span className="text-xs text-slate-600">Пенсіонер</span>
+            <span className="text-xs text-fg-muted">Пенсіонер</span>
             <PensionerCombobox
               pensioners={pensioners}
               value={pid}
@@ -116,7 +116,7 @@ export function CurrentPaymentsFilter({
         )}
         {showPaymentFilter && (
           <label className="flex flex-col gap-1 text-sm md:w-56">
-            <span className="text-xs text-slate-600">Тип виплати</span>
+            <span className="text-xs text-fg-muted">Тип виплати</span>
             <select
               value={payId}
               onChange={(e) => setPayId(e.target.value ? Number(e.target.value) : "")}
@@ -132,11 +132,11 @@ export function CurrentPaymentsFilter({
           </label>
         )}
         <div className="flex items-center gap-3 md:ml-auto">
-          {isPending && <span className="text-xs text-slate-500">Оновлення…</span>}
+          {isPending && <span className="text-xs text-fg-subtle">Оновлення…</span>}
           <button
             onClick={reset}
             disabled={isPending}
-            className="rounded border border-slate-300 px-3 py-2 text-sm"
+            className="btn-secondary"
           >
             Скинути
           </button>
