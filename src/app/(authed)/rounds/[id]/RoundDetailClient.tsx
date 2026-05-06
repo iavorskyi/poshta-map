@@ -38,12 +38,20 @@ type Round = {
 type Payment = { id: number; name: string; code: string };
 type Postman = { id: number; name: string };
 
+type SuggestedItem = {
+  paymentId: number;
+  paymentName: string;
+  paymentCode: string;
+  amount: number;
+};
+
 export function RoundDetailClient({
   round,
   items,
   pensioners,
   payments,
   postmen,
+  suggestedByPensioner,
   isAdmin,
   canEdit,
 }: {
@@ -52,6 +60,7 @@ export function RoundDetailClient({
   pensioners: { id: number; fullName: string }[];
   payments: Payment[];
   postmen: Postman[];
+  suggestedByPensioner: Record<number, SuggestedItem[]>;
   isAdmin: boolean;
   canEdit: boolean;
 }) {
@@ -97,9 +106,10 @@ export function RoundDetailClient({
         .slice()
         .sort((a, b) => Number(a.isPaid) - Number(b.isPaid));
       const done = g.items.length > 0 && g.items.every((it) => it.isPaid);
-      return { pensionerId: pid, ...g, items: sortedItems, done };
+      const suggestions = suggestedByPensioner[pid] ?? [];
+      return { pensionerId: pid, ...g, items: sortedItems, done, suggestions };
     });
-  }, [items]);
+  }, [items, suggestedByPensioner]);
 
   const todoGroups = useMemo(() => grouped.filter((g) => !g.done), [grouped]);
   const doneGroups = useMemo(() => grouped.filter((g) => g.done), [grouped]);
@@ -156,6 +166,25 @@ export function RoundDetailClient({
       const res = await deleteCurrentPayment(id, round.id);
       if (res?.error) showToast(res.error, "error");
       else showToast("Виплату видалено", "success");
+    });
+  };
+
+  const addSuggested = (
+    pensionerId: number,
+    paymentId: number,
+    amount: number
+  ) => {
+    startTransition(async () => {
+      const res = await addCurrentPayment(round.id, {
+        pensionerId,
+        paymentId,
+        amount,
+      });
+      if (res?.error) {
+        showToast(res.error, "error");
+        return;
+      }
+      showToast("Виплату додано", "success");
     });
   };
 
@@ -434,6 +463,7 @@ export function RoundDetailClient({
               onChangeAmount={changeAmount}
               onToggleIsPaid={toggleIsPaid}
               onRemoveItem={removeItem}
+              onAddSuggested={addSuggested}
               canEdit={canEdit}
             />
           ))}
@@ -452,6 +482,7 @@ export function RoundDetailClient({
                     onChangeAmount={changeAmount}
                     onToggleIsPaid={toggleIsPaid}
                     onRemoveItem={removeItem}
+                    onAddSuggested={addSuggested}
                     canEdit={canEdit}
                   />
                 ))}
@@ -471,6 +502,7 @@ type PensionerGroup = {
   buildingId: number;
   items: Item[];
   done: boolean;
+  suggestions: SuggestedItem[];
 };
 
 function PensionerGroupCard({
@@ -478,12 +510,14 @@ function PensionerGroupCard({
   onChangeAmount,
   onToggleIsPaid,
   onRemoveItem,
+  onAddSuggested,
   canEdit,
 }: {
   group: PensionerGroup;
   onChangeAmount: (id: number, amount: number) => void;
   onToggleIsPaid: (id: number, next: boolean) => void;
   onRemoveItem: (id: number) => void;
+  onAddSuggested: (pensionerId: number, paymentId: number, amount: number) => void;
   canEdit: boolean;
 }) {
   const subPlanned = g.items.reduce((s, it) => s + it.amount, 0);
@@ -574,6 +608,41 @@ function PensionerGroupCard({
           </li>
         ))}
       </ul>
+
+      {canEdit && g.suggestions.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-dashed border-border space-y-2">
+          <div className="text-xs uppercase tracking-wide text-fg-subtle">
+            Доступні виплати
+          </div>
+          <ul className="space-y-2">
+            {g.suggestions.map((s) => (
+              <li
+                key={s.paymentId}
+                className="rounded border border-dashed border-border p-2 flex items-center justify-between gap-2"
+              >
+                <div className="min-w-0 flex-1 text-sm text-fg-muted">
+                  {s.paymentName}{" "}
+                  <span className="font-mono text-xs text-fg-subtle">
+                    ({s.paymentCode})
+                  </span>
+                  <span className="ml-2 text-xs text-fg-subtle">
+                    останнє: {formatUAH(s.amount)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onAddSuggested(g.pensionerId, s.paymentId, s.amount)
+                  }
+                  className="text-sm link shrink-0"
+                >
+                  + Додати
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
