@@ -16,6 +16,7 @@ export function BackLink({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (window.history.length <= 1) return;
     try {
       if (
         document.referrer &&
