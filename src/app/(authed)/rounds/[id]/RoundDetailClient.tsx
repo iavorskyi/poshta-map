@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import {
   addCurrentPayment,
+  addPensionerToRound,
   deleteCurrentPayment,
   deleteRound,
   setRoundClosed,
@@ -71,11 +72,22 @@ export function RoundDetailClient({
   const [postmanId, setPostmanId] = useState<number | "">(round.postmanId ?? "");
   const [notes, setNotes] = useState(round.notes ?? "");
 
+  const [showAddPensioner, setShowAddPensioner] = useState(false);
+  const [addPensionerId, setAddPensionerId] = useState<number | "">("");
   const [showAdd, setShowAdd] = useState(false);
   const [newPensionerId, setNewPensionerId] = useState<number | "">("");
   const [newPaymentId, setNewPaymentId] = useState<number | "">("");
   const [newAmount, setNewAmount] = useState<number | "">("");
   const [error, setError] = useState<string | null>(null);
+
+  const pensionerIdsInRound = useMemo(
+    () => new Set(items.map((it) => it.pensionerId)),
+    [items]
+  );
+  const availablePensioners = useMemo(
+    () => pensioners.filter((p) => !pensionerIdsInRound.has(p.id)),
+    [pensioners, pensionerIdsInRound]
+  );
 
   const [isPending, startTransition] = useTransition();
 
@@ -185,6 +197,31 @@ export function RoundDetailClient({
         return;
       }
       showToast("Виплату додано", "success");
+    });
+  };
+
+  const handleAddPensioner = () => {
+    setError(null);
+    if (!addPensionerId) {
+      setError("Оберіть пенсіонера");
+      return;
+    }
+    startTransition(async () => {
+      const res = await addPensionerToRound(round.id, Number(addPensionerId));
+      if (res?.error) {
+        setError(res.error);
+        showToast(res.error, "error");
+        return;
+      }
+      const parts: string[] = [];
+      if (res.attached) parts.push(`перенесено: ${res.attached}`);
+      if (res.created) parts.push(`додано: ${res.created}`);
+      showToast(
+        `Пенсіонера додано${parts.length ? ` (${parts.join(", ")})` : ""}`,
+        "success"
+      );
+      setAddPensionerId("");
+      setShowAddPensioner(false);
     });
   };
 
@@ -372,82 +409,145 @@ export function RoundDetailClient({
         <Stat title="Залишок" value={formatUAH(totals.remaining)} tone="warning" />
       </div>
 
-      {!canEdit ? null : showAdd ? (
-        <div className="card p-3 md:p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="font-medium">Додати виплату вручну</div>
+      {!canEdit ? null : (
+        <div className="space-y-2">
+          {showAddPensioner ? (
+            <div className="card p-3 md:p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="font-medium">Додати пенсіонера</div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddPensioner(false);
+                    setAddPensionerId("");
+                    setError(null);
+                  }}
+                  className="text-fg-subtle hover:text-fg text-sm px-2 py-1"
+                  aria-label="Закрити"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2 items-end">
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="text-xs text-fg-muted">Пенсіонер</span>
+                  <select
+                    value={addPensionerId}
+                    onChange={(e) =>
+                      setAddPensionerId(e.target.value ? Number(e.target.value) : "")
+                    }
+                    className="input"
+                  >
+                    <option value="">— оберіть —</option>
+                    {availablePensioners.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.fullName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAddPensioner}
+                  disabled={isPending || !addPensionerId}
+                  className="btn-primary"
+                >
+                  Додати
+                </button>
+              </div>
+              <div className="text-xs text-fg-subtle">
+                Додасться пенсіонер з усіма його невиплаченими виплатами цього місяця та з відомими типами виплат (крім уже виплачених).
+              </div>
+              {error && <div className="text-sm text-danger">{error}</div>}
+            </div>
+          ) : (
             <button
               type="button"
-              onClick={() => setShowAdd(false)}
-              className="text-fg-subtle hover:text-fg text-sm px-2 py-1"
-              aria-label="Закрити"
+              onClick={() => setShowAddPensioner(true)}
+              className="w-full rounded-lg border border-dashed border-border bg-surface px-4 py-3 text-sm text-fg-muted hover:border-brand hover:text-fg transition-colors"
             >
-              ✕
+              + Додати пенсіонера
             </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_140px] gap-2">
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs text-fg-muted">Пенсіонер</span>
-              <select
-                value={newPensionerId}
-                onChange={(e) => setNewPensionerId(e.target.value ? Number(e.target.value) : "")}
-                className="input"
-              >
-                <option value="">— оберіть —</option>
-                {pensioners.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.fullName}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs text-fg-muted">Тип виплати</span>
-              <select
-                value={newPaymentId}
-                onChange={(e) => setNewPaymentId(e.target.value ? Number(e.target.value) : "")}
-                className="input"
-              >
-                <option value="">— оберіть —</option>
-                {payments.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.code})
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs text-fg-muted">Сума</span>
-              <input
-                type="number"
-                step="0.01"
-                min={0}
-                value={newAmount}
-                onChange={(e) => setNewAmount(e.target.value ? Number(e.target.value) : "")}
-                className="input"
-              />
-            </label>
-          </div>
-          <div className="flex justify-end">
+          )}
+
+          {showAdd ? (
+            <div className="card p-3 md:p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="font-medium">Додати виплату вручну</div>
+                <button
+                  type="button"
+                  onClick={() => setShowAdd(false)}
+                  className="text-fg-subtle hover:text-fg text-sm px-2 py-1"
+                  aria-label="Закрити"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_140px] gap-2">
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="text-xs text-fg-muted">Пенсіонер</span>
+                  <select
+                    value={newPensionerId}
+                    onChange={(e) => setNewPensionerId(e.target.value ? Number(e.target.value) : "")}
+                    className="input"
+                  >
+                    <option value="">— оберіть —</option>
+                    {pensioners.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.fullName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="text-xs text-fg-muted">Тип виплати</span>
+                  <select
+                    value={newPaymentId}
+                    onChange={(e) => setNewPaymentId(e.target.value ? Number(e.target.value) : "")}
+                    className="input"
+                  >
+                    <option value="">— оберіть —</option>
+                    {payments.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.code})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="text-xs text-fg-muted">Сума</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    value={newAmount}
+                    onChange={(e) => setNewAmount(e.target.value ? Number(e.target.value) : "")}
+                    className="input"
+                  />
+                </label>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={addItem}
+                  disabled={isPending}
+                  className="btn-primary"
+                >
+                  Додати
+                </button>
+              </div>
+              {error && <div className="text-sm text-danger">{error}</div>}
+            </div>
+          ) : (
             <button
               type="button"
-              onClick={addItem}
-              disabled={isPending}
-              className="btn-primary"
+              onClick={() => setShowAdd(true)}
+              className="text-xs link"
             >
-              Додати
+              або додати окрему виплату вручну
             </button>
-          </div>
-          {error && <div className="text-sm text-danger">{error}</div>}
+          )}
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setShowAdd(true)}
-          className="w-full rounded-lg border border-dashed border-border bg-surface px-4 py-3 text-sm text-fg-muted hover:border-brand hover:text-fg transition-colors"
-        >
-          + Додати виплату
-        </button>
       )}
 
       {grouped.length === 0 ? (

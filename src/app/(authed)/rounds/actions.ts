@@ -202,6 +202,117 @@ export async function addCurrentPayment(
   return { ok: true };
 }
 
+export async function addPensionerToRound(roundId: number, pensionerId: number) {
+  const me = await requireUser();
+  if (!pensionerId) return { error: "Оберіть пенсіонера" };
+
+  const round = await prisma.round.findUnique({
+    where: { id: roundId },
+    select: {
+      id: true,
+      date: true,
+      postmanId: true,
+      currentPayments: { select: { pensionerId: true, paymentId: true } },
+    },
+  });
+  if (!round) return { error: "Обхід не знайдено" };
+  if (!canEditRound(me, round)) return { error: "Недостатньо прав" };
+
+  const pensioner = await prisma.pensioner.findUnique({
+    where: { id: pensionerId },
+    select: { postmanId: true },
+  });
+  if (!pensioner) return { error: "Пенсіонера не знайдено" };
+  if (!canEditPensioner(me, pensioner)) return { error: "Цей пенсіонер не з ваших" };
+
+  const monthStart = new Date(
+    round.date.getFullYear(),
+    round.date.getMonth(),
+    1
+  );
+  const monthEnd = new Date(
+    round.date.getFullYear(),
+    round.date.getMonth() + 1,
+    1
+  );
+
+  const inRoundPaymentIds = new Set(
+    round.currentPayments
+      .filter((cp) => cp.pensionerId === pensionerId)
+      .map((cp) => cp.paymentId)
+  );
+
+  const monthCps = await prisma.currentPayment.findMany({
+    where: {
+      pensionerId,
+      date: { gte: monthStart, lt: monthEnd },
+    },
+  });
+
+  const paidIds = new Set(
+    monthCps.filter((cp) => cp.isPaid).map((cp) => cp.paymentId)
+  );
+
+  const unpaidToAttach = monthCps.filter(
+    (cp) =>
+      !cp.isPaid && cp.roundId !== roundId && !inRoundPaymentIds.has(cp.paymentId)
+  );
+
+  const allCps = await prisma.currentPayment.findMany({
+    where: { pensionerId },
+    orderBy: { date: "desc" },
+    select: { paymentId: true, amount: true },
+  });
+  const seen = new Set<number>();
+  const templates: { paymentId: number; amount: number }[] = [];
+  for (const cp of allCps) {
+    if (seen.has(cp.paymentId)) continue;
+    seen.add(cp.paymentId);
+    templates.push({ paymentId: cp.paymentId, amount: cp.amount });
+  }
+  const willAttachIds = new Set(unpaidToAttach.map((cp) => cp.paymentId));
+  const templatesToCreate = templates.filter(
+    (t) =>
+      !paidIds.has(t.paymentId) &&
+      !inRoundPaymentIds.has(t.paymentId) &&
+      !willAttachIds.has(t.paymentId)
+  );
+
+  if (unpaidToAttach.length === 0 && templatesToCreate.length === 0) {
+    return {
+      error:
+        "Немає виплат для додавання. Усі поточні виплати вже оплачено або вже в обході.",
+    };
+  }
+
+  await prisma.$transaction([
+    ...unpaidToAttach.map((cp) =>
+      prisma.currentPayment.update({
+        where: { id: cp.id },
+        data: { roundId },
+      })
+    ),
+    ...templatesToCreate.map((t) =>
+      prisma.currentPayment.create({
+        data: {
+          roundId,
+          pensionerId,
+          paymentId: t.paymentId,
+          amount: t.amount,
+          date: round.date,
+        },
+      })
+    ),
+  ]);
+
+  revalidatePath(`/rounds/${roundId}`);
+  return {
+    ok: true,
+    attached: unpaidToAttach.length,
+    created: templatesToCreate.length,
+  };
+}
+
 export async function updateCurrentPayment(
   id: number,
   roundId: number,
