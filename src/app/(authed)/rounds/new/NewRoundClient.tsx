@@ -233,7 +233,7 @@ export function NewRoundClient({
           </label>
           {isAdmin && (
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs text-fg-muted">Поштар</span>
+              <span className="text-xs text-fg-muted">Листоноша</span>
               <select
                 value={postmanId}
                 onChange={(e) => setPostmanId(e.target.value ? Number(e.target.value) : "")}

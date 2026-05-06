@@ -40,17 +40,17 @@ export function PostmenClient({
         showToast(res.error, "error");
       } else {
         (document.getElementById("create-postman-form") as HTMLFormElement)?.reset();
-        showToast("Поштаря додано", "success");
+        showToast("Листоношу додано", "success");
       }
     });
   };
 
   const handleDelete = (id: number) => {
-    if (!confirm("Видалити поштаря?")) return;
+    if (!confirm("Видалити листоношу?")) return;
     startTransition(async () => {
       const res = await deletePostman(id);
       if (res?.error) showToast(res.error, "error");
-      else showToast("Поштаря видалено", "success");
+      else showToast("Листоношу видалено", "success");
     });
   };
 
@@ -69,7 +69,7 @@ export function PostmenClient({
   };
 
   const handleEditPhone = (id: number, currentPhone: string | null) => {
-    const next = prompt("Телефон поштаря (порожньо — прибрати)", currentPhone ?? "");
+    const next = prompt("Телефон листоноші (порожньо — прибрати)", currentPhone ?? "");
     if (next == null) return;
     startTransition(async () => {
       const res = await updatePostmanPhone(id, next);
@@ -117,7 +117,7 @@ export function PostmenClient({
         className="card p-4 flex flex-wrap gap-3 items-end"
       >
         <div className="flex flex-col">
-          <label className="text-xs text-fg-muted">ПІБ поштаря</label>
+          <label className="text-xs text-fg-muted">ПІБ листоноші</label>
           <input
             name="name"
             required
@@ -146,7 +146,7 @@ export function PostmenClient({
             {postmen.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-3 py-6 text-center text-fg-subtle">
-                  Ще немає поштарів
+                  Ще немає листонош
                 </td>
               </tr>
             )}
@@ -180,7 +180,7 @@ export function PostmenClient({
                       Адмін
                     </span>
                   ) : (
-                    <span className="text-fg-subtle text-xs">Поштар</span>
+                    <span className="text-fg-subtle text-xs">Листоноша</span>
                   )}
                 </td>
                 <td className="px-3 py-2">{p.roundsCount}</td>

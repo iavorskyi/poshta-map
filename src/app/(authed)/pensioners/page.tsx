@@ -75,7 +75,7 @@ export default async function PensionersPage() {
                   <th className="text-left px-3 py-2">Адреса</th>
                   <th className="text-left px-3 py-2">Телефон</th>
                   <th className="text-left px-3 py-2">День пенсії</th>
-                  <th className="text-left px-3 py-2">Поштар</th>
+                  <th className="text-left px-3 py-2">Листоноша</th>
                   <th className="text-left px-3 py-2">Виплат</th>
                 </tr>
               </thead>

@@ -20,7 +20,7 @@ export default async function Home() {
     },
     { href: "/pensioners", title: "Пенсіонери", count: pensioners, hint: "База пенсіонерів" },
     { href: "/payments", title: "Типи виплат", count: payments, hint: "Довідник виплат" },
-    { href: "/postmen", title: "Поштарі", count: postmen, hint: "Хто йде в обхід" },
+    { href: "/postmen", title: "Листоноші", count: postmen, hint: "Хто йде в обхід" },
   ];
 
   return (
@@ -28,7 +28,7 @@ export default async function Home() {
       <div>
         <h1 className="text-2xl font-semibold">Головна</h1>
         <p className="text-fg-muted mt-1">
-          Сервіс для рутинних задач поштаря — облік пенсіонерів, їх виплат і щоденні обходи.
+          Сервіс для рутинних задач листоноші — облік пенсіонерів, їх виплат і щоденні обходи.
         </p>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">

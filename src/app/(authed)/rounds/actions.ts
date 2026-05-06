@@ -153,7 +153,7 @@ export async function updateRoundMeta(
 
   const patch: { date?: Date; postmanId?: number | null; notes?: string | null } = {};
   if (data.date) patch.date = fromDateInputValue(data.date);
-  // Не-адмін не може передавати обхід іншому поштарю
+  // Не-адмін не може передавати обхід іншому листоноші
   if (data.postmanId !== undefined && me.isAdmin) {
     patch.postmanId = data.postmanId;
   }

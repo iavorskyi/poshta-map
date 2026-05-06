@@ -17,7 +17,7 @@ export default async function ProfilePage() {
         </div>
         <div>
           <span className="text-fg-muted">Роль: </span>
-          {me.isAdmin ? "Адмін" : "Поштар"}
+          {me.isAdmin ? "Адмін" : "Листоноша"}
         </div>
       </div>
       <ProfileClient />

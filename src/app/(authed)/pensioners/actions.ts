@@ -44,7 +44,7 @@ export async function createPensioner(formData: FormData) {
   const err = validate(data);
   if (err) return { error: err };
 
-  // Не-адмін не може призначати чужого поштаря — пенсіонер автоматично йому
+  // Не-адмін не може призначати чужого листоношу — пенсіонер автоматично йому
   if (!me.isAdmin) {
     data.postmanId = me.id;
   }
@@ -69,7 +69,7 @@ export async function updatePensioner(id: number, formData: FormData) {
     return { error: "Недостатньо прав" };
   }
 
-  // Не-адмін не може переназначити поштаря на іншого
+  // Не-адмін не може переназначити листоношу на іншого
   if (!me.isAdmin) {
     data.postmanId = existing.postmanId ?? me.id;
   }

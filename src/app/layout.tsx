@@ -3,8 +3,8 @@ import "./globals.css";
 import { ToastProvider } from "@/components/Toast";
 
 export const metadata: Metadata = {
-  title: "Поштар — облік пенсіонерів і виплат",
-  description: "Сервіс для рутинних задач поштаря",
+  title: "Листоноша — облік пенсіонерів і виплат",
+  description: "Сервіс для рутинних задач листоноші",
 };
 
 export const viewport: Viewport = {

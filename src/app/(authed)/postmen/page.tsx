@@ -18,7 +18,7 @@ export default async function PostmenPage() {
   });
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Поштарі</h1>
+      <h1 className="text-2xl font-semibold">Листоноші</h1>
       <p className="text-fg-muted text-sm">Хто йде в обхід.</p>
       <PostmenClient
         selfId={me.id}

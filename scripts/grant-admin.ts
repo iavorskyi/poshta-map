@@ -30,7 +30,7 @@ async function main() {
   });
 
   if (postmen.length === 0) {
-    console.error("Немає поштарів. Спочатку створіть поштаря.");
+    console.error("Немає листонош. Спочатку створіть листоношу.");
     process.exit(1);
   }
 
@@ -41,13 +41,13 @@ async function main() {
   );
 
   if (!target) {
-    console.log("\nДоступні поштарі:");
+    console.log("\nДоступні листоноші:");
     for (const p of postmen) {
       console.log(
         `  ${p.id}\t${p.name}\t${p.username ?? "(без логіну)"}${p.isAdmin ? " [admin]" : ""}`
       );
     }
-    const idStr = await ask("\nID поштаря для надання адмін-прав: ");
+    const idStr = await ask("\nID листоноші для надання адмін-прав: ");
     const id = Number(idStr.trim());
     target = postmen.find((p) => p.id === id);
     if (!target) {

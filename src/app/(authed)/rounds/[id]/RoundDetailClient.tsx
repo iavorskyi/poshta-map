@@ -300,7 +300,7 @@ export function RoundDetailClient({
               </label>
               {isAdmin && (
                 <label className="flex flex-col gap-1 text-sm">
-                  <span className="text-xs text-fg-muted">Поштар</span>
+                  <span className="text-xs text-fg-muted">Листоноша</span>
                   <select
                     value={postmanId}
                     onChange={(e) => setPostmanId(e.target.value ? Number(e.target.value) : "")}
@@ -354,7 +354,7 @@ export function RoundDetailClient({
                 )}
               </div>
               <div className="text-sm text-fg-muted mt-1">
-                Поштар: {postmen.find((pm) => pm.id === round.postmanId)?.name ?? "—"}
+                Листоноша: {postmen.find((pm) => pm.id === round.postmanId)?.name ?? "—"}
               </div>
               {round.notes && (
                 <div className="text-sm text-fg-muted mt-1">Примітки: {round.notes}</div>

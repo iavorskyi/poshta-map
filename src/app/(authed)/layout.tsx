@@ -21,7 +21,7 @@ export default async function AuthedLayout({
             >
               П
             </span>
-            <span className="font-semibold text-lg">Поштар</span>
+            <span className="font-semibold text-lg">Листоноша</span>
           </Link>
           <div className="flex items-center gap-3 sm:gap-4 text-sm overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 whitespace-nowrap flex-1">
             <Link
@@ -60,7 +60,7 @@ export default async function AuthedLayout({
                   href="/postmen"
                   className="text-fg-muted hover:text-fg transition-colors py-1"
                 >
-                  Поштарі
+                  Листоноші
                 </Link>
               </>
             )}

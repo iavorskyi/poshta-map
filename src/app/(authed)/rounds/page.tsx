@@ -103,7 +103,7 @@ async function PensionTab() {
                           )}
                         </div>
                         <div className="text-sm text-fg-muted mt-0.5">
-                          {r.postman?.name ?? "без поштаря"} · {r.currentPayments.length} виплат
+                          {r.postman?.name ?? "без листоноші"} · {r.currentPayments.length} виплат
                         </div>
                       </div>
                       <div className="shrink-0 text-right text-sm">
@@ -125,7 +125,7 @@ async function PensionTab() {
               <thead className="bg-elevated text-fg-muted">
                 <tr>
                   <th className="text-left px-3 py-2">Дата</th>
-                  <th className="text-left px-3 py-2">Поштар</th>
+                  <th className="text-left px-3 py-2">Листоноша</th>
                   <th className="text-left px-3 py-2">Виплат</th>
                   <th className="text-right px-3 py-2">Заплановано</th>
                   <th className="text-right px-3 py-2">Виплачено</th>
@@ -223,7 +223,7 @@ async function AddressTab() {
                         )}
                       </div>
                       <div className="text-sm text-fg-muted mt-0.5">
-                        {r.postman?.name ?? "без поштаря"} · будинків: {total}
+                        {r.postman?.name ?? "без листоноші"} · будинків: {total}
                       </div>
                       {r.notes && (
                         <div className="text-xs text-fg-subtle mt-1 line-clamp-2">{r.notes}</div>

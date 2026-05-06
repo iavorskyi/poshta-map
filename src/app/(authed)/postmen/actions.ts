@@ -19,7 +19,7 @@ export async function deletePostman(id: number) {
     await prisma.postman.delete({ where: { id } });
   } catch (e) {
     return {
-      error: `Не вдалося видалити поштаря: ${
+      error: `Не вдалося видалити листоношу: ${
         e instanceof Error ? e.message : "невідома помилка"
       }`,
     };

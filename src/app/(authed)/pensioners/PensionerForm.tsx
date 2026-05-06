@@ -124,7 +124,7 @@ export function PensionerForm({
             />
           </Field>
           {isAdmin && (
-            <Field label="Поштар">
+            <Field label="Листоноша">
               <select
                 name="postmanId"
                 defaultValue={pensioner?.postmanId ?? ""}
