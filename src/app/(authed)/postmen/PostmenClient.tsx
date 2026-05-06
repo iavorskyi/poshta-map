@@ -8,12 +8,14 @@ import {
   setPostmanAdmin,
   setPostmanCredentials,
   updatePostmanName,
+  updatePostmanPhone,
 } from "./actions";
 import { useToast } from "@/components/Toast";
 
 type Postman = {
   id: number;
   name: string;
+  phone: string | null;
   username: string | null;
   isAdmin: boolean;
   hasPassword: boolean;
@@ -61,6 +63,16 @@ export function PostmenClient({
     }
     startTransition(async () => {
       const res = await updatePostmanName(id, next);
+      if (res?.error) showToast(res.error, "error");
+      else showToast("Збережено", "success");
+    });
+  };
+
+  const handleEditPhone = (id: number, currentPhone: string | null) => {
+    const next = prompt("Телефон поштаря (порожньо — прибрати)", currentPhone ?? "");
+    if (next == null) return;
+    startTransition(async () => {
+      const res = await updatePostmanPhone(id, next);
       if (res?.error) showToast(res.error, "error");
       else showToast("Збережено", "success");
     });
@@ -123,6 +135,7 @@ export function PostmenClient({
           <thead className="bg-elevated text-fg-muted">
             <tr>
               <th className="text-left px-3 py-2">ПІБ</th>
+              <th className="text-left px-3 py-2">Телефон</th>
               <th className="text-left px-3 py-2">Логін</th>
               <th className="text-left px-3 py-2">Роль</th>
               <th className="text-left px-3 py-2">Обходів</th>
@@ -132,7 +145,7 @@ export function PostmenClient({
           <tbody>
             {postmen.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-fg-subtle">
+                <td colSpan={6} className="px-3 py-6 text-center text-fg-subtle">
                   Ще немає поштарів
                 </td>
               </tr>
@@ -146,6 +159,13 @@ export function PostmenClient({
                       <span className="text-xs text-fg-subtle">(ви)</span>
                     )}
                   </div>
+                </td>
+                <td className="px-3 py-2">
+                  {p.phone ? (
+                    <span className="text-xs">{p.phone}</span>
+                  ) : (
+                    <span className="text-fg-subtle text-xs">—</span>
+                  )}
                 </td>
                 <td className="px-3 py-2">
                   {p.username ? (
@@ -170,6 +190,12 @@ export function PostmenClient({
                     className="link text-xs"
                   >
                     Перейменувати
+                  </button>
+                  <button
+                    onClick={() => handleEditPhone(p.id, p.phone)}
+                    className="link text-xs"
+                  >
+                    Телефон
                   </button>
                   <button
                     onClick={() =>

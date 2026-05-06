@@ -9,6 +9,7 @@ export default async function PostmenPage() {
     select: {
       id: true,
       name: true,
+      phone: true,
       username: true,
       isAdmin: true,
       passwordHash: true,
@@ -24,6 +25,7 @@ export default async function PostmenPage() {
         postmen={postmen.map((p) => ({
           id: p.id,
           name: p.name,
+          phone: p.phone,
           username: p.username,
           isAdmin: p.isAdmin,
           hasPassword: !!p.passwordHash,

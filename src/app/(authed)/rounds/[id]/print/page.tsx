@@ -66,6 +66,7 @@ export default async function RoundPrintPage({
 
   const dateStr = formatDate(round.date);
   const postmanName = round.postman?.name ?? "—";
+  const postmanPhone = round.postman?.phone ?? null;
 
   return (
     <>
@@ -83,6 +84,9 @@ export default async function RoundPrintPage({
                   <div className="slip-meta">
                     Обхід {dateStr} · {postmanName}
                   </div>
+                  {postmanPhone && (
+                    <div className="slip-meta-phone">тел. {postmanPhone}</div>
+                  )}
                   <div className="slip-name">{s.fullName}</div>
                   <div className="slip-addr">{s.address}</div>
                 </header>

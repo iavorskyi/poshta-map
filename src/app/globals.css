@@ -179,6 +179,11 @@ body {
   color: #64748b;
 }
 
+.slip-meta-phone {
+  font-size: 9pt;
+  color: #64748b;
+}
+
 .slip-name {
   font-weight: 600;
   font-size: 12pt;

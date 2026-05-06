@@ -37,6 +37,25 @@ export async function updatePostmanName(id: number, name: string) {
   return { ok: true };
 }
 
+export async function updatePostmanPhone(id: number, phone: string) {
+  await requireAdmin();
+  const trimmed = phone.trim();
+  try {
+    await prisma.postman.update({
+      where: { id },
+      data: { phone: trimmed || null },
+    });
+  } catch (e) {
+    return {
+      error: `Не вдалося зберегти телефон: ${
+        e instanceof Error ? e.message : "невідома помилка"
+      }`,
+    };
+  }
+  revalidatePath("/postmen");
+  return { ok: true };
+}
+
 export async function setPostmanCredentials(
   id: number,
   username: string,
