@@ -44,6 +44,7 @@ export function NewRoundClient({
   postmen,
   pensionerMonthPayments,
   pensionerPaymentTemplates,
+  paidPaymentIdsByPensioner,
   isAdmin,
 }: {
   pensioners: Pensioner[];
@@ -51,6 +52,7 @@ export function NewRoundClient({
   postmen: Postman[];
   pensionerMonthPayments: Record<number, ExistingCP[]>;
   pensionerPaymentTemplates: Record<number, PaymentTemplate[]>;
+  paidPaymentIdsByPensioner: Record<number, number[]>;
   isAdmin: boolean;
 }) {
   const today = useMemo(() => toDateInputValue(new Date()), []);
@@ -66,17 +68,23 @@ export function NewRoundClient({
   const selectedDay = date ? fromDateInputValue(date).getDate() : null;
 
   const suggested = useMemo(() => {
-    if (selectedDay == null) return [];
     return pensioners.filter((p) => {
       if (drafts.some((d) => d.pensionerId === p.id)) return false;
-      return p.pensionPaymentDay === selectedDay;
+      const hasUnpaid = (pensionerMonthPayments[p.id]?.length ?? 0) > 0;
+      if (hasUnpaid) return true;
+      if (selectedDay != null && p.pensionPaymentDay === selectedDay) return true;
+      return false;
     });
-  }, [pensioners, selectedDay, drafts]);
+  }, [pensioners, selectedDay, drafts, pensionerMonthPayments]);
 
   const addPensioner = (pensionerId: number) => {
     const existing = pensionerMonthPayments[pensionerId] ?? [];
     const templates = pensionerPaymentTemplates[pensionerId] ?? [];
-    const usedPaymentIds = new Set(existing.map((cp) => cp.paymentId));
+    const paidIds = paidPaymentIdsByPensioner[pensionerId] ?? [];
+    const usedPaymentIds = new Set([
+      ...existing.map((cp) => cp.paymentId),
+      ...paidIds,
+    ]);
 
     const items: DraftItem[] = [
       ...existing.map((cp) => ({
@@ -254,7 +262,7 @@ export function NewRoundClient({
       {suggested.length > 0 && (
         <div className="rounded-lg border border-brand bg-brand/10 p-4 space-y-2">
           <div className="font-medium text-sm">
-            Пропозиції на {selectedDay}-е число (день виплати пенсії, {suggested.length}):
+            Пропозиції ({suggested.length}): пенсіонери з невиплаченими виплатами цього місяця або з днем виплати пенсії {selectedDay ?? "—"}-го числа.
           </div>
           <div className="flex flex-wrap gap-2">
             {suggested.map((pensioner) => (

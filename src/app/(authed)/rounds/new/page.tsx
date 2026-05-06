@@ -40,7 +40,14 @@ export default async function NewRoundPage() {
     number,
     { id: number; paymentId: number; amount: number; isPaid: boolean; roundId: number | null }[]
   > = {};
+  const paidPaymentIdsByPensioner: Record<number, number[]> = {};
   for (const cp of monthPayments) {
+    if (cp.isPaid) {
+      if (!paidPaymentIdsByPensioner[cp.pensionerId])
+        paidPaymentIdsByPensioner[cp.pensionerId] = [];
+      paidPaymentIdsByPensioner[cp.pensionerId].push(cp.paymentId);
+      continue;
+    }
     if (!pensionerMonthPayments[cp.pensionerId]) pensionerMonthPayments[cp.pensionerId] = [];
     pensionerMonthPayments[cp.pensionerId].push({
       id: cp.id,
@@ -80,6 +87,7 @@ export default async function NewRoundPage() {
         postmen={postmen}
         pensionerMonthPayments={pensionerMonthPayments}
         pensionerPaymentTemplates={pensionerPaymentTemplates}
+        paidPaymentIdsByPensioner={paidPaymentIdsByPensioner}
         isAdmin={me.isAdmin}
       />
     </div>
