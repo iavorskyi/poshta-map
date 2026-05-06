@@ -41,6 +41,7 @@ export default async function NewRoundPage() {
     { id: number; paymentId: number; amount: number; isPaid: boolean; roundId: number | null }[]
   > = {};
   const paidPaymentIdsByPensioner: Record<number, number[]> = {};
+  const pensionerUnpaidCpDays: Record<number, number[]> = {};
   for (const cp of monthPayments) {
     if (cp.isPaid) {
       if (!paidPaymentIdsByPensioner[cp.pensionerId])
@@ -56,6 +57,11 @@ export default async function NewRoundPage() {
       isPaid: cp.isPaid,
       roundId: cp.roundId,
     });
+    const day = cp.date.getDate();
+    if (!pensionerUnpaidCpDays[cp.pensionerId]) pensionerUnpaidCpDays[cp.pensionerId] = [];
+    if (!pensionerUnpaidCpDays[cp.pensionerId].includes(day)) {
+      pensionerUnpaidCpDays[cp.pensionerId].push(day);
+    }
   }
 
   const pensionerPaymentTemplates: Record<
@@ -88,6 +94,7 @@ export default async function NewRoundPage() {
         pensionerMonthPayments={pensionerMonthPayments}
         pensionerPaymentTemplates={pensionerPaymentTemplates}
         paidPaymentIdsByPensioner={paidPaymentIdsByPensioner}
+        pensionerUnpaidCpDays={pensionerUnpaidCpDays}
         isAdmin={me.isAdmin}
       />
     </div>

@@ -45,6 +45,7 @@ export function NewRoundClient({
   pensionerMonthPayments,
   pensionerPaymentTemplates,
   paidPaymentIdsByPensioner,
+  pensionerUnpaidCpDays,
   isAdmin,
 }: {
   pensioners: Pensioner[];
@@ -53,6 +54,7 @@ export function NewRoundClient({
   pensionerMonthPayments: Record<number, ExistingCP[]>;
   pensionerPaymentTemplates: Record<number, PaymentTemplate[]>;
   paidPaymentIdsByPensioner: Record<number, number[]>;
+  pensionerUnpaidCpDays: Record<number, number[]>;
   isAdmin: boolean;
 }) {
   const today = useMemo(() => toDateInputValue(new Date()), []);
@@ -68,14 +70,13 @@ export function NewRoundClient({
   const selectedDay = date ? fromDateInputValue(date).getDate() : null;
 
   const suggested = useMemo(() => {
+    if (selectedDay == null) return [];
     return pensioners.filter((p) => {
       if (drafts.some((d) => d.pensionerId === p.id)) return false;
-      const hasUnpaid = (pensionerMonthPayments[p.id]?.length ?? 0) > 0;
-      if (hasUnpaid) return true;
-      if (selectedDay != null && p.pensionPaymentDay === selectedDay) return true;
-      return false;
+      const days = pensionerUnpaidCpDays[p.id] ?? [];
+      return days.includes(selectedDay);
     });
-  }, [pensioners, selectedDay, drafts, pensionerMonthPayments]);
+  }, [pensioners, selectedDay, drafts, pensionerUnpaidCpDays]);
 
   const addPensioner = (pensionerId: number) => {
     const existing = pensionerMonthPayments[pensionerId] ?? [];
@@ -262,7 +263,7 @@ export function NewRoundClient({
       {suggested.length > 0 && (
         <div className="rounded-lg border border-brand bg-brand/10 p-4 space-y-2">
           <div className="font-medium text-sm">
-            Пропозиції ({suggested.length}): пенсіонери з невиплаченими виплатами цього місяця або з днем виплати пенсії {selectedDay ?? "—"}-го числа.
+            Пропозиції на {selectedDay}-е число (невиплачені виплати, {suggested.length}):
           </div>
           <div className="flex flex-wrap gap-2">
             {suggested.map((pensioner) => (
