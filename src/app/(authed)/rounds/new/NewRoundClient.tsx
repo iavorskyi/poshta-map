@@ -36,17 +36,21 @@ type Draft = {
   items: DraftItem[];
 };
 
+type PaymentTemplate = { paymentId: number; amount: number };
+
 export function NewRoundClient({
   pensioners,
   payments,
   postmen,
   pensionerMonthPayments,
+  pensionerPaymentTemplates,
   isAdmin,
 }: {
   pensioners: Pensioner[];
   payments: Payment[];
   postmen: Postman[];
   pensionerMonthPayments: Record<number, ExistingCP[]>;
+  pensionerPaymentTemplates: Record<number, PaymentTemplate[]>;
   isAdmin: boolean;
 }) {
   const today = useMemo(() => toDateInputValue(new Date()), []);
@@ -71,22 +75,35 @@ export function NewRoundClient({
 
   const addPensioner = (pensionerId: number) => {
     const existing = pensionerMonthPayments[pensionerId] ?? [];
-    const items: DraftItem[] = existing.length
-      ? existing.map((cp) => ({
-          key: `${pensionerId}-ex-${cp.id}`,
-          existingId: cp.id,
-          paymentId: cp.paymentId,
-          amount: cp.amount,
-          isPaid: cp.isPaid,
-        }))
-      : [
-          {
-            key: `${pensionerId}-init-${Date.now()}`,
-            paymentId: "",
-            amount: "",
-            isPaid: false,
-          },
-        ];
+    const templates = pensionerPaymentTemplates[pensionerId] ?? [];
+    const usedPaymentIds = new Set(existing.map((cp) => cp.paymentId));
+
+    const items: DraftItem[] = [
+      ...existing.map((cp) => ({
+        key: `${pensionerId}-ex-${cp.id}`,
+        existingId: cp.id,
+        paymentId: cp.paymentId,
+        amount: cp.amount,
+        isPaid: cp.isPaid,
+      })),
+      ...templates
+        .filter((t) => !usedPaymentIds.has(t.paymentId))
+        .map((t, i) => ({
+          key: `${pensionerId}-tmpl-${t.paymentId}-${Date.now()}-${i}`,
+          paymentId: t.paymentId,
+          amount: t.amount,
+          isPaid: false,
+        })),
+    ];
+
+    if (items.length === 0) {
+      items.push({
+        key: `${pensionerId}-init-${Date.now()}`,
+        paymentId: "",
+        amount: "",
+        isPaid: false,
+      });
+    }
 
     setDrafts((ds) => [...ds, { pensionerId, items }]);
   };

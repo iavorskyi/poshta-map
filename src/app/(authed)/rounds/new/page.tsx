@@ -10,7 +10,7 @@ export default async function NewRoundPage() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  const [pensioners, payments, postmen, monthPayments] = await Promise.all([
+  const [pensioners, payments, postmen, monthPayments, allCps] = await Promise.all([
     prisma.pensioner.findMany({
       orderBy: { fullName: "asc" },
       include: { building: true },
@@ -20,6 +20,10 @@ export default async function NewRoundPage() {
     prisma.currentPayment.findMany({
       where: { date: { gte: monthStart, lt: monthEnd } },
       orderBy: { date: "asc" },
+    }),
+    prisma.currentPayment.findMany({
+      orderBy: { date: "desc" },
+      select: { pensionerId: true, paymentId: true, amount: true },
     }),
   ]);
 
@@ -47,6 +51,23 @@ export default async function NewRoundPage() {
     });
   }
 
+  const pensionerPaymentTemplates: Record<
+    number,
+    { paymentId: number; amount: number }[]
+  > = {};
+  const seenTemplate: Record<number, Set<number>> = {};
+  for (const cp of allCps) {
+    if (!seenTemplate[cp.pensionerId]) seenTemplate[cp.pensionerId] = new Set();
+    if (seenTemplate[cp.pensionerId].has(cp.paymentId)) continue;
+    seenTemplate[cp.pensionerId].add(cp.paymentId);
+    if (!pensionerPaymentTemplates[cp.pensionerId])
+      pensionerPaymentTemplates[cp.pensionerId] = [];
+    pensionerPaymentTemplates[cp.pensionerId].push({
+      paymentId: cp.paymentId,
+      amount: cp.amount,
+    });
+  }
+
   return (
     <div className="space-y-4">
       <div>
@@ -58,6 +79,7 @@ export default async function NewRoundPage() {
         payments={payments}
         postmen={postmen}
         pensionerMonthPayments={pensionerMonthPayments}
+        pensionerPaymentTemplates={pensionerPaymentTemplates}
         isAdmin={me.isAdmin}
       />
     </div>
