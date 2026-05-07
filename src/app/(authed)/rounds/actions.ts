@@ -313,6 +313,27 @@ export async function addPensionerToRound(roundId: number, pensionerId: number) 
   };
 }
 
+export async function removePensionerFromRound(
+  roundId: number,
+  pensionerId: number
+) {
+  const check = await loadRoundAndCheck(roundId);
+  if ("error" in check) return { error: check.error };
+  try {
+    const result = await prisma.currentPayment.deleteMany({
+      where: { roundId, pensionerId },
+    });
+    revalidatePath(`/rounds/${roundId}`);
+    return { ok: true, deleted: result.count };
+  } catch (e) {
+    return {
+      error: `Не вдалося прибрати пенсіонера: ${
+        e instanceof Error ? e.message : "невідома помилка"
+      }`,
+    };
+  }
+}
+
 export async function updateCurrentPayment(
   id: number,
   roundId: number,

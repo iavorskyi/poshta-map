@@ -8,6 +8,7 @@ import {
   addPensionerToRound,
   deleteCurrentPayment,
   deleteRound,
+  removePensionerFromRound,
   setRoundClosed,
   updateCurrentPayment,
   updateRoundMeta,
@@ -178,6 +179,15 @@ export function RoundDetailClient({
       const res = await deleteCurrentPayment(id, round.id);
       if (res?.error) showToast(res.error, "error");
       else showToast("Виплату видалено", "success");
+    });
+  };
+
+  const removePensioner = (pensionerId: number, name: string) => {
+    if (!confirm(`Прибрати ${name} з обходу разом з усіма його виплатами?`)) return;
+    startTransition(async () => {
+      const res = await removePensionerFromRound(round.id, pensionerId);
+      if (res?.error) showToast(res.error, "error");
+      else showToast("Пенсіонера прибрано з обходу", "success");
     });
   };
 
@@ -563,6 +573,7 @@ export function RoundDetailClient({
               onChangeAmount={changeAmount}
               onToggleIsPaid={toggleIsPaid}
               onRemoveItem={removeItem}
+              onRemovePensioner={removePensioner}
               onAddSuggested={addSuggested}
               canEdit={canEdit}
             />
@@ -582,6 +593,7 @@ export function RoundDetailClient({
                     onChangeAmount={changeAmount}
                     onToggleIsPaid={toggleIsPaid}
                     onRemoveItem={removeItem}
+                    onRemovePensioner={removePensioner}
                     onAddSuggested={addSuggested}
                     canEdit={canEdit}
                   />
@@ -610,6 +622,7 @@ function PensionerGroupCard({
   onChangeAmount,
   onToggleIsPaid,
   onRemoveItem,
+  onRemovePensioner,
   onAddSuggested,
   canEdit,
 }: {
@@ -617,6 +630,7 @@ function PensionerGroupCard({
   onChangeAmount: (id: number, amount: number) => void;
   onToggleIsPaid: (id: number, next: boolean) => void;
   onRemoveItem: (id: number) => void;
+  onRemovePensioner: (pensionerId: number, name: string) => void;
   onAddSuggested: (pensionerId: number, paymentId: number, amount: number) => void;
   canEdit: boolean;
 }) {
@@ -645,9 +659,22 @@ function PensionerGroupCard({
             </Link>
           </div>
         </div>
-        <div className="text-right text-sm shrink-0">
-          <div className="font-medium">{formatUAH(subPlanned)}</div>
-          <div className="text-xs text-success">{formatUAH(subPaid)}</div>
+        <div className="flex items-start gap-2 shrink-0">
+          <div className="text-right text-sm">
+            <div className="font-medium">{formatUAH(subPlanned)}</div>
+            <div className="text-xs text-success">{formatUAH(subPaid)}</div>
+          </div>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => onRemovePensioner(g.pensionerId, g.name)}
+              className="text-danger text-sm px-2 py-1"
+              aria-label="Прибрати пенсіонера з обходу"
+              title="Прибрати з обходу"
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 
