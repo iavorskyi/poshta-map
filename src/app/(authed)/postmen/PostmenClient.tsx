@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Fragment, useState, useTransition } from "react";
 import {
   clearPostmanCredentials,
   createPostman,
@@ -151,7 +151,8 @@ export function PostmenClient({
               </tr>
             )}
             {postmen.map((p) => (
-              <tr key={p.id} className="border-t border-border align-top">
+              <Fragment key={p.id}>
+              <tr className="border-t border-border align-top">
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2">
                     <span>{p.name}</span>
@@ -225,15 +226,19 @@ export function PostmenClient({
                   >
                     Видалити
                   </button>
-                  {credsFor === p.id && (
+                </td>
+              </tr>
+              {credsFor === p.id && (
+                <tr className="border-t border-border bg-elevated/50">
+                  <td colSpan={6} className="px-3 py-3">
                     <CredsForm
-                      key={p.id}
                       postman={p}
                       onDone={() => setCredsFor(null)}
                     />
-                  )}
-                </td>
-              </tr>
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             ))}
           </tbody>
         </table>
@@ -274,7 +279,7 @@ function CredsForm({
   };
 
   return (
-    <div className="mt-2 inline-flex flex-col gap-2 text-left card p-3 w-72">
+    <div className="flex flex-col gap-2 text-left card p-3 w-full max-w-sm">
       <label className="text-xs text-fg-muted">Логін</label>
       <input
         value={username}
