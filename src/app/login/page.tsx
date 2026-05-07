@@ -22,7 +22,7 @@ export default async function LoginPage({
           >
             П
           </span>
-          <span className="font-semibold text-lg">Листоноша</span>
+          <span className="font-semibold text-lg">Поштар</span>
         </div>
         <div>
           <h1 className="text-xl font-semibold">Вхід</h1>
