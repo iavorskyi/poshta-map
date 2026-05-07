@@ -97,19 +97,21 @@ export function AddressRoundDetailClient({
     [items]
   );
 
-  const originId = items.length > 0 ? items[items.length - 1].buildingId : null;
-  const excludeIdsKey = useMemo(
-    () => items.slice(0, -1).map((it) => it.buildingId).join(","),
+  const selectedIdsKey = useMemo(
+    () => items.map((it) => it.buildingId).join(","),
     [items]
   );
 
-  // Тягнемо підказки з останнього доданого будинку.
+  // Підказки — будинки в радіусі від БУДЬ-ЯКОЇ з обраних адрес у обході.
   useEffect(() => {
-    if (!canEdit || originId === null) return;
-    const exclude = excludeIdsKey ? excludeIdsKey.split(",").map(Number) : [];
+    if (!canEdit || !selectedIdsKey) {
+      setSuggestions([]);
+      return;
+    }
+    const ids = selectedIdsKey.split(",").map(Number);
     let cancelled = false;
     setLoadingSuggestions(true);
-    getNearbyBuildings(originId, exclude)
+    getNearbyBuildings(ids, [])
       .then((list) => {
         if (!cancelled) setSuggestions(list);
       })
@@ -122,7 +124,7 @@ export function AddressRoundDetailClient({
     return () => {
       cancelled = true;
     };
-  }, [originId, excludeIdsKey, canEdit]);
+  }, [selectedIdsKey, canEdit]);
 
   const visibleSuggestions = useMemo(
     () =>
@@ -617,13 +619,7 @@ function NearbySuggestions({
               >
                 <span>+</span>
                 <span>{s.street}, № {s.number}</span>
-                <span className="text-fg-subtle">
-                  {s.sameStreet
-                    ? "та сама вулиця"
-                    : s.distanceM !== null
-                    ? `${s.distanceM} м`
-                    : ""}
-                </span>
+                <span className="text-fg-subtle">{s.distanceM} м</span>
               </button>
             </li>
           ))}
