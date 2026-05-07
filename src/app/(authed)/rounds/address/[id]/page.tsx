@@ -27,7 +27,7 @@ export default async function AddressRoundPage({
     }),
     prisma.building.findMany({
       orderBy: [{ street: "asc" }, { number: "asc" }],
-      select: { id: true, street: true, number: true },
+      select: { id: true, street: true, number: true, latitude: true, longitude: true },
     }),
     prisma.postman.findMany({ orderBy: { name: "asc" } }),
   ]);
@@ -54,6 +54,8 @@ export default async function AddressRoundPage({
           buildingId: it.buildingId,
           buildingStreet: it.building.street,
           buildingNumber: it.building.number,
+          buildingLatitude: it.building.latitude,
+          buildingLongitude: it.building.longitude,
           done: it.done,
           notes: it.notes,
         }))}

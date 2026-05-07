@@ -59,18 +59,23 @@ model Round {
 }
 
 model Building {
-  id            Int                    @id @default(autoincrement())
-  street        String
-  number        String
-  notes         String?
-  createdAt     DateTime               @default(now())
-  updatedAt     DateTime               @updatedAt
-  entrances     Entrance[]
-  pensioners    Pensioner[]
-  addressRounds AddressRoundBuilding[]
+  id             Int                    @id @default(autoincrement())
+  street         String
+  number         String
+  notes          String?
+  latitude       Float?
+  longitude      Float?
+  geocodedAt     DateTime?
+  geocodeFailed  Boolean                @default(false)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  entrances      Entrance[]
+  pensioners     Pensioner[]
+  addressRounds  AddressRoundBuilding[]
 
   @@unique([street, number])
   @@index([street])
+  @@index([latitude, longitude])
 }
 
 model Entrance {

@@ -1,10 +1,22 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import { createAddressRound } from "../actions";
+import { getNearbyBuildings, type NearbyBuilding } from "../nearby";
 import { toDateInputValue } from "@/lib/format";
 import { BuildingCombobox, type BuildingOption } from "@/components/BuildingCombobox";
 import { useToast } from "@/components/Toast";
+import type { MapBuilding } from "@/components/AddressMap";
+
+const AddressMap = dynamic(() => import("@/components/AddressMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-72 md:h-96 rounded-lg border border-border bg-elevated/40 flex items-center justify-center text-sm text-fg-subtle">
+      Завантаження карти…
+    </div>
+  ),
+});
 
 type Postman = { id: number; name: string };
 
@@ -25,6 +37,8 @@ export function NewAddressRoundClient({
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [suggestions, setSuggestions] = useState<NearbyBuilding[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const { showToast } = useToast();
 
   const buildingById = useMemo(
@@ -36,6 +50,53 @@ export function NewAddressRoundClient({
     () => buildings.filter((b) => !selectedIds.includes(b.id)),
     [buildings, selectedIds]
   );
+
+  const selectedMapBuildings: MapBuilding[] = useMemo(
+    () =>
+      selectedIds
+        .map((id) => buildingById[id])
+        .filter(Boolean)
+        .map((b) => ({
+          id: b.id,
+          street: b.street,
+          number: b.number,
+          latitude: b.latitude ?? null,
+          longitude: b.longitude ?? null,
+        })),
+    [selectedIds, buildingById]
+  );
+
+  const originId = selectedIds.length > 0 ? selectedIds[selectedIds.length - 1] : null;
+  const excludeIdsKey = selectedIds.slice(0, -1).join(",");
+
+  // Підказки тягнемо при зміні останнього обраного будинку.
+  useEffect(() => {
+    if (originId === null) return;
+    const exclude = excludeIdsKey ? excludeIdsKey.split(",").map(Number) : [];
+    let cancelled = false;
+    setLoadingSuggestions(true);
+    getNearbyBuildings(originId, exclude)
+      .then((list) => {
+        if (!cancelled) setSuggestions(list);
+      })
+      .catch(() => {
+        if (!cancelled) setSuggestions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSuggestions(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [originId, excludeIdsKey]);
+
+  const visibleSuggestions = useMemo(
+    () => suggestions.filter((s) => !selectedIds.includes(s.id)),
+    [suggestions, selectedIds]
+  );
+
+  const addById = (id: number) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
 
   const addPicked = () => {
     if (pickerValue === "") return;
@@ -145,6 +206,7 @@ export function NewAddressRoundClient({
         {selectedIds.length === 0 ? (
           <div className="text-sm text-fg-subtle">Ще нічого не додано.</div>
         ) : (
+          <>
           <ol className="space-y-2">
             {selectedIds.map((id, idx) => {
               const b = buildingById[id];
@@ -192,6 +254,25 @@ export function NewAddressRoundClient({
               );
             })}
           </ol>
+
+          <SuggestionsBlock
+            loading={loadingSuggestions}
+            items={visibleSuggestions}
+            onAdd={addById}
+          />
+
+          <AddressMap
+            selected={selectedMapBuildings}
+            suggestions={visibleSuggestions.map((s) => ({
+              id: s.id,
+              street: s.street,
+              number: s.number,
+              latitude: s.latitude,
+              longitude: s.longitude,
+            }))}
+            onAddBuilding={addById}
+          />
+          </>
         )}
       </div>
 
@@ -207,5 +288,51 @@ export function NewAddressRoundClient({
         </button>
       </div>
     </form>
+  );
+}
+
+function SuggestionsBlock({
+  loading,
+  items,
+  onAdd,
+}: {
+  loading: boolean;
+  items: NearbyBuilding[];
+  onAdd: (id: number) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="text-xs uppercase tracking-wide text-fg-subtle">
+        Поруч {loading && <span className="ml-1">— оновлення…</span>}
+      </div>
+      {items.length === 0 ? (
+        <div className="text-xs text-fg-subtle">
+          {loading ? "Шукаємо сусідів…" : "Немає підказок поряд."}
+        </div>
+      ) : (
+        <ul className="flex flex-wrap gap-2">
+          {items.map((s) => (
+            <li key={s.id}>
+              <button
+                type="button"
+                onClick={() => onAdd(s.id)}
+                className="rounded-full border border-border bg-elevated hover:bg-surface px-3 py-1 text-xs flex items-center gap-1.5"
+                title="Додати в обхід"
+              >
+                <span>+</span>
+                <span>{s.street}, № {s.number}</span>
+                <span className="text-fg-subtle">
+                  {s.sameStreet
+                    ? "та сама вулиця"
+                    : s.distanceM !== null
+                    ? `${s.distanceM} м`
+                    : ""}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

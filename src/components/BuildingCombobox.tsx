@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-export type BuildingOption = { id: number; street: string; number: string };
+export type BuildingOption = {
+  id: number;
+  street: string;
+  number: string;
+  latitude?: number | null;
+  longitude?: number | null;
+};
 
 export function BuildingCombobox({
   buildings,

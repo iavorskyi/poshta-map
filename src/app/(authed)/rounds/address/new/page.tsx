@@ -8,7 +8,7 @@ export default async function NewAddressRoundPage() {
   const [buildings, postmen] = await Promise.all([
     prisma.building.findMany({
       orderBy: [{ street: "asc" }, { number: "asc" }],
-      select: { id: true, street: true, number: true },
+      select: { id: true, street: true, number: true, latitude: true, longitude: true },
     }),
     prisma.postman.findMany({ orderBy: { name: "asc" } }),
   ]);

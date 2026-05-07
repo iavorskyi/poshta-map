@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { parsePensionersXlsx } from "@/lib/pensionerImport";
 import { requireAdmin, requireUser } from "@/lib/auth";
 import { canEditPensioner } from "@/lib/permissions";
+import { enqueueGeocodeForBuilding } from "@/lib/geocode";
 
 function parsePensionerForm(formData: FormData) {
   const fullName = String(formData.get("fullName") ?? "").trim();
@@ -182,6 +183,7 @@ export async function importPensioners(formData: FormData): Promise<ImportResult
         });
         buildingId = b.id;
         buildingByKey.set(bKey, b.id);
+        enqueueGeocodeForBuilding({ id: b.id, street: r.street, number: r.house });
       } catch {
         errors.push({
           rowNumber: r.rowNumber,

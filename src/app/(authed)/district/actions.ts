@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { enqueueGeocodeForBuilding } from "@/lib/geocode";
 
 function parseAptRange(input: string): { from: number | null; to: number | null } | null {
   const s = input.trim();
@@ -35,6 +36,7 @@ export async function createBuilding(formData: FormData) {
     const created = await prisma.building.create({
       data: { street, number, notes },
     });
+    enqueueGeocodeForBuilding({ id: created.id, street, number });
     revalidatePath("/district");
     return { ok: true, id: created.id };
   } catch {
@@ -51,15 +53,23 @@ export async function updateBuilding(
   const number = data.number?.trim();
   if (street !== undefined && !street) return { error: "Вкажіть вулицю" };
   if (number !== undefined && !number) return { error: "Вкажіть номер будинку" };
+  const addressChanged = street !== undefined || number !== undefined;
   try {
-    await prisma.building.update({
+    const updated = await prisma.building.update({
       where: { id },
       data: {
         ...(street !== undefined ? { street } : {}),
         ...(number !== undefined ? { number } : {}),
         ...(data.notes !== undefined ? { notes: data.notes?.trim() || null } : {}),
+        // Якщо адреса змінилась — скидаємо координати, щоб перегеокодити.
+        ...(addressChanged
+          ? { latitude: null, longitude: null, geocodedAt: null, geocodeFailed: false }
+          : {}),
       },
     });
+    if (addressChanged) {
+      enqueueGeocodeForBuilding({ id: updated.id, street: updated.street, number: updated.number });
+    }
   } catch {
     return { error: "Не вдалося зберегти" };
   }

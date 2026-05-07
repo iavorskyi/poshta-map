@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import {
   addBuildingToAddressRound,
   deleteAddressRound,
@@ -12,9 +13,20 @@ import {
   updateAddressRoundItemNotes,
   updateAddressRoundMeta,
 } from "../actions";
+import { getNearbyBuildings, type NearbyBuilding } from "../nearby";
 import { formatDate, toDateInputValue } from "@/lib/format";
 import { BuildingCombobox, type BuildingOption } from "@/components/BuildingCombobox";
 import { useToast } from "@/components/Toast";
+import type { MapBuilding } from "@/components/AddressMap";
+
+const AddressMap = dynamic(() => import("@/components/AddressMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-72 md:h-96 rounded-lg border border-border bg-elevated/40 flex items-center justify-center text-sm text-fg-subtle">
+      Завантаження карти…
+    </div>
+  ),
+});
 
 type Round = {
   id: number;
@@ -29,6 +41,8 @@ type Item = {
   buildingId: number;
   buildingStreet: string;
   buildingNumber: string;
+  buildingLatitude: number | null;
+  buildingLongitude: number | null;
   done: boolean;
   notes: string | null;
 };
@@ -61,12 +75,61 @@ export function AddressRoundDetailClient({
   const [pickerValue, setPickerValue] = useState<number | "">("");
   const [editingNotesId, setEditingNotesId] = useState<number | null>(null);
   const [draftNotes, setDraftNotes] = useState("");
+  const [suggestions, setSuggestions] = useState<NearbyBuilding[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   const [isPending, startTransition] = useTransition();
 
   const remaining = useMemo(
     () => buildings.filter((b) => !items.some((it) => it.buildingId === b.id)),
     [buildings, items]
+  );
+
+  const selectedMapBuildings: MapBuilding[] = useMemo(
+    () =>
+      items.map((it) => ({
+        id: it.buildingId,
+        street: it.buildingStreet,
+        number: it.buildingNumber,
+        latitude: it.buildingLatitude,
+        longitude: it.buildingLongitude,
+      })),
+    [items]
+  );
+
+  const originId = items.length > 0 ? items[items.length - 1].buildingId : null;
+  const excludeIdsKey = useMemo(
+    () => items.slice(0, -1).map((it) => it.buildingId).join(","),
+    [items]
+  );
+
+  // Тягнемо підказки з останнього доданого будинку.
+  useEffect(() => {
+    if (!canEdit || originId === null) return;
+    const exclude = excludeIdsKey ? excludeIdsKey.split(",").map(Number) : [];
+    let cancelled = false;
+    setLoadingSuggestions(true);
+    getNearbyBuildings(originId, exclude)
+      .then((list) => {
+        if (!cancelled) setSuggestions(list);
+      })
+      .catch(() => {
+        if (!cancelled) setSuggestions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSuggestions(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [originId, excludeIdsKey, canEdit]);
+
+  const visibleSuggestions = useMemo(
+    () =>
+      suggestions.filter(
+        (s) => !items.some((it) => it.buildingId === s.id)
+      ),
+    [suggestions, items]
   );
 
   const totals = useMemo(() => {
@@ -131,6 +194,10 @@ export function AddressRoundDetailClient({
     if (pickerValue === "") return;
     const id = Number(pickerValue);
     setPickerValue("");
+    addById(id);
+  };
+
+  const addById = (id: number) => {
     startTransition(async () => {
       const res = await addBuildingToAddressRound(round.id, id);
       if (res?.error) showToast(res.error, "error");
@@ -312,6 +379,34 @@ export function AddressRoundDetailClient({
               Додати
             </button>
           </div>
+
+          {items.length > 0 && (
+            <NearbySuggestions
+              loading={loadingSuggestions}
+              items={visibleSuggestions}
+              onAdd={addById}
+            />
+          )}
+        </div>
+      )}
+
+      {items.length > 0 && (
+        <div className="card p-2 md:p-3">
+          <AddressMap
+            selected={selectedMapBuildings}
+            suggestions={
+              canEdit
+                ? visibleSuggestions.map((s) => ({
+                    id: s.id,
+                    street: s.street,
+                    number: s.number,
+                    latitude: s.latitude,
+                    longitude: s.longitude,
+                  }))
+                : []
+            }
+            onAddBuilding={addById}
+          />
         </div>
       )}
 
@@ -488,6 +583,52 @@ function AddressItemCard({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+function NearbySuggestions({
+  loading,
+  items,
+  onAdd,
+}: {
+  loading: boolean;
+  items: NearbyBuilding[];
+  onAdd: (id: number) => void;
+}) {
+  return (
+    <div className="space-y-2 pt-1">
+      <div className="text-xs uppercase tracking-wide text-fg-subtle">
+        Поруч {loading && <span className="ml-1">— оновлення…</span>}
+      </div>
+      {items.length === 0 ? (
+        <div className="text-xs text-fg-subtle">
+          {loading ? "Шукаємо сусідів…" : "Немає підказок поряд."}
+        </div>
+      ) : (
+        <ul className="flex flex-wrap gap-2">
+          {items.map((s) => (
+            <li key={s.id}>
+              <button
+                type="button"
+                onClick={() => onAdd(s.id)}
+                className="rounded-full border border-border bg-elevated hover:bg-surface px-3 py-1 text-xs flex items-center gap-1.5"
+                title="Додати в обхід"
+              >
+                <span>+</span>
+                <span>{s.street}, № {s.number}</span>
+                <span className="text-fg-subtle">
+                  {s.sameStreet
+                    ? "та сама вулиця"
+                    : s.distanceM !== null
+                    ? `${s.distanceM} м`
+                    : ""}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
