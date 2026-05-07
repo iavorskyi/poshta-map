@@ -58,6 +58,7 @@ export default async function EditPensionerPage({
       </div>
 
       <PensionerForm
+        key={pensioner.updatedAt.toISOString()}
         pensioner={{
           id: pensioner.id,
           fullName: pensioner.fullName,
