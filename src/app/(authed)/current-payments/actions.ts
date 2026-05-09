@@ -80,6 +80,12 @@ export async function updateCurrentPaymentFields(
 
 export type CpImportResult = {
   created: number;
+  createdPensioners: {
+    id: number;
+    fullName: string;
+    street: string;
+    house: string;
+  }[];
   errors: { rowNumber: number; message: string }[];
   warnings: { rowNumber: number; message: string }[];
 };
@@ -119,16 +125,23 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
   if (!(file instanceof File)) {
     return {
       created: 0,
+      createdPensioners: [],
       warnings: [],
       errors: [{ rowNumber: 0, message: "Файл не надіслано" }],
     };
   }
   if (file.size === 0) {
-    return { created: 0, warnings: [], errors: [{ rowNumber: 0, message: "Файл порожній" }] };
+    return {
+      created: 0,
+      createdPensioners: [],
+      warnings: [],
+      errors: [{ rowNumber: 0, message: "Файл порожній" }],
+    };
   }
   if (file.size > MAX_FILE_BYTES) {
     return {
       created: 0,
+      createdPensioners: [],
       warnings: [],
       errors: [{ rowNumber: 0, message: "Файл більше 10 МБ" }],
     };
@@ -138,6 +151,7 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
   if (!paymentId) {
     return {
       created: 0,
+      createdPensioners: [],
       warnings: [],
       errors: [{ rowNumber: 0, message: "Оберіть тип виплати" }],
     };
@@ -146,6 +160,7 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
   if (!payment) {
     return {
       created: 0,
+      createdPensioners: [],
       warnings: [],
       errors: [{ rowNumber: 0, message: "Тип виплати не знайдено" }],
     };
@@ -164,6 +179,7 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
   ) {
     return {
       created: 0,
+      createdPensioners: [],
       warnings: [],
       errors: [{ rowNumber: 0, message: "Некоректний місяць/рік" }],
     };
@@ -177,6 +193,7 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
   } catch (e) {
     return {
       created: 0,
+      createdPensioners: [],
       warnings: [],
       errors: [
         {
@@ -188,7 +205,7 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
   }
 
   if (parsed.errors.length && parsed.rows.length === 0) {
-    return { created: 0, warnings: [], errors: parsed.errors };
+    return { created: 0, createdPensioners: [], warnings: [], errors: parsed.errors };
   }
 
   // Pre-load buildings + pensioners for matching
@@ -226,6 +243,7 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
   const errors = [...parsed.errors];
   const warnings: CpImportResult["warnings"] = [];
   const touchedPensionerIds = new Set<number>();
+  const createdPensioners: CpImportResult["createdPensioners"] = [];
 
   for (const r of parsed.rows) {
     if (r.day > daysInMonth) {
@@ -246,13 +264,36 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
       continue;
     }
     const key = `${normalizeKey(r.fullName)}|${buildingId}`;
-    const matches = pensIndex.get(key);
+    let matches = pensIndex.get(key);
     if (!matches || matches.length === 0) {
-      errors.push({
-        rowNumber: r.rowNumber,
-        message: `Пенсіонера не знайдено: "${r.fullName}", ${r.street}, ${r.house}`,
-      });
-      continue;
+      // Авто-створення пенсіонера: беремо ФІО + buildingId; pensionPaymentDay
+      // ставимо як день з рядка (це найкращий доступний здогад при імпорті виплат).
+      try {
+        const newP = await prisma.pensioner.create({
+          data: {
+            fullName: r.fullName.trim(),
+            buildingId,
+            pensionPaymentDay: r.day,
+            notes: "Авто-створено при імпорті поточних виплат",
+          },
+        });
+        pensIndex.set(key, [newP.id]);
+        matches = [newP.id];
+        createdPensioners.push({
+          id: newP.id,
+          fullName: newP.fullName,
+          street: r.street,
+          house: r.house,
+        });
+      } catch (e) {
+        errors.push({
+          rowNumber: r.rowNumber,
+          message: `Не вдалось створити пенсіонера "${r.fullName}, ${r.street}, ${r.house}": ${
+            e instanceof Error ? e.message : "невідома помилка"
+          }`,
+        });
+        continue;
+      }
     }
     if (matches.length > 1) {
       errors.push({
@@ -292,14 +333,17 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
     }
   }
 
-  if (created > 0) {
+  if (created > 0 || createdPensioners.length > 0) {
     revalidatePath("/current-payments");
+    if (createdPensioners.length > 0) {
+      revalidatePath("/pensioners");
+    }
     for (const pid of touchedPensionerIds) {
       revalidatePath(`/pensioners/${pid}`);
     }
   }
 
-  return { created, warnings, errors };
+  return { created, createdPensioners, warnings, errors };
 }
 
 export async function deleteCurrentPayment(id: number) {

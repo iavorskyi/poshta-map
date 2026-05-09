@@ -61,7 +61,11 @@ export function ImportCurrentPayments({
       try {
         const res = await importCurrentPayments(fd);
         setResult(res);
-        if (res.errors.length === 0 && res.warnings.length === 0) {
+        if (
+          res.errors.length === 0 &&
+          res.warnings.length === 0 &&
+          res.createdPensioners.length === 0
+        ) {
           setOpen(false);
           reset();
         }
@@ -108,7 +112,8 @@ export function ImportCurrentPayments({
             <p>
               Колонки: <strong>ФІО</strong>, <strong>Вулиця</strong>, <strong>Будинок</strong>,{" "}
               <strong>День</strong> (1..31), <strong>Сума</strong>, Виплачено
-              (так/ні). Пенсіонер шукається за ФІО + вулицею + будинком.
+              (так/ні). Пенсіонер шукається за ФІО + вулицею + будинком. Якщо
+              пенсіонера не знайдено — буде створено автоматично.
             </p>
             <p>
               <strong>Один файл — один тип виплати.</strong> Місяць і рік підставляються
@@ -198,6 +203,14 @@ export function ImportCurrentPayments({
             <div className="space-y-2">
               <div className="rounded border border-border bg-elevated px-3 py-2 text-sm">
                 Створено: <strong>{result.created}</strong>
+                {result.createdPensioners.length > 0 && (
+                  <>
+                    {" "}· Додано пенсіонерів:{" "}
+                    <strong className="text-success">
+                      {result.createdPensioners.length}
+                    </strong>
+                  </>
+                )}
                 {result.warnings.length > 0 && (
                   <>
                     {" "}· Пропущено: <strong className="text-warning">{result.warnings.length}</strong>
@@ -209,6 +222,31 @@ export function ImportCurrentPayments({
                   </>
                 )}
               </div>
+              {result.createdPensioners.length > 0 && (
+                <details
+                  open
+                  className="rounded border border-border bg-elevated"
+                >
+                  <summary className="cursor-pointer px-3 py-2 text-sm">
+                    Авто-створені пенсіонери ({result.createdPensioners.length})
+                  </summary>
+                  <ul className="px-3 pb-3 text-xs space-y-1 max-h-60 overflow-y-auto">
+                    {result.createdPensioners.map((p) => (
+                      <li key={p.id}>
+                        <a
+                          href={`/pensioners/${p.id}`}
+                          className="link"
+                        >
+                          {p.fullName}
+                        </a>{" "}
+                        <span className="text-fg-subtle">
+                          — {p.street}, № {p.house}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
               {result.warnings.length > 0 && (
                 <details className="rounded border border-warning-border bg-warning-bg">
                   <summary className="cursor-pointer px-3 py-2 text-sm text-warning">
