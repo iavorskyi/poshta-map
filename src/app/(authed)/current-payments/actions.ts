@@ -6,6 +6,7 @@ import { fromDateInputValue } from "@/lib/format";
 import { parseCurrentPaymentsXlsx } from "@/lib/currentPaymentImport";
 import { requireAdmin, requireUser } from "@/lib/auth";
 import { canEditCurrentPayment, canEditPensioner } from "@/lib/permissions";
+import { findBuildingByAddress } from "@/lib/streetMatch";
 
 export async function createCurrentPayment(data: {
   pensionerId: number;
@@ -94,25 +95,6 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 function normalizeKey(s: string) {
   return s.trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-function normalizeStreet(s: string) {
-  return s
-    .trim()
-    .toLowerCase()
-    .replace(/^вул\.?\s+/, "")
-    .replace(/^вулиця\s+/, "")
-    .replace(/^просп\.?\s+/, "")
-    .replace(/^проспект\s+/, "")
-    .replace(/^пров\.?\s+/, "")
-    .replace(/^провулок\s+/, "")
-    .replace(/^пл\.?\s+/, "")
-    .replace(/^площа\s+/, "")
-    .replace(/\s+/g, " ");
-}
-
-function normalizeNumber(s: string) {
-  return s.trim().toLowerCase().replace(/\s+/g, "");
 }
 
 export async function importCurrentPayments(formData: FormData): Promise<CpImportResult> {
@@ -212,10 +194,6 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
   const buildings = await prisma.building.findMany({
     select: { id: true, street: true, number: true },
   });
-  const buildingByKey = new Map<string, number>();
-  for (const b of buildings) {
-    buildingByKey.set(`${normalizeStreet(b.street)}::${normalizeNumber(b.number)}`, b.id);
-  }
   const pensioners = await prisma.pensioner.findMany({
     select: { id: true, fullName: true, buildingId: true },
   });
@@ -253,10 +231,26 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
       });
       continue;
     }
-    const buildingId = buildingByKey.get(
-      `${normalizeStreet(r.street)}::${normalizeNumber(r.house)}`
-    );
-    if (!buildingId) {
+    const match = findBuildingByAddress(buildings, r.street, r.house);
+    let buildingId: number;
+    if (match.kind === "exact") {
+      buildingId = match.id;
+    } else if (match.kind === "loose") {
+      buildingId = match.id;
+      warnings.push({
+        rowNumber: r.rowNumber,
+        message: `Розпізнано "${r.street}" як "${match.matchedStreet}"`,
+      });
+    } else if (match.kind === "ambiguous") {
+      const list = match.candidates
+        .map((c) => `"${c.street}, ${c.number}"`)
+        .join(", ");
+      errors.push({
+        rowNumber: r.rowNumber,
+        message: `Кілька будинків можуть відповідати "${r.street}, ${r.house}": ${list}`,
+      });
+      continue;
+    } else {
       errors.push({
         rowNumber: r.rowNumber,
         message: `Будинок не знайдено в дільниці: ${r.street}, ${r.house}`,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { normalizeStreet, normalizeNumber } from "@/lib/streetMatch";
 
 export type BuildingOption = {
   id: number;
@@ -44,9 +45,31 @@ export function BuildingCombobox({
   }, [open]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return buildings.slice(0, 80);
-    return buildings.filter((b) => labelOf(b).toLowerCase().includes(q)).slice(0, 80);
+    const qRaw = query.trim();
+    if (!qRaw) return buildings.slice(0, 80);
+    const qLower = qRaw.toLowerCase();
+    // Підтримуємо запит виду "Шевченка 12" або "Шевченка, 12".
+    const parts = qRaw.split(/[\s,]+/).filter(Boolean);
+    const numTokens = parts.filter((p) => /\d/.test(p));
+    const streetTokens = parts.filter((p) => !/\d/.test(p));
+    const qStreet = streetTokens.join(" ");
+    const qNumber = numTokens.join("");
+    const qStreetN = normalizeStreet(qStreet);
+    const qNumberN = normalizeNumber(qNumber);
+    return buildings
+      .filter((b) => {
+        // Звичайний підрядковий пошук — для часткових збігів і номерів квартир.
+        if (labelOf(b).toLowerCase().includes(qLower)) return true;
+        // Нормалізований пошук — щоб "Шевченка" знаходив "вул. Шевченка".
+        const sN = normalizeStreet(b.street);
+        const nN = normalizeNumber(b.number);
+        if (qStreetN && sN.includes(qStreetN)) {
+          if (!qNumberN) return true;
+          if (nN.includes(qNumberN)) return true;
+        }
+        return false;
+      })
+      .slice(0, 80);
   }, [buildings, query]);
 
   useEffect(() => {

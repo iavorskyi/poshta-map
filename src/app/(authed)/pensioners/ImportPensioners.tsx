@@ -24,7 +24,7 @@ export function ImportPensioners() {
       try {
         const res = await importPensioners(fd);
         setResult(res);
-        if (res.errors.length === 0) {
+        if (res.errors.length === 0 && res.warnings.length === 0) {
           setOpen(false);
           reset();
         }
@@ -121,12 +121,32 @@ export function ImportPensioners() {
               <div className="rounded border border-border bg-elevated px-3 py-2 text-sm">
                 Створено: <strong>{result.created}</strong> · Оновлено:{" "}
                 <strong>{result.updated}</strong>
+                {result.warnings.length > 0 && (
+                  <>
+                    {" "}· Попереджень:{" "}
+                    <strong className="text-warning">{result.warnings.length}</strong>
+                  </>
+                )}
                 {result.errors.length > 0 && (
                   <>
                     {" "}· Пропущено: <strong className="text-danger">{result.errors.length}</strong>
                   </>
                 )}
               </div>
+              {result.warnings.length > 0 && (
+                <details className="rounded border border-warning-border bg-warning-bg">
+                  <summary className="cursor-pointer px-3 py-2 text-sm text-warning">
+                    Попередження ({result.warnings.length})
+                  </summary>
+                  <ul className="px-3 pb-3 text-xs text-warning space-y-1 max-h-60 overflow-y-auto">
+                    {result.warnings.map((w, i) => (
+                      <li key={i}>
+                        Рядок {w.rowNumber}: {w.message}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
               {result.errors.length > 0 && (
                 <details className="rounded border border-danger-border bg-danger-bg">
                   <summary className="cursor-pointer px-3 py-2 text-sm text-danger">

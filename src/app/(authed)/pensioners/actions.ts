@@ -7,6 +7,7 @@ import { parsePensionersXlsx } from "@/lib/pensionerImport";
 import { requireAdmin, requireUser } from "@/lib/auth";
 import { canEditPensioner } from "@/lib/permissions";
 import { enqueueGeocodeForBuilding } from "@/lib/geocode";
+import { findBuildingByAddress } from "@/lib/streetMatch";
 
 function parsePensionerForm(formData: FormData) {
   const fullName = String(formData.get("fullName") ?? "").trim();
@@ -86,6 +87,7 @@ export type ImportResult = {
   created: number;
   updated: number;
   errors: { rowNumber: number; message: string }[];
+  warnings: { rowNumber: number; message: string }[];
 };
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -94,38 +96,20 @@ function normalizeKey(s: string) {
   return s.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-function normalizeStreet(s: string) {
-  return s
-    .trim()
-    .toLowerCase()
-    .replace(/^вул\.?\s+/, "")
-    .replace(/^вулиця\s+/, "")
-    .replace(/^просп\.?\s+/, "")
-    .replace(/^проспект\s+/, "")
-    .replace(/^пров\.?\s+/, "")
-    .replace(/^провулок\s+/, "")
-    .replace(/^пл\.?\s+/, "")
-    .replace(/^площа\s+/, "")
-    .replace(/\s+/g, " ");
-}
-
-function normalizeNumber(s: string) {
-  return s.trim().toLowerCase().replace(/\s+/g, "");
-}
-
 export async function importPensioners(formData: FormData): Promise<ImportResult> {
   await requireAdmin();
   const file = formData.get("file");
   if (!(file instanceof File)) {
-    return { created: 0, updated: 0, errors: [{ rowNumber: 0, message: "Файл не надіслано" }] };
+    return { created: 0, updated: 0, warnings: [], errors: [{ rowNumber: 0, message: "Файл не надіслано" }] };
   }
   if (file.size === 0) {
-    return { created: 0, updated: 0, errors: [{ rowNumber: 0, message: "Файл порожній" }] };
+    return { created: 0, updated: 0, warnings: [], errors: [{ rowNumber: 0, message: "Файл порожній" }] };
   }
   if (file.size > MAX_FILE_BYTES) {
     return {
       created: 0,
       updated: 0,
+      warnings: [],
       errors: [{ rowNumber: 0, message: "Файл більше 10 МБ" }],
     };
   }
@@ -138,6 +122,7 @@ export async function importPensioners(formData: FormData): Promise<ImportResult
     return {
       created: 0,
       updated: 0,
+      warnings: [],
       errors: [
         {
           rowNumber: 0,
@@ -148,19 +133,18 @@ export async function importPensioners(formData: FormData): Promise<ImportResult
   }
 
   if (parsed.errors.length && parsed.rows.length === 0) {
-    return { created: 0, updated: 0, errors: parsed.errors };
+    return { created: 0, updated: 0, warnings: [], errors: parsed.errors };
   }
 
   let created = 0;
   let updated = 0;
   const errors = [...parsed.errors];
+  const warnings: ImportResult["warnings"] = [];
 
   // Pre-load buildings for matching
-  const buildings = await prisma.building.findMany();
-  const buildingByKey = new Map<string, number>();
-  for (const b of buildings) {
-    buildingByKey.set(`${normalizeStreet(b.street)}::${normalizeNumber(b.number)}`, b.id);
-  }
+  const buildings = await prisma.building.findMany({
+    select: { id: true, street: true, number: true },
+  });
 
   // Pre-load existing pensioners to dedupe locally
   const existing = await prisma.pensioner.findMany({
@@ -173,16 +157,33 @@ export async function importPensioners(formData: FormData): Promise<ImportResult
   }
 
   for (const r of parsed.rows) {
-    const bKey = `${normalizeStreet(r.street)}::${normalizeNumber(r.house)}`;
-    let buildingId = buildingByKey.get(bKey);
-    if (!buildingId) {
+    const match = findBuildingByAddress(buildings, r.street, r.house);
+    let buildingId: number | undefined;
+    if (match.kind === "exact") {
+      buildingId = match.id;
+    } else if (match.kind === "loose") {
+      buildingId = match.id;
+      warnings.push({
+        rowNumber: r.rowNumber,
+        message: `Розпізнано "${r.street}" як "${match.matchedStreet}"`,
+      });
+    } else if (match.kind === "ambiguous") {
+      const list = match.candidates
+        .map((c) => `"${c.street}, ${c.number}"`)
+        .join(", ");
+      errors.push({
+        rowNumber: r.rowNumber,
+        message: `Кілька будинків можуть відповідати "${r.street}, ${r.house}": ${list}`,
+      });
+      continue;
+    } else {
       // Auto-create building so we don't block import
       try {
         const b = await prisma.building.create({
           data: { street: r.street, number: r.house, notes: "Auto-created during import" },
         });
         buildingId = b.id;
-        buildingByKey.set(bKey, b.id);
+        buildings.push({ id: b.id, street: b.street, number: b.number });
         enqueueGeocodeForBuilding({ id: b.id, street: r.street, number: r.house });
       } catch {
         errors.push({
@@ -237,7 +238,7 @@ export async function importPensioners(formData: FormData): Promise<ImportResult
     revalidatePath("/pensioners");
   }
 
-  return { created, updated, errors };
+  return { created, updated, warnings, errors };
 }
 
 export async function deletePensioner(id: number) {
