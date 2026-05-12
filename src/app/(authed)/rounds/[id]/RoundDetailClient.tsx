@@ -17,6 +17,8 @@ import {
 import { DragHandle, SortableList } from "@/components/SortableList";
 import { formatDate, formatUAH, toDateInputValue } from "@/lib/format";
 import { useToast } from "@/components/Toast";
+import { Spinner } from "@/components/Spinner";
+import { useGlobalPending } from "@/components/RouteProgress";
 
 type DeliveryPreference = "OFFICE" | "HOME" | null;
 
@@ -96,6 +98,7 @@ export function RoundDetailClient({
   );
 
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
 
   const totals = useMemo(() => {
     const planned = items.reduce((s, it) => s + it.amount, 0);
@@ -397,8 +400,10 @@ export function RoundDetailClient({
               <button
                 onClick={saveMeta}
                 disabled={isPending}
+                aria-busy={isPending}
                 className="btn-primary"
               >
+                {isPending && <Spinner />}
                 Зберегти
               </button>
               <button
@@ -447,8 +452,10 @@ export function RoundDetailClient({
                 <button
                   onClick={toggleClosed}
                   disabled={isPending}
+                  aria-busy={isPending}
                   className="btn-secondary"
                 >
+                  {isPending && <Spinner />}
                   {isClosed ? "Відкрити обхід" : "Закрити обхід"}
                 </button>
               )}
@@ -519,8 +526,10 @@ export function RoundDetailClient({
                   type="button"
                   onClick={handleAddPensioner}
                   disabled={isPending || !addPensionerId}
+                  aria-busy={isPending}
                   className="btn-primary"
                 >
+                  {isPending && <Spinner />}
                   Додати
                 </button>
               </div>
@@ -600,8 +609,10 @@ export function RoundDetailClient({
                   type="button"
                   onClick={addItem}
                   disabled={isPending}
+                  aria-busy={isPending}
                   className="btn-primary"
                 >
+                  {isPending && <Spinner />}
                   Додати
                 </button>
               </div>

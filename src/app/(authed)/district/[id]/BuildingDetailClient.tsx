@@ -10,6 +10,7 @@ import {
   updateEntrance,
 } from "../actions";
 import { useToast } from "@/components/Toast";
+import { useGlobalPending } from "@/components/RouteProgress";
 
 type Building = {
   id: number;
@@ -58,6 +59,7 @@ export function BuildingDetailClient({
 
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
 
   const saveMeta = () => {
     setError(null);

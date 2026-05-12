@@ -136,6 +136,41 @@ body {
   }
 }
 
+/* Глобальна "тонка стрічка" зверху для індикації навігації / pending-екшнів.
+   animation-delay 120ms — для миттєвих переходів вона не встигає блимнути. */
+.route-progress-bar {
+  animation: route-progress 1.6s ease-in-out infinite;
+  animation-delay: 120ms;
+}
+@keyframes route-progress {
+  0% {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  50% {
+    transform: scaleX(0.7);
+    transform-origin: left;
+  }
+  51% {
+    transform-origin: right;
+  }
+  100% {
+    transform: scaleX(0);
+    transform-origin: right;
+  }
+}
+
+/* Будь-який елемент із aria-busy="true" отримує курсор waiting та легке
+   приглушення — універсальний індикатор стану "обробляється" для кнопок,
+   секцій або всієї форми. */
+[aria-busy="true"] {
+  cursor: progress;
+}
+button[aria-busy="true"],
+a[aria-busy="true"] {
+  opacity: 0.7;
+}
+
 /* ===== Print: round payment slips (бігунки) =====
    Print is intentionally light-themed regardless of app theme. */
 @page {

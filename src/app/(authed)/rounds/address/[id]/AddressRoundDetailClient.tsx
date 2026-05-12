@@ -20,6 +20,8 @@ import { BuildingCombobox, type BuildingOption } from "@/components/BuildingComb
 import { useToast } from "@/components/Toast";
 import type { MapBuilding } from "@/components/AddressMap";
 import { DragHandle, SortableList } from "@/components/SortableList";
+import { Spinner } from "@/components/Spinner";
+import { useGlobalPending } from "@/components/RouteProgress";
 
 const AddressMap = dynamic(() => import("@/components/AddressMap"), {
   ssr: false,
@@ -81,6 +83,7 @@ export function AddressRoundDetailClient({
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
 
   const remaining = useMemo(
     () => buildings.filter((b) => !items.some((it) => it.buildingId === b.id)),
@@ -332,8 +335,10 @@ export function AddressRoundDetailClient({
               <button
                 onClick={saveMeta}
                 disabled={isPending}
+                aria-busy={isPending}
                 className="btn-primary"
               >
+                {isPending && <Spinner />}
                 Зберегти
               </button>
               <button
@@ -388,8 +393,10 @@ export function AddressRoundDetailClient({
                 <button
                   onClick={toggleClosed}
                   disabled={isPending}
+                  aria-busy={isPending}
                   className="btn-secondary"
                 >
+                  {isPending && <Spinner />}
                   {isClosed ? "Відкрити обхід" : "Закрити обхід"}
                 </button>
                 <button
@@ -420,8 +427,10 @@ export function AddressRoundDetailClient({
               type="button"
               onClick={addBuilding}
               disabled={pickerValue === "" || isPending}
+              aria-busy={isPending}
               className="btn-secondary"
             >
+              {isPending && <Spinner />}
               Додати
             </button>
           </div>
@@ -609,8 +618,10 @@ function AddressItemCard({
                   type="button"
                   onClick={() => onSaveNotes(it.id)}
                   disabled={isPending}
+                  aria-busy={isPending}
                   className="btn-primary !px-3 !py-1.5"
                 >
+                  {isPending && <Spinner />}
                   Зберегти
                 </button>
                 <button

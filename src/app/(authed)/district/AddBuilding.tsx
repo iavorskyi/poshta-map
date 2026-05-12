@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createBuilding } from "./actions";
 import { useToast } from "@/components/Toast";
+import { useGlobalPending } from "@/components/RouteProgress";
+import { Spinner } from "@/components/Spinner";
 
 export function AddBuilding({ streets }: { streets: string[] }) {
   const router = useRouter();
@@ -14,6 +16,7 @@ export function AddBuilding({ streets }: { streets: string[] }) {
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
 
   const reset = () => {
     setStreet("");
@@ -120,8 +123,10 @@ export function AddBuilding({ streets }: { streets: string[] }) {
           type="button"
           onClick={submit}
           disabled={isPending}
+          aria-busy={isPending}
           className="btn-primary"
         >
+          {isPending && <Spinner />}
           {isPending ? "Збереження…" : "Додати"}
         </button>
       </div>

@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useGlobalPending } from "@/components/RouteProgress";
 
 type Postman = { id: number; name: string };
 
@@ -29,6 +30,7 @@ export function PensionersFilter({
   const [pmVal, setPmVal] = useState(postmanFilter);
   const [dayVal, setDayVal] = useState(day);
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
 
   const initialMount = useRef(true);
 

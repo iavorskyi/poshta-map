@@ -3,12 +3,14 @@
 import { useState, useTransition } from "react";
 import { createPayment, deletePayment, updatePayment } from "./actions";
 import { useToast } from "@/components/Toast";
+import { useGlobalPending } from "@/components/RouteProgress";
 
 type Payment = { id: number; name: string; code: string };
 
 export function PaymentsClient({ payments }: { payments: Payment[] }) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
   const { showToast } = useToast();
 
   const handleCreate = (formData: FormData) => {

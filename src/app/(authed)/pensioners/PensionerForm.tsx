@@ -5,6 +5,8 @@ import { useState, useTransition } from "react";
 import { createPensioner, updatePensioner, deletePensioner } from "./actions";
 import { BuildingCombobox, type BuildingOption } from "@/components/BuildingCombobox";
 import { useToast } from "@/components/Toast";
+import { useGlobalPending } from "@/components/RouteProgress";
+import { Spinner } from "@/components/Spinner";
 
 type Pensioner = {
   id: number;
@@ -35,6 +37,7 @@ export function PensionerForm({
   const [error, setError] = useState<string | null>(null);
   const [buildingId, setBuildingId] = useState<number | "">(pensioner?.buildingId ?? "");
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
   const { showToast } = useToast();
 
   const onSubmit = (formData: FormData) => {
@@ -168,8 +171,10 @@ export function PensionerForm({
         <button
           type="submit"
           disabled={isPending || !canEdit}
+          aria-busy={isPending}
           className="btn-primary"
         >
+          {isPending && <Spinner />}
           {pensioner ? "Зберегти" : "Створити"}
         </button>
         <Link

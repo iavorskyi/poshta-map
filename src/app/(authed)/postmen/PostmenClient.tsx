@@ -11,6 +11,7 @@ import {
   updatePostmanPhone,
 } from "./actions";
 import { useToast } from "@/components/Toast";
+import { useGlobalPending } from "@/components/RouteProgress";
 
 type Postman = {
   id: number;
@@ -30,6 +31,7 @@ export function PostmenClient({
   selfId: number;
 }) {
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
   const { showToast } = useToast();
   const [credsFor, setCredsFor] = useState<number | null>(null);
 
@@ -257,6 +259,7 @@ function CredsForm({
   const [username, setUsername] = useState(postman.username ?? "");
   const [password, setPassword] = useState("");
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
   const { showToast } = useToast();
 
   const submit = () => {

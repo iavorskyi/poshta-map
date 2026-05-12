@@ -4,6 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { currentMonthRange } from "@/lib/dateRange";
 import { PensionerCombobox } from "@/components/PensionerCombobox";
+import { useGlobalPending } from "@/components/RouteProgress";
 
 type Props = {
   fromStr: string;
@@ -38,6 +39,7 @@ export function CurrentPaymentsFilter({
   const [pid, setPid] = useState<number | "">(pensionerId ?? "");
   const [payId, setPayId] = useState<number | "">(paymentId ?? "");
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
 
   const showPaymentFilter = payments.length > 0;
 

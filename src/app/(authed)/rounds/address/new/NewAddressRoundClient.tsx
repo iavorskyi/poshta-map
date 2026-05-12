@@ -8,6 +8,8 @@ import { toDateInputValue } from "@/lib/format";
 import { BuildingCombobox, type BuildingOption } from "@/components/BuildingCombobox";
 import { useToast } from "@/components/Toast";
 import type { MapBuilding } from "@/components/AddressMap";
+import { useGlobalPending } from "@/components/RouteProgress";
+import { Spinner } from "@/components/Spinner";
 
 const AddressMap = dynamic(() => import("@/components/AddressMap"), {
   ssr: false,
@@ -37,6 +39,7 @@ export function NewAddressRoundClient({
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
   const [suggestions, setSuggestions] = useState<NearbyBuilding[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const { showToast } = useToast();
@@ -284,8 +287,10 @@ export function NewAddressRoundClient({
         <button
           type="submit"
           disabled={isPending}
+          aria-busy={isPending}
           className="btn-primary"
         >
+          {isPending && <Spinner />}
           Створити обхід
         </button>
       </div>

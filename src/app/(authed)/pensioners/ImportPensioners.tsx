@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { importPensioners, type ImportResult } from "./actions";
+import { useGlobalPending } from "@/components/RouteProgress";
 
 export function ImportPensioners() {
   const [open, setOpen] = useState(false);
@@ -9,6 +10,7 @@ export function ImportPensioners() {
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const submit = () => {

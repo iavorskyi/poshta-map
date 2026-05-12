@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTransition } from "react";
 import { deleteCurrentPayment, updateCurrentPaymentFields } from "./actions";
 import { formatDate, formatUAH } from "@/lib/format";
+import { useGlobalPending } from "@/components/RouteProgress";
 
 type Item = {
   id: number;
@@ -20,6 +21,7 @@ type Item = {
 
 export function CurrentPaymentsTable({ items }: { items: Item[] }) {
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
 
   if (items.length === 0) return null;
 

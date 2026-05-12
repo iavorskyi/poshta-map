@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { createCurrentPayment } from "./actions";
 import { toDateInputValue } from "@/lib/format";
 import { useToast } from "@/components/Toast";
+import { useGlobalPending } from "@/components/RouteProgress";
 
 export function AddCurrentPayment({
   pensioners,
@@ -25,6 +26,7 @@ export function AddCurrentPayment({
   const [isPaid, setIsPaid] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
   const { showToast } = useToast();
 
   const canSubmit = pensioners.length > 0 && payments.length > 0;

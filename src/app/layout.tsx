@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { ToastProvider } from "@/components/Toast";
+import { RouteProgress } from "@/components/RouteProgress";
 
 export const metadata: Metadata = {
   title: "Поштар — облік пенсіонерів і виплат",
@@ -29,6 +31,9 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="min-h-full flex flex-col bg-bg text-fg">
+        <Suspense fallback={null}>
+          <RouteProgress />
+        </Suspense>
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>

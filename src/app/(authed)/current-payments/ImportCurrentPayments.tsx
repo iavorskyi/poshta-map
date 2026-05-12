@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { importCurrentPayments, type CpImportResult } from "./actions";
+import { useGlobalPending } from "@/components/RouteProgress";
 
 const MONTHS_UA = [
   "Січень",
@@ -32,6 +33,7 @@ export function ImportCurrentPayments({
   const [result, setResult] = useState<CpImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {

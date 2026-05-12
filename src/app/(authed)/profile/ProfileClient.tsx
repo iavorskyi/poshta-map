@@ -3,12 +3,14 @@
 import { useState, useTransition } from "react";
 import { changeOwnPassword } from "../postmen/actions";
 import { useToast } from "@/components/Toast";
+import { useGlobalPending } from "@/components/RouteProgress";
 
 export function ProfileClient() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newPassword2, setNewPassword2] = useState("");
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
   const { showToast } = useToast();
 
   const submit = () => {

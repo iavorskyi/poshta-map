@@ -4,6 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import { createRound } from "../actions";
 import { formatUAH, toDateInputValue, fromDateInputValue } from "@/lib/format";
 import { useToast } from "@/components/Toast";
+import { useGlobalPending } from "@/components/RouteProgress";
+import { Spinner } from "@/components/Spinner";
 
 type Pensioner = {
   id: number;
@@ -65,6 +67,7 @@ export function NewRoundClient({
   const [manualPensionerId, setManualPensionerId] = useState<number | "">("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
   const { showToast } = useToast();
 
   const selectedDay = date ? fromDateInputValue(date).getDate() : null;
@@ -428,8 +431,10 @@ export function NewRoundClient({
         <button
           type="submit"
           disabled={isPending}
+          aria-busy={isPending}
           className="btn-primary"
         >
+          {isPending && <Spinner />}
           Створити обхід
         </button>
       </div>
