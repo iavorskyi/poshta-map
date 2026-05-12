@@ -74,25 +74,47 @@ export default async function PensionersPage({
       orderBy = [{ pensionPaymentDay: dir }, { fullName: "asc" }];
       break;
     case "payments":
-      orderBy = [{ currentPayments: { _count: dir } }, { fullName: "asc" }];
+      // Сортуємо в JS нижче (за виплатами поточного місяця).
+      orderBy = { fullName: "asc" };
       break;
     case "name":
     default:
       orderBy = { fullName: dir };
   }
 
-  const [pensioners, postmen] = await Promise.all([
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+  const [pensionersRaw, postmen] = await Promise.all([
     prisma.pensioner.findMany({
       where,
       orderBy,
       include: {
-        _count: { select: { currentPayments: true } },
+        currentPayments: {
+          where: { date: { gte: monthStart, lt: monthEnd } },
+          select: { isPaid: true },
+        },
         building: true,
         postman: true,
       },
     }),
     prisma.postman.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
+
+  const pensioners = pensionersRaw.map((p) => {
+    const total = p.currentPayments.length;
+    const paid = p.currentPayments.filter((cp) => cp.isPaid).length;
+    return { ...p, monthPaymentsTotal: total, monthPaymentsPaid: paid };
+  });
+
+  if (sort === "payments") {
+    pensioners.sort((a, b) => {
+      const diff = a.monthPaymentsTotal - b.monthPaymentsTotal;
+      if (diff !== 0) return dir === "asc" ? diff : -diff;
+      return a.fullName.localeCompare(b.fullName, "uk");
+    });
+  }
 
   const formatAddress = (p: (typeof pensioners)[number]) => {
     const apt = p.apartment ? `, кв. ${p.apartment}` : "";
@@ -155,8 +177,11 @@ export default async function PensionersPage({
                         {p.postman ? ` · ${p.postman.name}` : ""}
                       </div>
                     </div>
-                    <span className="shrink-0 rounded-full bg-elevated px-2 py-0.5 text-xs text-fg-muted">
-                      {p._count.currentPayments} виплат
+                    <span
+                      className="shrink-0 rounded-full bg-elevated px-2 py-0.5 text-xs text-fg-muted"
+                      title="Виплачено / усього виплат за поточний місяць"
+                    >
+                      {p.monthPaymentsPaid}/{p.monthPaymentsTotal}
                     </span>
                   </div>
                 </Link>
@@ -189,7 +214,12 @@ export default async function PensionersPage({
                     <td className="px-3 py-2">{p.phone ?? "—"}</td>
                     <td className="px-3 py-2">{p.pensionPaymentDay}</td>
                     <td className="px-3 py-2">{p.postman?.name ?? "—"}</td>
-                    <td className="px-3 py-2">{p._count.currentPayments}</td>
+                    <td
+                      className="px-3 py-2"
+                      title="Виплачено / усього виплат за поточний місяць"
+                    >
+                      {p.monthPaymentsPaid}/{p.monthPaymentsTotal}
+                    </td>
                   </tr>
                 ))}
               </tbody>
