@@ -69,6 +69,7 @@ export default async function EditPensionerPage({
           pensionPaymentDay: pensioner.pensionPaymentDay,
           postmanId: pensioner.postmanId,
           notes: pensioner.notes,
+          deliveryPreference: pensioner.deliveryPreference,
         }}
         buildings={buildings.map((b) => ({ id: b.id, street: b.street, number: b.number }))}
         postmen={postmen}

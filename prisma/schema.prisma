@@ -20,21 +20,27 @@ model Postman {
   pensioners     Pensioner[]
 }
 
+enum DeliveryPreference {
+  OFFICE
+  HOME
+}
+
 model Pensioner {
-  id                Int              @id @default(autoincrement())
-  fullName          String
-  buildingId        Int
-  apartment         String?
-  phone             String?
-  passportNumber    String?
-  pensionPaymentDay Int
-  postmanId         Int?
-  notes             String?
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  building          Building         @relation(fields: [buildingId], references: [id], onDelete: Restrict)
-  postman           Postman?         @relation(fields: [postmanId], references: [id], onDelete: SetNull)
-  currentPayments   CurrentPayment[]
+  id                 Int                 @id @default(autoincrement())
+  fullName           String
+  buildingId         Int
+  apartment          String?
+  phone              String?
+  passportNumber     String?
+  pensionPaymentDay  Int
+  postmanId          Int?
+  notes              String?
+  deliveryPreference DeliveryPreference?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  building           Building            @relation(fields: [buildingId], references: [id], onDelete: Restrict)
+  postman            Postman?            @relation(fields: [postmanId], references: [id], onDelete: SetNull)
+  currentPayments    CurrentPayment[]
 
   @@index([buildingId])
   @@index([postmanId])

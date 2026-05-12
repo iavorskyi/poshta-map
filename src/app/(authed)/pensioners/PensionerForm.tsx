@@ -16,6 +16,7 @@ type Pensioner = {
   pensionPaymentDay: number;
   postmanId: number | null;
   notes: string | null;
+  deliveryPreference: "OFFICE" | "HOME" | null;
 };
 
 export function PensionerForm({
@@ -139,6 +140,17 @@ export function PensionerForm({
               </select>
             </Field>
           )}
+          <Field label="Спосіб отримання">
+            <select
+              name="deliveryPreference"
+              defaultValue={pensioner?.deliveryPreference ?? ""}
+              className="input"
+            >
+              <option value="">— не вказано —</option>
+              <option value="OFFICE">Приходить на відділення</option>
+              <option value="HOME">Нести додому</option>
+            </select>
+          </Field>
         </div>
         <Field label="Примітки">
           <textarea

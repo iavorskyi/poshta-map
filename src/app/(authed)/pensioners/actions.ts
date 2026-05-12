@@ -19,6 +19,9 @@ function parsePensionerForm(formData: FormData) {
   const postmanIdRaw = String(formData.get("postmanId") ?? "").trim();
   const postmanId = postmanIdRaw ? Number(postmanIdRaw) : null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
+  const deliveryRaw = String(formData.get("deliveryPreference") ?? "").trim();
+  const deliveryPreference: "OFFICE" | "HOME" | null =
+    deliveryRaw === "OFFICE" || deliveryRaw === "HOME" ? deliveryRaw : null;
 
   return {
     fullName,
@@ -29,6 +32,7 @@ function parsePensionerForm(formData: FormData) {
     pensionPaymentDay,
     postmanId,
     notes,
+    deliveryPreference,
   };
 }
 

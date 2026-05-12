@@ -113,6 +113,7 @@ export default async function RoundPage({
           pensionerName: cp.pensioner.fullName,
           pensionerBuildingId: cp.pensioner.buildingId,
           pensionerAddress: `${cp.pensioner.building.street}, ${cp.pensioner.building.number}${cp.pensioner.apartment ? `, кв. ${cp.pensioner.apartment}` : ""}`,
+          pensionerDeliveryPreference: cp.pensioner.deliveryPreference,
           paymentId: cp.paymentId,
           paymentName: cp.payment.name,
           paymentCode: cp.payment.code,

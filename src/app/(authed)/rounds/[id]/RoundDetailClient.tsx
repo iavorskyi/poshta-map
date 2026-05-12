@@ -16,12 +16,15 @@ import {
 import { formatDate, formatUAH, toDateInputValue } from "@/lib/format";
 import { useToast } from "@/components/Toast";
 
+type DeliveryPreference = "OFFICE" | "HOME" | null;
+
 type Item = {
   id: number;
   pensionerId: number;
   pensionerName: string;
   pensionerBuildingId: number;
   pensionerAddress: string;
+  pensionerDeliveryPreference: DeliveryPreference;
   paymentId: number;
   paymentName: string;
   paymentCode: string;
@@ -101,7 +104,13 @@ export function RoundDetailClient({
   const grouped = useMemo(() => {
     const map = new Map<
       number,
-      { name: string; address: string; buildingId: number; items: Item[] }
+      {
+        name: string;
+        address: string;
+        buildingId: number;
+        deliveryPreference: DeliveryPreference;
+        items: Item[];
+      }
     >();
     for (const it of items) {
       const g = map.get(it.pensionerId);
@@ -111,6 +120,7 @@ export function RoundDetailClient({
           name: it.pensionerName,
           address: it.pensionerAddress,
           buildingId: it.pensionerBuildingId,
+          deliveryPreference: it.pensionerDeliveryPreference,
           items: [it],
         });
     }
@@ -612,6 +622,7 @@ type PensionerGroup = {
   name: string;
   address: string;
   buildingId: number;
+  deliveryPreference: DeliveryPreference;
   items: Item[];
   done: boolean;
   suggestions: SuggestedItem[];
@@ -644,12 +655,15 @@ function PensionerGroupCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <Link
-            href={`/pensioners/${g.pensionerId}`}
-            className="font-medium text-link hover:text-link-hover hover:underline"
-          >
-            {g.name}
-          </Link>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              href={`/pensioners/${g.pensionerId}`}
+              className="font-medium text-link hover:text-link-hover hover:underline"
+            >
+              {g.name}
+            </Link>
+            <DeliveryBadge value={g.deliveryPreference} />
+          </div>
           <div>
             <Link
               href={`/district/${g.buildingId}`}
@@ -771,6 +785,28 @@ function PensionerGroupCard({
         </div>
       )}
     </div>
+  );
+}
+
+function DeliveryBadge({ value }: { value: DeliveryPreference }) {
+  if (!value) return null;
+  if (value === "OFFICE") {
+    return (
+      <span
+        className="inline-flex items-center rounded-full border border-warning-border bg-warning-bg text-warning text-xs px-2 py-0.5"
+        title="Пенсіонер сам приходить на відділення"
+      >
+        На відділення
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-flex items-center rounded-full border border-success-border bg-success-bg text-success text-xs px-2 py-0.5"
+      title="Носити пенсію додому"
+    >
+      Додому
+    </span>
   );
 }
 
