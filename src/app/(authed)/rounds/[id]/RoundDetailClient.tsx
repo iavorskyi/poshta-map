@@ -2,17 +2,19 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   addCurrentPayment,
   addPensionerToRound,
   deleteCurrentPayment,
   deleteRound,
   removePensionerFromRound,
+  reorderRoundPensioners,
   setRoundClosed,
   updateCurrentPayment,
   updateRoundMeta,
 } from "../actions";
+import { DragHandle, SortableList } from "@/components/SortableList";
 import { formatDate, formatUAH, toDateInputValue } from "@/lib/format";
 import { useToast } from "@/components/Toast";
 
@@ -134,8 +136,55 @@ export function RoundDetailClient({
     });
   }, [items, suggestedByPensioner]);
 
-  const todoGroups = useMemo(() => grouped.filter((g) => !g.done), [grouped]);
+  const baseTodoGroups = useMemo(
+    () => grouped.filter((g) => !g.done),
+    [grouped]
+  );
   const doneGroups = useMemo(() => grouped.filter((g) => g.done), [grouped]);
+
+  // Оптимістичний порядок для перетягування. Скидається, коли серверні
+  // дані наздоганяють локальний порядок (або коли набір змінюється).
+  const [pendingOrder, setPendingOrder] = useState<number[] | null>(null);
+  useEffect(() => {
+    if (!pendingOrder) return;
+    const serverIds = baseTodoGroups.map((g) => g.pensionerId);
+    const sameSet =
+      serverIds.length === pendingOrder.length &&
+      serverIds.every((id) => pendingOrder.includes(id));
+    if (!sameSet) {
+      setPendingOrder(null);
+      return;
+    }
+    const sameOrder = serverIds.every((id, i) => id === pendingOrder[i]);
+    if (sameOrder) setPendingOrder(null);
+  }, [baseTodoGroups, pendingOrder]);
+
+  const todoGroups = useMemo(() => {
+    if (!pendingOrder) return baseTodoGroups;
+    const byId = new Map(baseTodoGroups.map((g) => [g.pensionerId, g]));
+    const ordered: typeof baseTodoGroups = [];
+    for (const id of pendingOrder) {
+      const g = byId.get(id);
+      if (g) ordered.push(g);
+    }
+    // На випадок, якщо щось додалось серверно поза pendingOrder.
+    for (const g of baseTodoGroups) {
+      if (!pendingOrder.includes(g.pensionerId)) ordered.push(g);
+    }
+    return ordered;
+  }, [baseTodoGroups, pendingOrder]);
+
+  const onReorderPensioners = (ids: (string | number)[]) => {
+    const numIds = ids.map((x) => Number(x));
+    setPendingOrder(numIds);
+    startTransition(async () => {
+      const res = await reorderRoundPensioners(round.id, numIds);
+      if (res?.error) {
+        setPendingOrder(null);
+        showToast(res.error, "error");
+      }
+    });
+  };
 
   const saveMeta = () => {
     setError(null);
@@ -576,18 +625,30 @@ export function RoundDetailClient({
         </div>
       ) : (
         <div className="space-y-3">
-          {todoGroups.map((g) => (
-            <PensionerGroupCard
-              key={g.pensionerId}
-              group={g}
-              onChangeAmount={changeAmount}
-              onToggleIsPaid={toggleIsPaid}
-              onRemoveItem={removeItem}
-              onRemovePensioner={removePensioner}
-              onAddSuggested={addSuggested}
-              canEdit={canEdit}
-            />
-          ))}
+          {canEdit && todoGroups.length > 1 && (
+            <div className="text-xs text-fg-subtle">
+              Підказка: тримай ⋮⋮ і перетягни, щоб змінити порядок.
+            </div>
+          )}
+          <SortableList
+            items={todoGroups.map((g) => ({ ...g, id: g.pensionerId }))}
+            onReorder={onReorderPensioners}
+            disabled={!canEdit || todoGroups.length < 2}
+            renderItem={(g, { dragHandleProps, setNodeRef, style }) => (
+              <div ref={setNodeRef} style={style} className="mb-3 last:mb-0">
+                <PensionerGroupCard
+                  group={g}
+                  onChangeAmount={changeAmount}
+                  onToggleIsPaid={toggleIsPaid}
+                  onRemoveItem={removeItem}
+                  onRemovePensioner={removePensioner}
+                  onAddSuggested={addSuggested}
+                  canEdit={canEdit}
+                  dragHandleProps={canEdit && todoGroups.length > 1 ? dragHandleProps : null}
+                />
+              </div>
+            )}
+          />
 
           {doneGroups.length > 0 && (
             <div className="pt-3">
@@ -636,6 +697,7 @@ function PensionerGroupCard({
   onRemovePensioner,
   onAddSuggested,
   canEdit,
+  dragHandleProps,
 }: {
   group: PensionerGroup;
   onChangeAmount: (id: number, amount: number) => void;
@@ -644,6 +706,7 @@ function PensionerGroupCard({
   onRemovePensioner: (pensionerId: number, name: string) => void;
   onAddSuggested: (pensionerId: number, paymentId: number, amount: number) => void;
   canEdit: boolean;
+  dragHandleProps?: React.HTMLAttributes<HTMLElement> | null;
 }) {
   const subPlanned = g.items.reduce((s, it) => s + it.amount, 0);
   const subPaid = g.items.filter((it) => it.isPaid).reduce((s, it) => s + it.amount, 0);
@@ -654,23 +717,31 @@ function PensionerGroupCard({
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Link
-              href={`/pensioners/${g.pensionerId}`}
-              className="font-medium text-link hover:text-link-hover hover:underline"
-            >
-              {g.name}
-            </Link>
-            <DeliveryBadge value={g.deliveryPreference} />
-          </div>
-          <div>
-            <Link
-              href={`/district/${g.buildingId}`}
-              className="text-xs link"
-            >
-              {g.address}
-            </Link>
+        <div className="flex items-start gap-1 min-w-0">
+          {dragHandleProps && (
+            <DragHandle
+              handleProps={dragHandleProps}
+              label="Перетягнути пенсіонера"
+            />
+          )}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Link
+                href={`/pensioners/${g.pensionerId}`}
+                className="font-medium text-link hover:text-link-hover hover:underline"
+              >
+                {g.name}
+              </Link>
+              <DeliveryBadge value={g.deliveryPreference} />
+            </div>
+            <div>
+              <Link
+                href={`/district/${g.buildingId}`}
+                className="text-xs link"
+              >
+                {g.address}
+              </Link>
+            </div>
           </div>
         </div>
         <div className="flex items-start gap-2 shrink-0">

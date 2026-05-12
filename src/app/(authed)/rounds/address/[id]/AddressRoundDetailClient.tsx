@@ -8,6 +8,7 @@ import {
   addBuildingToAddressRound,
   deleteAddressRound,
   removeBuildingFromAddressRound,
+  reorderAddressRoundItems,
   setAddressRoundClosed,
   toggleAddressRoundItemDone,
   updateAddressRoundItemNotes,
@@ -18,6 +19,7 @@ import { formatDate, toDateInputValue } from "@/lib/format";
 import { BuildingCombobox, type BuildingOption } from "@/components/BuildingCombobox";
 import { useToast } from "@/components/Toast";
 import type { MapBuilding } from "@/components/AddressMap";
+import { DragHandle, SortableList } from "@/components/SortableList";
 
 const AddressMap = dynamic(() => import("@/components/AddressMap"), {
   ssr: false,
@@ -140,8 +142,50 @@ export function AddressRoundDetailClient({
     return { total, done };
   }, [items]);
 
-  const todoItems = useMemo(() => items.filter((i) => !i.done), [items]);
+  const baseTodoItems = useMemo(() => items.filter((i) => !i.done), [items]);
   const doneItems = useMemo(() => items.filter((i) => i.done), [items]);
+
+  // Оптимістичний порядок для перетягування непройдених будинків.
+  const [pendingOrder, setPendingOrder] = useState<number[] | null>(null);
+  useEffect(() => {
+    if (!pendingOrder) return;
+    const serverIds = baseTodoItems.map((it) => it.id);
+    const sameSet =
+      serverIds.length === pendingOrder.length &&
+      serverIds.every((id) => pendingOrder.includes(id));
+    if (!sameSet) {
+      setPendingOrder(null);
+      return;
+    }
+    const sameOrder = serverIds.every((id, i) => id === pendingOrder[i]);
+    if (sameOrder) setPendingOrder(null);
+  }, [baseTodoItems, pendingOrder]);
+
+  const todoItems = useMemo(() => {
+    if (!pendingOrder) return baseTodoItems;
+    const byId = new Map(baseTodoItems.map((it) => [it.id, it]));
+    const ordered: typeof baseTodoItems = [];
+    for (const id of pendingOrder) {
+      const it = byId.get(id);
+      if (it) ordered.push(it);
+    }
+    for (const it of baseTodoItems) {
+      if (!pendingOrder.includes(it.id)) ordered.push(it);
+    }
+    return ordered;
+  }, [baseTodoItems, pendingOrder]);
+
+  const onReorderItems = (ids: (string | number)[]) => {
+    const numIds = ids.map((x) => Number(x));
+    setPendingOrder(numIds);
+    startTransition(async () => {
+      const res = await reorderAddressRoundItems(round.id, numIds);
+      if (res?.error) {
+        setPendingOrder(null);
+        showToast(res.error, "error");
+      }
+    });
+  };
 
   const saveMeta = () => {
     startTransition(async () => {
@@ -418,23 +462,40 @@ export function AddressRoundDetailClient({
         </div>
       ) : (
         <div className="space-y-2">
-          {todoItems.map((it, idx) => (
-            <AddressItemCard
-              key={it.id}
-              item={it}
-              index={idx + 1}
-              isEditingNotes={editingNotesId === it.id}
-              draftNotes={draftNotes}
-              isPending={isPending}
-              onDraftNotesChange={setDraftNotes}
-              onStartEditNotes={startEditNotes}
-              onCancelEditNotes={() => setEditingNotesId(null)}
-              onSaveNotes={saveNotes}
-              onToggleDone={toggleDone}
-              onRemove={removeItem}
-              canEdit={canEdit}
-            />
-          ))}
+          {canEdit && todoItems.length > 1 && (
+            <div className="text-xs text-fg-subtle">
+              Підказка: тримай ⋮⋮ і перетягни, щоб змінити порядок.
+            </div>
+          )}
+          <SortableList
+            items={todoItems}
+            onReorder={onReorderItems}
+            disabled={!canEdit || todoItems.length < 2}
+            renderItem={(it, { dragHandleProps, setNodeRef, style }) => {
+              const idx = todoItems.findIndex((x) => x.id === it.id);
+              return (
+                <div ref={setNodeRef} style={style} className="mb-2 last:mb-0">
+                  <AddressItemCard
+                    item={it}
+                    index={idx + 1}
+                    isEditingNotes={editingNotesId === it.id}
+                    draftNotes={draftNotes}
+                    isPending={isPending}
+                    onDraftNotesChange={setDraftNotes}
+                    onStartEditNotes={startEditNotes}
+                    onCancelEditNotes={() => setEditingNotesId(null)}
+                    onSaveNotes={saveNotes}
+                    onToggleDone={toggleDone}
+                    onRemove={removeItem}
+                    canEdit={canEdit}
+                    dragHandleProps={
+                      canEdit && todoItems.length > 1 ? dragHandleProps : null
+                    }
+                  />
+                </div>
+              );
+            }}
+          />
 
           {doneItems.length > 0 && (
             <div className="pt-3">
@@ -482,6 +543,7 @@ function AddressItemCard({
   onToggleDone,
   onRemove,
   canEdit,
+  dragHandleProps,
 }: {
   item: Item;
   index: number;
@@ -495,6 +557,7 @@ function AddressItemCard({
   onToggleDone: (id: number, next: boolean) => void;
   onRemove: (id: number) => void;
   canEdit: boolean;
+  dragHandleProps?: React.HTMLAttributes<HTMLElement> | null;
 }) {
   return (
     <div
@@ -502,7 +565,10 @@ function AddressItemCard({
         it.done ? "border-success-border bg-success-bg/30" : "border-border bg-surface"
       }`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2">
+        {dragHandleProps && (
+          <DragHandle handleProps={dragHandleProps} label="Перетягнути будинок" />
+        )}
         <label className="flex items-center pt-1">
           <input
             type="checkbox"

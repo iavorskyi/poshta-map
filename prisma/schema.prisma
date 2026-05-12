@@ -126,17 +126,19 @@ model AddressRoundBuilding {
 }
 
 model CurrentPayment {
-  id          Int       @id @default(autoincrement())
-  roundId     Int?
-  pensionerId Int
-  paymentId   Int
-  date        DateTime
-  amount      Float
-  isPaid      Boolean   @default(false)
-  round       Round?    @relation(fields: [roundId], references: [id], onDelete: SetNull)
-  pensioner   Pensioner @relation(fields: [pensionerId], references: [id], onDelete: Cascade)
-  payment     Payment   @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  id            Int       @id @default(autoincrement())
+  roundId       Int?
+  pensionerId   Int
+  paymentId     Int
+  date          DateTime
+  amount        Float
+  isPaid        Boolean   @default(false)
+  roundPosition Int       @default(0)
+  round         Round?    @relation(fields: [roundId], references: [id], onDelete: SetNull)
+  pensioner     Pensioner @relation(fields: [pensionerId], references: [id], onDelete: Cascade)
+  payment       Payment   @relation(fields: [paymentId], references: [id], onDelete: Restrict)
 
   @@index([date])
   @@index([pensionerId, date])
+  @@index([roundId, roundPosition])
 }

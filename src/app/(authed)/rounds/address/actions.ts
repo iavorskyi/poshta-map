@@ -210,6 +210,35 @@ export async function toggleAddressRoundItemDone(
   return { ok: true };
 }
 
+export async function reorderAddressRoundItems(
+  roundId: number,
+  itemIds: number[]
+) {
+  const check = await loadRoundAndCheck(roundId);
+  if ("error" in check) return { error: check.error };
+  if (!Array.isArray(itemIds) || itemIds.length === 0) {
+    return { ok: true };
+  }
+  try {
+    await prisma.$transaction(
+      itemIds.map((id, index) =>
+        prisma.addressRoundBuilding.update({
+          where: { id },
+          data: { position: index },
+        })
+      )
+    );
+  } catch (e) {
+    return {
+      error: `Не вдалося зберегти порядок: ${
+        e instanceof Error ? e.message : "невідома помилка"
+      }`,
+    };
+  }
+  revalidatePath(`/rounds/address/${roundId}`);
+  return { ok: true };
+}
+
 export async function updateAddressRoundItemNotes(
   roundId: number,
   itemId: number,

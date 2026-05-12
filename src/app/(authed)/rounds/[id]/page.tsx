@@ -25,7 +25,11 @@ export default async function RoundPage({
             pensioner: { include: { building: true } },
             payment: true,
           },
-          orderBy: [{ pensioner: { fullName: "asc" } }, { id: "asc" }],
+          orderBy: [
+            { roundPosition: "asc" },
+            { pensioner: { fullName: "asc" } },
+            { id: "asc" },
+          ],
         },
       },
     }),

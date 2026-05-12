@@ -352,6 +352,35 @@ export async function updateCurrentPayment(
   return { ok: true };
 }
 
+export async function reorderRoundPensioners(
+  roundId: number,
+  pensionerIds: number[]
+) {
+  const check = await loadRoundAndCheck(roundId);
+  if ("error" in check) return { error: check.error };
+  if (!Array.isArray(pensionerIds) || pensionerIds.length === 0) {
+    return { ok: true };
+  }
+  try {
+    await prisma.$transaction(
+      pensionerIds.map((pensionerId, index) =>
+        prisma.currentPayment.updateMany({
+          where: { roundId, pensionerId },
+          data: { roundPosition: index },
+        })
+      )
+    );
+  } catch (e) {
+    return {
+      error: `Не вдалося зберегти порядок: ${
+        e instanceof Error ? e.message : "невідома помилка"
+      }`,
+    };
+  }
+  revalidatePath(`/rounds/${roundId}`);
+  return { ok: true };
+}
+
 export async function deleteCurrentPayment(id: number, roundId: number) {
   const check = await loadRoundAndCheck(roundId);
   if ("error" in check) return { error: check.error };
