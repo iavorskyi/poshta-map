@@ -80,6 +80,7 @@ export default async function CurrentPaymentsPage({
           payments={payments}
           defaultDate={fromStr}
           defaultPensionerId={pensionerId}
+          isAdmin={me.isAdmin}
         />
       )}
 

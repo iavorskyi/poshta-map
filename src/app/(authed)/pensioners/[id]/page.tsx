@@ -105,6 +105,7 @@ export default async function EditPensionerPage({
             payments={payments}
             defaultDate={fromStr}
             defaultPensionerId={pensioner.id}
+            isAdmin={me.isAdmin}
           />
         )}
 

@@ -2,9 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
 export default async function Home() {
-  const [pensioners, payments, rounds, currentPayments, postmen] = await Promise.all([
+  const [pensioners, rounds, currentPayments, postmen] = await Promise.all([
     prisma.pensioner.count(),
-    prisma.payment.count(),
     prisma.round.count(),
     prisma.currentPayment.count(),
     prisma.postman.count(),
@@ -19,7 +18,6 @@ export default async function Home() {
       hint: "Усі виплати з фільтром по датах",
     },
     { href: "/pensioners", title: "Пенсіонери", count: pensioners, hint: "База пенсіонерів" },
-    { href: "/payments", title: "Типи виплат", count: payments, hint: "Довідник виплат" },
     { href: "/postmen", title: "Листоноші", count: postmen, hint: "Хто йде в обхід" },
   ];
 
@@ -31,7 +29,7 @@ export default async function Home() {
           Сервіс для рутинних задач листоноші — облік пенсіонерів, їх виплат і щоденні обходи.
         </p>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {cards.map((c) => (
           <Link
             key={c.href}

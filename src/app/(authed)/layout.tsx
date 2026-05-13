@@ -49,20 +49,12 @@ export default async function AuthedLayout({
               Пенсіонери
             </Link>
             {me.isAdmin && (
-              <>
-                <Link
-                  href="/payments"
-                  className="text-fg-muted hover:text-fg transition-colors py-1"
-                >
-                  Типи
-                </Link>
-                <Link
-                  href="/postmen"
-                  className="text-fg-muted hover:text-fg transition-colors py-1"
-                >
-                  Листоноші
-                </Link>
-              </>
+              <Link
+                href="/postmen"
+                className="text-fg-muted hover:text-fg transition-colors py-1"
+              >
+                Листоноші
+              </Link>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">

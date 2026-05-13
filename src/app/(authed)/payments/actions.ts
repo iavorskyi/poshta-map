@@ -1,11 +1,16 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { updateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { CACHE_TAGS } from "@/lib/queries";
 
-export async function createPayment(formData: FormData) {
+type PaymentDto = { id: number; name: string; code: string };
+type CreateResult = { error: string } | { ok: true; payment: PaymentDto };
+type UpdateResult = { error: string } | { ok: true; payment: PaymentDto };
+type DeleteResult = { error: string } | { ok: true };
+
+export async function createPayment(formData: FormData): Promise<CreateResult> {
   await requireAdmin();
   const name = String(formData.get("name") ?? "").trim();
   const code = String(formData.get("code") ?? "").trim();
@@ -13,31 +18,39 @@ export async function createPayment(formData: FormData) {
     return { error: "Назва і код обов'язкові" };
   }
   try {
-    await prisma.payment.create({ data: { name, code } });
+    const payment = await prisma.payment.create({
+      data: { name, code },
+      select: { id: true, name: true, code: true },
+    });
+    updateTag(CACHE_TAGS.payments);
+    return { ok: true, payment };
   } catch {
     return { error: "Код вже існує" };
   }
-  revalidatePath("/payments");
-  updateTag(CACHE_TAGS.payments);
-  return { ok: true };
 }
 
-export async function updatePayment(id: number, formData: FormData) {
+export async function updatePayment(
+  id: number,
+  formData: FormData
+): Promise<UpdateResult> {
   await requireAdmin();
   const name = String(formData.get("name") ?? "").trim();
   const code = String(formData.get("code") ?? "").trim();
   if (!name || !code) return { error: "Назва і код обов'язкові" };
   try {
-    await prisma.payment.update({ where: { id }, data: { name, code } });
+    const payment = await prisma.payment.update({
+      where: { id },
+      data: { name, code },
+      select: { id: true, name: true, code: true },
+    });
+    updateTag(CACHE_TAGS.payments);
+    return { ok: true, payment };
   } catch {
     return { error: "Не вдалося оновити (можливо, код не унікальний)" };
   }
-  revalidatePath("/payments");
-  updateTag(CACHE_TAGS.payments);
-  return { ok: true };
 }
 
-export async function deletePayment(id: number) {
+export async function deletePayment(id: number): Promise<DeleteResult> {
   await requireAdmin();
   const usedCount = await prisma.currentPayment.count({ where: { paymentId: id } });
   if (usedCount > 0) {
@@ -56,7 +69,6 @@ export async function deletePayment(id: number) {
       }`,
     };
   }
-  revalidatePath("/payments");
   updateTag(CACHE_TAGS.payments);
   return { ok: true };
 }
