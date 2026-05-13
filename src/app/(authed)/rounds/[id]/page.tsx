@@ -47,9 +47,18 @@ export default async function RoundPage({
     new Set(round.currentPayments.map((cp) => cp.pensionerId))
   );
 
+  // Шаблони — за останні 6 місяців, щоб не сканувати всю історію.
+  const templateWindowStart = (() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth() - 6, 1);
+  })();
+
   const allCps = pensionerIdsInRound.length
     ? await prisma.currentPayment.findMany({
-        where: { pensionerId: { in: pensionerIdsInRound } },
+        where: {
+          pensionerId: { in: pensionerIdsInRound },
+          date: { gte: templateWindowStart },
+        },
         orderBy: { date: "desc" },
         select: {
           pensionerId: true,

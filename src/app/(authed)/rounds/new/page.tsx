@@ -10,6 +10,9 @@ export default async function NewRoundPage() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  // Шаблони визначаємо за останніми 6 місяцями. Старіші виплати не варто
+  // тягнути — це лише сповільнює сторінку.
+  const templateWindowStart = new Date(now.getFullYear(), now.getMonth() - 6, 1);
 
   const [pensioners, payments, postmen, monthPayments, allCps] = await Promise.all([
     prisma.pensioner.findMany({
@@ -23,6 +26,7 @@ export default async function NewRoundPage() {
       orderBy: { date: "asc" },
     }),
     prisma.currentPayment.findMany({
+      where: { date: { gte: templateWindowStart } },
       orderBy: { date: "desc" },
       select: { pensionerId: true, paymentId: true, amount: true },
     }),

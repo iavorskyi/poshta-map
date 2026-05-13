@@ -258,8 +258,14 @@ export async function addPensionerToRound(roundId: number, pensionerId: number) 
       !cp.isPaid && cp.roundId !== roundId && !inRoundPaymentIds.has(cp.paymentId)
   );
 
+  // Шаблони — за останні 6 місяців, щоб не тягнути всю історію.
+  const templateWindowStart = new Date(
+    round.date.getFullYear(),
+    round.date.getMonth() - 6,
+    1
+  );
   const allCps = await prisma.currentPayment.findMany({
-    where: { pensionerId },
+    where: { pensionerId, date: { gte: templateWindowStart } },
     orderBy: { date: "desc" },
     select: { paymentId: true, amount: true },
   });
