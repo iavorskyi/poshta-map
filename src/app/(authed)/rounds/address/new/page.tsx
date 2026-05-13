@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { BackLink } from "@/components/BackLink";
 import { NewAddressRoundClient } from "./NewAddressRoundClient";
 import { requireUser } from "@/lib/auth";
+import { getCachedPostmen } from "@/lib/queries";
 
 export default async function NewAddressRoundPage() {
   const me = await requireUser();
@@ -10,7 +11,7 @@ export default async function NewAddressRoundPage() {
       orderBy: [{ street: "asc" }, { number: "asc" }],
       select: { id: true, street: true, number: true, latitude: true, longitude: true },
     }),
-    prisma.postman.findMany({ orderBy: { name: "asc" } }),
+    getCachedPostmen(),
   ]);
 
   return (

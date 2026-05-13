@@ -3,6 +3,7 @@ import { NewRoundClient } from "./NewRoundClient";
 import { BackLink } from "@/components/BackLink";
 import { requireUser } from "@/lib/auth";
 import { canEditPensioner } from "@/lib/permissions";
+import { getCachedPayments, getCachedPostmen } from "@/lib/queries";
 
 export default async function NewRoundPage() {
   const me = await requireUser();
@@ -15,8 +16,8 @@ export default async function NewRoundPage() {
       orderBy: { fullName: "asc" },
       include: { building: true },
     }),
-    prisma.payment.findMany({ orderBy: { name: "asc" } }),
-    prisma.postman.findMany({ orderBy: { name: "asc" } }),
+    getCachedPayments(),
+    getCachedPostmen(),
     prisma.currentPayment.findMany({
       where: { date: { gte: monthStart, lt: monthEnd } },
       orderBy: { date: "asc" },

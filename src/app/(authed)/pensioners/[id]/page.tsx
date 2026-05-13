@@ -9,6 +9,7 @@ import { AddCurrentPayment } from "../../current-payments/AddCurrentPayment";
 import { BackLink } from "@/components/BackLink";
 import { requireUser } from "@/lib/auth";
 import { canEditCurrentPayment, canEditPensioner } from "@/lib/permissions";
+import { getCachedPayments, getCachedPostmen } from "@/lib/queries";
 
 export default async function EditPensionerPage({
   params,
@@ -27,7 +28,7 @@ export default async function EditPensionerPage({
 
   const [pensioner, payments, currentPayments, buildings, postmen] = await Promise.all([
     prisma.pensioner.findUnique({ where: { id } }),
-    prisma.payment.findMany({ orderBy: { name: "asc" } }),
+    getCachedPayments(),
     prisma.currentPayment.findMany({
       where: { pensionerId: id, date: { gte: from, lte: to } },
       include: {
@@ -38,7 +39,7 @@ export default async function EditPensionerPage({
       orderBy: [{ date: "asc" }, { id: "asc" }],
     }),
     prisma.building.findMany({ orderBy: [{ street: "asc" }, { number: "asc" }] }),
-    prisma.postman.findMany({ orderBy: { name: "asc" } }),
+    getCachedPostmen(),
   ]);
 
   if (!pensioner) notFound();

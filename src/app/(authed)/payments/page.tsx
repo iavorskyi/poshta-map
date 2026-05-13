@@ -1,10 +1,10 @@
-import { prisma } from "@/lib/prisma";
 import { PaymentsClient } from "./PaymentsClient";
 import { requireAdmin } from "@/lib/auth";
+import { getCachedPayments } from "@/lib/queries";
 
 export default async function PaymentsPage() {
   await requireAdmin();
-  const payments = await prisma.payment.findMany({ orderBy: { name: "asc" } });
+  const payments = await getCachedPayments();
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Типи виплат</h1>

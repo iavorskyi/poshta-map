@@ -8,6 +8,7 @@ import { AddCurrentPayment } from "./AddCurrentPayment";
 import { ImportCurrentPayments } from "./ImportCurrentPayments";
 import { requireUser } from "@/lib/auth";
 import { canEditCurrentPayment, canEditPensioner } from "@/lib/permissions";
+import { getCachedPayments } from "@/lib/queries";
 
 export default async function CurrentPaymentsPage({
   searchParams,
@@ -40,7 +41,7 @@ export default async function CurrentPaymentsPage({
       orderBy: [{ date: "asc" }, { id: "asc" }],
     }),
     prisma.pensioner.findMany({ orderBy: { fullName: "asc" } }),
-    prisma.payment.findMany({ orderBy: { name: "asc" } }),
+    getCachedPayments(),
   ]);
 
   const totals = {

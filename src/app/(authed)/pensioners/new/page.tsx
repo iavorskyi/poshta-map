@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { PensionerForm } from "../PensionerForm";
 import { BackLink } from "@/components/BackLink";
 import { requireUser } from "@/lib/auth";
+import { getCachedPostmen } from "@/lib/queries";
 
 export default async function NewPensionerPage() {
   const me = await requireUser();
@@ -9,7 +10,7 @@ export default async function NewPensionerPage() {
     prisma.building.findMany({
       orderBy: [{ street: "asc" }, { number: "asc" }],
     }),
-    prisma.postman.findMany({ orderBy: { name: "asc" } }),
+    getCachedPostmen(),
   ]);
   return (
     <div className="space-y-4">

@@ -4,6 +4,7 @@ import { RoundDetailClient } from "./RoundDetailClient";
 import { BackLink } from "@/components/BackLink";
 import { requireUser } from "@/lib/auth";
 import { canEditRound } from "@/lib/permissions";
+import { getCachedPayments, getCachedPostmen } from "@/lib/queries";
 
 export default async function RoundPage({
   params,
@@ -34,8 +35,8 @@ export default async function RoundPage({
       },
     }),
     prisma.pensioner.findMany({ orderBy: { fullName: "asc" } }),
-    prisma.payment.findMany({ orderBy: { name: "asc" } }),
-    prisma.postman.findMany({ orderBy: { name: "asc" } }),
+    getCachedPayments(),
+    getCachedPostmen(),
   ]);
 
   if (!round) notFound();

@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { CACHE_TAGS } from "@/lib/queries";
 
 export async function createPayment(formData: FormData) {
   await requireAdmin();
@@ -17,6 +18,7 @@ export async function createPayment(formData: FormData) {
     return { error: "Код вже існує" };
   }
   revalidatePath("/payments");
+  updateTag(CACHE_TAGS.payments);
   return { ok: true };
 }
 
@@ -31,6 +33,7 @@ export async function updatePayment(id: number, formData: FormData) {
     return { error: "Не вдалося оновити (можливо, код не унікальний)" };
   }
   revalidatePath("/payments");
+  updateTag(CACHE_TAGS.payments);
   return { ok: true };
 }
 
@@ -54,5 +57,6 @@ export async function deletePayment(id: number) {
     };
   }
   revalidatePath("/payments");
+  updateTag(CACHE_TAGS.payments);
   return { ok: true };
 }

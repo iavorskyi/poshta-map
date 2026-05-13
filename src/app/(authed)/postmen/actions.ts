@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, requireAdmin, requireUser, verifyPassword } from "@/lib/auth";
+import { CACHE_TAGS } from "@/lib/queries";
 
 export async function createPostman(formData: FormData) {
   await requireAdmin();
@@ -10,6 +11,7 @@ export async function createPostman(formData: FormData) {
   if (!name) return { error: "Ім'я обов'язкове" };
   await prisma.postman.create({ data: { name } });
   revalidatePath("/postmen");
+  updateTag(CACHE_TAGS.postmen);
   return { ok: true };
 }
 
@@ -25,6 +27,7 @@ export async function deletePostman(id: number) {
     };
   }
   revalidatePath("/postmen");
+  updateTag(CACHE_TAGS.postmen);
   return { ok: true };
 }
 
@@ -34,6 +37,7 @@ export async function updatePostmanName(id: number, name: string) {
   if (!trimmed) return { error: "Ім'я обов'язкове" };
   await prisma.postman.update({ where: { id }, data: { name: trimmed } });
   revalidatePath("/postmen");
+  updateTag(CACHE_TAGS.postmen);
   return { ok: true };
 }
 

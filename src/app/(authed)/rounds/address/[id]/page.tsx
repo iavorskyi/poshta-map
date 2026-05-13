@@ -4,6 +4,7 @@ import { BackLink } from "@/components/BackLink";
 import { AddressRoundDetailClient } from "./AddressRoundDetailClient";
 import { requireUser } from "@/lib/auth";
 import { canEditAddressRound } from "@/lib/permissions";
+import { getCachedPostmen } from "@/lib/queries";
 
 export default async function AddressRoundPage({
   params,
@@ -29,7 +30,7 @@ export default async function AddressRoundPage({
       orderBy: [{ street: "asc" }, { number: "asc" }],
       select: { id: true, street: true, number: true, latitude: true, longitude: true },
     }),
-    prisma.postman.findMany({ orderBy: { name: "asc" } }),
+    getCachedPostmen(),
   ]);
 
   if (!round) notFound();

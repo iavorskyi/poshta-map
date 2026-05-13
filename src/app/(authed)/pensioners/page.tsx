@@ -4,6 +4,7 @@ import type { Prisma } from "@/generated/prisma";
 import { ImportPensioners } from "./ImportPensioners";
 import { PensionersFilter } from "./PensionersFilter";
 import { requireUser } from "@/lib/auth";
+import { getCachedPostmen } from "@/lib/queries";
 
 type SortKey = "name" | "address" | "day" | "payments";
 
@@ -99,7 +100,7 @@ export default async function PensionersPage({
         postman: true,
       },
     }),
-    prisma.postman.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    getCachedPostmen(),
   ]);
 
   const pensioners = pensionersRaw.map((p) => {
