@@ -96,19 +96,6 @@ export function AddressRoundDetailClient({
     [buildings, localItems]
   );
 
-  const selectedMapBuildings: MapBuilding[] = useMemo(
-    () =>
-      localItems.map((it) => ({
-        id: it.buildingId,
-        street: it.buildingStreet,
-        number: it.buildingNumber,
-        latitude: it.buildingLatitude,
-        longitude: it.buildingLongitude,
-        done: it.done,
-      })),
-    [localItems]
-  );
-
   const selectedIdsKey = useMemo(
     () => localItems.map((it) => it.buildingId).join(","),
     [localItems]
@@ -184,6 +171,33 @@ export function AddressRoundDetailClient({
     }
     return ordered;
   }, [baseTodoItems, pendingOrder]);
+
+  // Порядок пінів на карті повторює порядок списку: спочатку непройдені
+  // (з урахуванням перетягування), потім виплачені.
+  const selectedMapBuildings: MapBuilding[] = useMemo(() => {
+    const arr: MapBuilding[] = [];
+    for (const it of todoItems) {
+      arr.push({
+        id: it.buildingId,
+        street: it.buildingStreet,
+        number: it.buildingNumber,
+        latitude: it.buildingLatitude,
+        longitude: it.buildingLongitude,
+        done: false,
+      });
+    }
+    for (const it of doneItems) {
+      arr.push({
+        id: it.buildingId,
+        street: it.buildingStreet,
+        number: it.buildingNumber,
+        latitude: it.buildingLatitude,
+        longitude: it.buildingLongitude,
+        done: true,
+      });
+    }
+    return arr;
+  }, [todoItems, doneItems]);
 
   const onReorderItems = (ids: (string | number)[]) => {
     const numIds = ids.map((x) => Number(x));
