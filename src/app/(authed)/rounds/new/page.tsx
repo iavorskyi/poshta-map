@@ -39,6 +39,10 @@ export default async function NewRoundPage() {
     fullName: p.fullName,
     address: `${p.building.street}, ${p.building.number}${p.apartment ? `, кв. ${p.apartment}` : ""}`,
     pensionPaymentDay: p.pensionPaymentDay,
+    buildingStreet: p.building.street,
+    buildingNumber: p.building.number,
+    buildingLatitude: p.building.latitude,
+    buildingLongitude: p.building.longitude,
   }));
 
   const pensionerMonthPayments: Record<

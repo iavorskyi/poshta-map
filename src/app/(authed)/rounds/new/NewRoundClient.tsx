@@ -1,17 +1,32 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import { createRound } from "../actions";
 import { formatUAH, toDateInputValue, fromDateInputValue } from "@/lib/format";
 import { useToast } from "@/components/Toast";
 import { useGlobalPending } from "@/components/RouteProgress";
 import { Spinner } from "@/components/Spinner";
+import type { MapBuilding } from "@/components/AddressMap";
+
+const AddressMap = dynamic(() => import("@/components/AddressMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-72 md:h-96 rounded-lg border border-border bg-elevated/40 flex items-center justify-center text-sm text-fg-subtle">
+      Завантаження карти…
+    </div>
+  ),
+});
 
 type Pensioner = {
   id: number;
   fullName: string;
   address: string;
   pensionPaymentDay: number;
+  buildingStreet: string;
+  buildingNumber: string;
+  buildingLatitude: number | null;
+  buildingLongitude: number | null;
 };
 
 type Payment = { id: number; name: string; code: string };
@@ -214,6 +229,26 @@ export function NewRoundClient({
 
   const availableForManual = pensioners.filter(
     (p) => !drafts.some((d) => d.pensionerId === p.id)
+  );
+
+  const selectedMapBuildings: MapBuilding[] = useMemo(() => {
+    const arr: MapBuilding[] = [];
+    for (const d of drafts) {
+      const p = pensionerById[d.pensionerId];
+      if (!p) continue;
+      arr.push({
+        id: d.pensionerId,
+        street: p.buildingStreet,
+        number: p.buildingNumber,
+        latitude: p.buildingLatitude,
+        longitude: p.buildingLongitude,
+      });
+    }
+    return arr;
+  }, [drafts, pensionerById]);
+
+  const hasMappableBuildings = selectedMapBuildings.some(
+    (b) => b.latitude !== null && b.longitude !== null
   );
 
   return (
@@ -424,6 +459,16 @@ export function NewRoundClient({
           <div className="font-semibold">{formatUAH(totalPlanned)}</div>
         </div>
       </div>
+
+      {drafts.length > 0 && hasMappableBuildings && (
+        <div className="card p-2 md:p-3">
+          <AddressMap
+            selected={selectedMapBuildings}
+            suggestions={[]}
+            onAddBuilding={() => {}}
+          />
+        </div>
+      )}
 
       {error && <div className="text-sm text-danger">{error}</div>}
 

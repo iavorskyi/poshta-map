@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import {
   addCurrentPayment,
   addPensionerToRound,
@@ -19,6 +20,16 @@ import { formatDate, formatUAH, toDateInputValue } from "@/lib/format";
 import { useToast } from "@/components/Toast";
 import { Spinner } from "@/components/Spinner";
 import { useGlobalPending } from "@/components/RouteProgress";
+import type { MapBuilding } from "@/components/AddressMap";
+
+const AddressMap = dynamic(() => import("@/components/AddressMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-72 md:h-96 rounded-lg border border-border bg-elevated/40 flex items-center justify-center text-sm text-fg-subtle">
+      Завантаження карти…
+    </div>
+  ),
+});
 
 type DeliveryPreference = "OFFICE" | "HOME" | null;
 
@@ -27,6 +38,10 @@ type Item = {
   pensionerId: number;
   pensionerName: string;
   pensionerBuildingId: number;
+  pensionerBuildingStreet: string;
+  pensionerBuildingNumber: string;
+  pensionerBuildingLatitude: number | null;
+  pensionerBuildingLongitude: number | null;
   pensionerAddress: string;
   pensionerDeliveryPreference: DeliveryPreference;
   paymentId: number;
@@ -120,6 +135,10 @@ export function RoundDetailClient({
         name: string;
         address: string;
         buildingId: number;
+        buildingStreet: string;
+        buildingNumber: string;
+        buildingLatitude: number | null;
+        buildingLongitude: number | null;
         deliveryPreference: DeliveryPreference;
         items: Item[];
       }
@@ -132,6 +151,10 @@ export function RoundDetailClient({
           name: it.pensionerName,
           address: it.pensionerAddress,
           buildingId: it.pensionerBuildingId,
+          buildingStreet: it.pensionerBuildingStreet,
+          buildingNumber: it.pensionerBuildingNumber,
+          buildingLatitude: it.pensionerBuildingLatitude,
+          buildingLongitude: it.pensionerBuildingLongitude,
           deliveryPreference: it.pensionerDeliveryPreference,
           items: [it],
         });
@@ -183,6 +206,39 @@ export function RoundDetailClient({
     }
     return ordered;
   }, [baseTodoGroups, pendingOrder]);
+
+  // Пенсіонери в порядку обходу: спочатку непройдені (із поточним порядком),
+  // потім виплачені. Один пін на кожного пенсіонера.
+  const selectedMapBuildings: MapBuilding[] = useMemo(() => {
+    const arr: MapBuilding[] = [];
+    for (const g of todoGroups) {
+      arr.push({
+        id: g.pensionerId,
+        street: g.buildingStreet,
+        number: g.buildingNumber,
+        latitude: g.buildingLatitude,
+        longitude: g.buildingLongitude,
+      });
+    }
+    for (const g of doneGroups) {
+      arr.push({
+        id: g.pensionerId,
+        street: g.buildingStreet,
+        number: g.buildingNumber,
+        latitude: g.buildingLatitude,
+        longitude: g.buildingLongitude,
+      });
+    }
+    return arr;
+  }, [todoGroups, doneGroups]);
+
+  const hasMappableBuildings = useMemo(
+    () =>
+      selectedMapBuildings.some(
+        (b) => b.latitude !== null && b.longitude !== null
+      ),
+    [selectedMapBuildings]
+  );
 
   const onReorderPensioners = (ids: (string | number)[]) => {
     const numIds = ids.map((x) => Number(x));
@@ -664,6 +720,16 @@ export function RoundDetailClient({
               або додати окрему виплату вручну
             </button>
           )}
+        </div>
+      )}
+
+      {grouped.length > 0 && hasMappableBuildings && (
+        <div className="card p-2 md:p-3">
+          <AddressMap
+            selected={selectedMapBuildings}
+            suggestions={[]}
+            onAddBuilding={() => {}}
+          />
         </div>
       )}
 
