@@ -12,6 +12,7 @@ export type MapBuilding = {
   number: string;
   latitude: number | null;
   longitude: number | null;
+  done?: boolean;
 };
 
 type Props = {
@@ -21,10 +22,11 @@ type Props = {
 };
 
 // Іконка обраного будинку — кольорова крапля з номером кроку всередині.
-function selectedIcon(orderNumber: number): L.DivIcon {
+function selectedIcon(orderNumber: number, done: boolean): L.DivIcon {
+  const modifier = done ? "amp--done" : "amp--selected";
   return L.divIcon({
     className: "address-map-pin",
-    html: `<div class="amp amp--selected"><span>${orderNumber}</span></div>`,
+    html: `<div class="amp ${modifier}"><span>${orderNumber}</span></div>`,
     iconSize: [28, 36],
     iconAnchor: [14, 34],
     tooltipAnchor: [0, -28],
@@ -96,10 +98,11 @@ export default function AddressMap({ selected, suggestions, onAddBuilding }: Pro
             <Marker
               key={`sel-${b.id}`}
               position={[b.latitude!, b.longitude!]}
-              icon={selectedIcon(order)}
+              icon={selectedIcon(order, b.done === true)}
             >
               <Tooltip direction="top" offset={[0, -4]}>
                 {order}. {b.street}, {b.number}
+                {b.done && " · пройдено"}
               </Tooltip>
             </Marker>
           );
@@ -148,6 +151,18 @@ export default function AddressMap({ selected, suggestions, onAddBuilding }: Pro
           color: #1a1a1a;
         }
         .address-map-pin .amp--selected span {
+          transform: rotate(45deg);
+          font-size: 12px;
+        }
+        .address-map-pin .amp--done {
+          width: 28px;
+          height: 28px;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          background: #dc2626;
+          color: #ffffff;
+        }
+        .address-map-pin .amp--done span {
           transform: rotate(45deg);
           font-size: 12px;
         }

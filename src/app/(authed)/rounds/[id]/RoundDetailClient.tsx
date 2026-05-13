@@ -218,6 +218,7 @@ export function RoundDetailClient({
         number: g.buildingNumber,
         latitude: g.buildingLatitude,
         longitude: g.buildingLongitude,
+        done: false,
       });
     }
     for (const g of doneGroups) {
@@ -227,6 +228,7 @@ export function RoundDetailClient({
         number: g.buildingNumber,
         latitude: g.buildingLatitude,
         longitude: g.buildingLongitude,
+        done: true,
       });
     }
     return arr;

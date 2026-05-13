@@ -104,6 +104,7 @@ export function AddressRoundDetailClient({
         number: it.buildingNumber,
         latitude: it.buildingLatitude,
         longitude: it.buildingLongitude,
+        done: it.done,
       })),
     [localItems]
   );
