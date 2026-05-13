@@ -87,26 +87,39 @@ export default async function PensionersPage({
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  const [pensionersRaw, postmen] = await Promise.all([
+  const [pensionersRaw, postmen, monthGroups] = await Promise.all([
     prisma.pensioner.findMany({
       where,
       orderBy,
       include: {
-        currentPayments: {
-          where: { date: { gte: monthStart, lt: monthEnd } },
-          select: { isPaid: true },
-        },
         building: true,
         postman: true,
       },
     }),
     getCachedPostmen(),
+    prisma.currentPayment.groupBy({
+      by: ["pensionerId", "isPaid"],
+      where: { date: { gte: monthStart, lt: monthEnd } },
+      _count: { _all: true },
+    }),
   ]);
 
+  // pensionerId -> { total, paid }
+  const monthCounts = new Map<number, { total: number; paid: number }>();
+  for (const g of monthGroups) {
+    const entry = monthCounts.get(g.pensionerId) ?? { total: 0, paid: 0 };
+    entry.total += g._count._all;
+    if (g.isPaid) entry.paid += g._count._all;
+    monthCounts.set(g.pensionerId, entry);
+  }
+
   const pensioners = pensionersRaw.map((p) => {
-    const total = p.currentPayments.length;
-    const paid = p.currentPayments.filter((cp) => cp.isPaid).length;
-    return { ...p, monthPaymentsTotal: total, monthPaymentsPaid: paid };
+    const c = monthCounts.get(p.id);
+    return {
+      ...p,
+      monthPaymentsTotal: c?.total ?? 0,
+      monthPaymentsPaid: c?.paid ?? 0,
+    };
   });
 
   if (sort === "payments") {
