@@ -88,23 +88,30 @@ export function RoundDetailClient({
   const [newAmount, setNewAmount] = useState<number | "">("");
   const [error, setError] = useState<string | null>(null);
 
+  const [isPending, startTransition] = useTransition();
+  useGlobalPending(isPending);
+
+  // Локальна копія items з оптимістичними оновленнями. Скидається,
+  // коли сервер повертає нові дані (після redirect/revalidate).
+  const [localItems, setLocalItems] = useState<Item[]>(items);
+  useEffect(() => {
+    setLocalItems(items);
+  }, [items]);
+
   const pensionerIdsInRound = useMemo(
-    () => new Set(items.map((it) => it.pensionerId)),
-    [items]
+    () => new Set(localItems.map((it) => it.pensionerId)),
+    [localItems]
   );
   const availablePensioners = useMemo(
     () => pensioners.filter((p) => !pensionerIdsInRound.has(p.id)),
     [pensioners, pensionerIdsInRound]
   );
 
-  const [isPending, startTransition] = useTransition();
-  useGlobalPending(isPending);
-
   const totals = useMemo(() => {
-    const planned = items.reduce((s, it) => s + it.amount, 0);
-    const paid = items.filter((i) => i.isPaid).reduce((s, it) => s + it.amount, 0);
+    const planned = localItems.reduce((s, it) => s + it.amount, 0);
+    const paid = localItems.filter((i) => i.isPaid).reduce((s, it) => s + it.amount, 0);
     return { planned, paid, remaining: planned - paid };
-  }, [items]);
+  }, [localItems]);
 
   const grouped = useMemo(() => {
     const map = new Map<
@@ -117,7 +124,7 @@ export function RoundDetailClient({
         items: Item[];
       }
     >();
-    for (const it of items) {
+    for (const it of localItems) {
       const g = map.get(it.pensionerId);
       if (g) g.items.push(it);
       else
@@ -137,7 +144,7 @@ export function RoundDetailClient({
       const suggestions = suggestedByPensioner[pid] ?? [];
       return { pensionerId: pid, ...g, items: sortedItems, done, suggestions };
     });
-  }, [items, suggestedByPensioner]);
+  }, [localItems, suggestedByPensioner]);
 
   const baseTodoGroups = useMemo(
     () => grouped.filter((g) => !g.done),
@@ -210,10 +217,19 @@ export function RoundDetailClient({
   };
 
   const toggleIsPaid = (id: number, next: boolean) => {
+    const prev = localItems;
+    setLocalItems((arr) =>
+      arr.map((it) => (it.id === id ? { ...it, isPaid: next } : it))
+    );
     startTransition(async () => {
       try {
-        await updateCurrentPayment(id, round.id, { isPaid: next });
+        const res = await updateCurrentPayment(id, round.id, { isPaid: next });
+        if (res?.error) {
+          setLocalItems(prev);
+          showToast(res.error, "error");
+        }
       } catch (e) {
+        setLocalItems(prev);
         showToast(
           `Не вдалось оновити статус: ${e instanceof Error ? e.message : "невідома помилка"}`,
           "error"
@@ -223,10 +239,19 @@ export function RoundDetailClient({
   };
 
   const changeAmount = (id: number, amount: number) => {
+    const prev = localItems;
+    setLocalItems((arr) =>
+      arr.map((it) => (it.id === id ? { ...it, amount } : it))
+    );
     startTransition(async () => {
       try {
-        await updateCurrentPayment(id, round.id, { amount });
+        const res = await updateCurrentPayment(id, round.id, { amount });
+        if (res?.error) {
+          setLocalItems(prev);
+          showToast(res.error, "error");
+        }
       } catch (e) {
+        setLocalItems(prev);
         showToast(
           `Не вдалось оновити суму: ${e instanceof Error ? e.message : "невідома помилка"}`,
           "error"
@@ -237,19 +262,31 @@ export function RoundDetailClient({
 
   const removeItem = (id: number) => {
     if (!confirm("Видалити цю виплату?")) return;
+    const prev = localItems;
+    setLocalItems((arr) => arr.filter((it) => it.id !== id));
     startTransition(async () => {
       const res = await deleteCurrentPayment(id, round.id);
-      if (res?.error) showToast(res.error, "error");
-      else showToast("Виплату видалено", "success");
+      if (res?.error) {
+        setLocalItems(prev);
+        showToast(res.error, "error");
+      } else {
+        showToast("Виплату видалено", "success");
+      }
     });
   };
 
   const removePensioner = (pensionerId: number, name: string) => {
     if (!confirm(`Прибрати ${name} з обходу разом з усіма його виплатами?`)) return;
+    const prev = localItems;
+    setLocalItems((arr) => arr.filter((it) => it.pensionerId !== pensionerId));
     startTransition(async () => {
       const res = await removePensionerFromRound(round.id, pensionerId);
-      if (res?.error) showToast(res.error, "error");
-      else showToast("Пенсіонера прибрано з обходу", "success");
+      if (res?.error) {
+        setLocalItems(prev);
+        showToast(res.error, "error");
+      } else {
+        showToast("Пенсіонера прибрано з обходу", "success");
+      }
     });
   };
 
@@ -339,7 +376,7 @@ export function RoundDetailClient({
   const toggleClosed = () => {
     const next = !isClosed;
     if (next) {
-      const unpaid = items.filter((i) => !i.isPaid).length;
+      const unpaid = localItems.filter((i) => !i.isPaid).length;
       const msg = unpaid
         ? `Закрити обхід? Залишилося незакритих виплат: ${unpaid}.`
         : "Закрити обхід?";

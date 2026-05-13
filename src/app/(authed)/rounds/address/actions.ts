@@ -183,7 +183,7 @@ export async function removeBuildingFromAddressRound(
       }`,
     };
   }
-  revalidatePath(`/rounds/address/${roundId}`);
+  // Не інвалідуємо /rounds/address/${roundId} — клієнт оновлюється оптимістично.
   return { ok: true };
 }
 
@@ -206,7 +206,7 @@ export async function toggleAddressRoundItemDone(
       }`,
     };
   }
-  revalidatePath(`/rounds/address/${roundId}`);
+  // Не інвалідуємо /rounds/address/${roundId} — клієнт оновлюється оптимістично.
   return { ok: true };
 }
 
@@ -258,6 +258,6 @@ export async function updateAddressRoundItemNotes(
       }`,
     };
   }
-  revalidatePath(`/rounds/address/${roundId}`);
+  // Не інвалідуємо /rounds/address/${roundId} — клієнт оновлюється оптимістично.
   return { ok: true };
 }

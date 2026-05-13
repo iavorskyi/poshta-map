@@ -85,26 +85,32 @@ export function AddressRoundDetailClient({
   const [isPending, startTransition] = useTransition();
   useGlobalPending(isPending);
 
+  // Локальна копія items з оптимістичними оновленнями.
+  const [localItems, setLocalItems] = useState<Item[]>(items);
+  useEffect(() => {
+    setLocalItems(items);
+  }, [items]);
+
   const remaining = useMemo(
-    () => buildings.filter((b) => !items.some((it) => it.buildingId === b.id)),
-    [buildings, items]
+    () => buildings.filter((b) => !localItems.some((it) => it.buildingId === b.id)),
+    [buildings, localItems]
   );
 
   const selectedMapBuildings: MapBuilding[] = useMemo(
     () =>
-      items.map((it) => ({
+      localItems.map((it) => ({
         id: it.buildingId,
         street: it.buildingStreet,
         number: it.buildingNumber,
         latitude: it.buildingLatitude,
         longitude: it.buildingLongitude,
       })),
-    [items]
+    [localItems]
   );
 
   const selectedIdsKey = useMemo(
-    () => items.map((it) => it.buildingId).join(","),
-    [items]
+    () => localItems.map((it) => it.buildingId).join(","),
+    [localItems]
   );
 
   // Підказки — будинки в радіусі від БУДЬ-ЯКОЇ з обраних адрес у обході.
@@ -134,19 +140,19 @@ export function AddressRoundDetailClient({
   const visibleSuggestions = useMemo(
     () =>
       suggestions.filter(
-        (s) => !items.some((it) => it.buildingId === s.id)
+        (s) => !localItems.some((it) => it.buildingId === s.id)
       ),
-    [suggestions, items]
+    [suggestions, localItems]
   );
 
   const totals = useMemo(() => {
-    const total = items.length;
-    const done = items.filter((i) => i.done).length;
+    const total = localItems.length;
+    const done = localItems.filter((i) => i.done).length;
     return { total, done };
-  }, [items]);
+  }, [localItems]);
 
-  const baseTodoItems = useMemo(() => items.filter((i) => !i.done), [items]);
-  const doneItems = useMemo(() => items.filter((i) => i.done), [items]);
+  const baseTodoItems = useMemo(() => localItems.filter((i) => !i.done), [localItems]);
+  const doneItems = useMemo(() => localItems.filter((i) => i.done), [localItems]);
 
   // Оптимістичний порядок для перетягування непройдених будинків.
   const [pendingOrder, setPendingOrder] = useState<number[] | null>(null);
@@ -223,7 +229,7 @@ export function AddressRoundDetailClient({
   const toggleClosed = () => {
     const next = !isClosed;
     if (next) {
-      const left = items.filter((i) => !i.done).length;
+      const left = localItems.filter((i) => !i.done).length;
       const msg = left
         ? `Закрити обхід? Залишилося непройдених будинків: ${left}.`
         : "Закрити обхід?";
@@ -256,16 +262,28 @@ export function AddressRoundDetailClient({
 
   const removeItem = (itemId: number) => {
     if (!confirm("Прибрати будинок з обходу?")) return;
+    const prev = localItems;
+    setLocalItems((arr) => arr.filter((it) => it.id !== itemId));
     startTransition(async () => {
       const res = await removeBuildingFromAddressRound(round.id, itemId);
-      if (res?.error) showToast(res.error, "error");
+      if (res?.error) {
+        setLocalItems(prev);
+        showToast(res.error, "error");
+      }
     });
   };
 
   const toggleDone = (itemId: number, next: boolean) => {
+    const prev = localItems;
+    setLocalItems((arr) =>
+      arr.map((it) => (it.id === itemId ? { ...it, done: next } : it))
+    );
     startTransition(async () => {
       const res = await toggleAddressRoundItemDone(round.id, itemId, next);
-      if (res?.error) showToast(res.error, "error");
+      if (res?.error) {
+        setLocalItems(prev);
+        showToast(res.error, "error");
+      }
     });
   };
 
@@ -276,17 +294,22 @@ export function AddressRoundDetailClient({
 
   const saveNotes = (itemId: number) => {
     const value = draftNotes.trim();
+    const nextNotes = value || null;
+    const prev = localItems;
+    setLocalItems((arr) =>
+      arr.map((it) => (it.id === itemId ? { ...it, notes: nextNotes } : it))
+    );
+    setEditingNotesId(null);
     startTransition(async () => {
       const res = await updateAddressRoundItemNotes(
         round.id,
         itemId,
-        value || null
+        nextNotes
       );
       if (res?.error) {
+        setLocalItems(prev);
         showToast(res.error, "error");
-        return;
       }
-      setEditingNotesId(null);
     });
   };
 

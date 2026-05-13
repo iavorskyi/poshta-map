@@ -323,7 +323,8 @@ export async function removePensionerFromRound(
     const result = await prisma.currentPayment.deleteMany({
       where: { roundId, pensionerId },
     });
-    revalidatePath(`/rounds/${roundId}`);
+    // Не інвалідуємо /rounds/${roundId} — клієнт оновлюється оптимістично.
+    revalidatePath("/current-payments");
     return { ok: true, deleted: result.count };
   } catch (e) {
     return {
@@ -348,7 +349,9 @@ export async function updateCurrentPayment(
       ...(data.isPaid !== undefined ? { isPaid: data.isPaid } : {}),
     },
   });
-  revalidatePath(`/rounds/${roundId}`);
+  // Не інвалідуємо /rounds/${roundId}, бо клієнт оновлює стан оптимістично.
+  // Лише агрегатна сторінка виплат має побачити нові дані при наступному переході.
+  revalidatePath("/current-payments");
   return { ok: true };
 }
 
@@ -393,6 +396,7 @@ export async function deleteCurrentPayment(id: number, roundId: number) {
       }`,
     };
   }
-  revalidatePath(`/rounds/${roundId}`);
+  // Не інвалідуємо /rounds/${roundId} — клієнт оновлюється оптимістично.
+  revalidatePath("/current-payments");
   return { ok: true };
 }
