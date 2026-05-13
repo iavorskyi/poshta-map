@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { requireUser } from "@/lib/auth";
 import { LogoutButton } from "@/components/LogoutButton";
+import { NavLink } from "@/components/NavLink";
 
 export default async function AuthedLayout({
   children,
@@ -24,38 +25,11 @@ export default async function AuthedLayout({
             <span className="font-semibold text-lg">Поштар</span>
           </Link>
           <div className="flex items-center gap-3 sm:gap-4 text-sm overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 whitespace-nowrap flex-1">
-            <Link
-              href="/rounds"
-              className="text-fg-muted hover:text-fg transition-colors py-1"
-            >
-              Обходи
-            </Link>
-            <Link
-              href="/district"
-              className="text-fg-muted hover:text-fg transition-colors py-1"
-            >
-              Дільниця
-            </Link>
-            <Link
-              href="/current-payments"
-              className="text-fg-muted hover:text-fg transition-colors py-1"
-            >
-              Виплати
-            </Link>
-            <Link
-              href="/pensioners"
-              className="text-fg-muted hover:text-fg transition-colors py-1"
-            >
-              Пенсіонери
-            </Link>
-            {me.isAdmin && (
-              <Link
-                href="/postmen"
-                className="text-fg-muted hover:text-fg transition-colors py-1"
-              >
-                Листоноші
-              </Link>
-            )}
+            <NavLink href="/rounds">Обходи</NavLink>
+            <NavLink href="/district">Дільниця</NavLink>
+            <NavLink href="/current-payments">Виплати</NavLink>
+            <NavLink href="/pensioners">Пенсіонери</NavLink>
+            {me.isAdmin && <NavLink href="/postmen">Листоноші</NavLink>}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Link
