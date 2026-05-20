@@ -1,14 +1,32 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma";
 import { formatDate, formatUAH } from "@/lib/format";
 import { parseRange } from "@/lib/dateRange";
 import { CurrentPaymentsFilter } from "./CurrentPaymentsFilter";
-import { CurrentPaymentsTable } from "./CurrentPaymentsTable";
+import { CurrentPaymentsTable, type SortKey } from "./CurrentPaymentsTable";
 import { AddCurrentPayment } from "./AddCurrentPayment";
 import { ImportCurrentPayments } from "./ImportCurrentPayments";
 import { requireUser } from "@/lib/auth";
 import { canEditCurrentPayment, canEditPensioner } from "@/lib/permissions";
 import { getCachedPayments } from "@/lib/queries";
+
+const SORT_KEYS: SortKey[] = [
+  "date",
+  "pensioner",
+  "payment",
+  "amount",
+  "postman",
+  "paid",
+];
+
+function parseSort(raw: string | undefined): SortKey {
+  return SORT_KEYS.includes(raw as SortKey) ? (raw as SortKey) : "date";
+}
+
+function parseDir(raw: string | undefined): "asc" | "desc" {
+  return raw === "desc" ? "desc" : "asc";
+}
 
 export default async function CurrentPaymentsPage({
   searchParams,
@@ -18,6 +36,8 @@ export default async function CurrentPaymentsPage({
     to?: string;
     pensionerId?: string;
     paymentId?: string;
+    sort?: string;
+    dir?: string;
   }>;
 }) {
   const me = await requireUser();
@@ -25,6 +45,30 @@ export default async function CurrentPaymentsPage({
   const { from, to, fromStr, toStr } = parseRange(sp.from, sp.to);
   const pensionerId = sp.pensionerId ? Number(sp.pensionerId) : null;
   const paymentId = sp.paymentId ? Number(sp.paymentId) : null;
+  const sort = parseSort(sp.sort);
+  const dir = parseDir(sp.dir);
+
+  const orderBy: Prisma.CurrentPaymentOrderByWithRelationInput[] = (() => {
+    switch (sort) {
+      case "pensioner":
+        return [{ pensioner: { fullName: dir } }, { date: "asc" }, { id: "asc" }];
+      case "payment":
+        return [{ payment: { name: dir } }, { date: "asc" }, { id: "asc" }];
+      case "amount":
+        return [{ amount: dir }, { date: "asc" }, { id: "asc" }];
+      case "postman":
+        return [
+          { pensioner: { postman: { name: dir } } },
+          { date: "asc" },
+          { id: "asc" },
+        ];
+      case "paid":
+        return [{ isPaid: dir }, { date: "asc" }, { id: "asc" }];
+      case "date":
+      default:
+        return [{ date: dir }, { id: "asc" }];
+    }
+  })();
 
   const [items, pensioners, payments] = await Promise.all([
     prisma.currentPayment.findMany({
@@ -34,11 +78,18 @@ export default async function CurrentPaymentsPage({
         ...(paymentId ? { paymentId } : {}),
       },
       include: {
-        pensioner: { select: { id: true, fullName: true, postmanId: true } },
+        pensioner: {
+          select: {
+            id: true,
+            fullName: true,
+            postmanId: true,
+            postman: { select: { id: true, name: true } },
+          },
+        },
         payment: true,
         round: { select: { id: true, postmanId: true } },
       },
-      orderBy: [{ date: "asc" }, { id: "asc" }],
+      orderBy,
     }),
     prisma.pensioner.findMany({ orderBy: { fullName: "asc" } }),
     getCachedPayments(),
@@ -95,11 +146,14 @@ export default async function CurrentPaymentsPage({
           amount: it.amount,
           isPaid: it.isPaid,
           roundId: it.roundId,
+          postmanName: it.pensioner.postman?.name ?? null,
           canEdit: canEditCurrentPayment(me, {
             round: it.round,
             pensioner: it.pensioner,
           }),
         }))}
+        sort={sort}
+        dir={dir}
       />
 
       {items.length === 0 && (

@@ -1,10 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { deleteCurrentPayment, updateCurrentPaymentFields } from "./actions";
 import { formatDate, formatUAH } from "@/lib/format";
 import { useGlobalPending } from "@/components/RouteProgress";
+
+export type SortKey =
+  | "date"
+  | "pensioner"
+  | "payment"
+  | "amount"
+  | "postman"
+  | "paid";
 
 type Item = {
   id: number;
@@ -16,12 +25,23 @@ type Item = {
   amount: number;
   isPaid: boolean;
   roundId: number | null;
+  postmanName?: string | null;
   canEdit: boolean;
 };
 
-export function CurrentPaymentsTable({ items }: { items: Item[] }) {
+export function CurrentPaymentsTable({
+  items,
+  sort = "date",
+  dir = "asc",
+}: {
+  items: Item[];
+  sort?: SortKey;
+  dir?: "asc" | "desc";
+}) {
   const [isPending, startTransition] = useTransition();
   useGlobalPending(isPending);
+  const pathname = usePathname();
+  const sp = useSearchParams();
 
   if (items.length === 0) return null;
 
@@ -69,6 +89,7 @@ export function CurrentPaymentsTable({ items }: { items: Item[] }) {
                 </div>
                 <div className="text-xs text-fg-subtle mt-0.5">
                   {formatDate(it.date)}
+                  {it.postmanName && <> · {it.postmanName}</>}
                   {it.roundId && (
                     <>
                       {" · "}
@@ -131,11 +152,57 @@ export function CurrentPaymentsTable({ items }: { items: Item[] }) {
         <table className="w-full text-sm">
           <thead className="bg-elevated text-fg-muted">
             <tr>
-              <th className="text-left px-3 py-2">Дата</th>
-              <th className="text-left px-3 py-2">Пенсіонер</th>
-              <th className="text-left px-3 py-2">Тип</th>
-              <th className="text-right px-3 py-2">Сума</th>
-              <th className="text-center px-3 py-2 w-28">Виплачено</th>
+              <SortHeader
+                label="Дата"
+                sortKey="date"
+                sort={sort}
+                dir={dir}
+                pathname={pathname}
+                sp={sp}
+              />
+              <SortHeader
+                label="Пенсіонер"
+                sortKey="pensioner"
+                sort={sort}
+                dir={dir}
+                pathname={pathname}
+                sp={sp}
+              />
+              <SortHeader
+                label="Тип"
+                sortKey="payment"
+                sort={sort}
+                dir={dir}
+                pathname={pathname}
+                sp={sp}
+              />
+              <SortHeader
+                label="Сума"
+                sortKey="amount"
+                sort={sort}
+                dir={dir}
+                pathname={pathname}
+                sp={sp}
+                align="right"
+              />
+              <SortHeader
+                label="Виплачено"
+                sortKey="paid"
+                sort={sort}
+                dir={dir}
+                pathname={pathname}
+                sp={sp}
+                align="center"
+                className="w-28"
+              />
+              <SortHeader
+                label="Листоноша"
+                sortKey="postman"
+                sort={sort}
+                dir={dir}
+                pathname={pathname}
+                sp={sp}
+              />
               <th className="text-left px-3 py-2">Обхід</th>
               <th className="text-right px-3 py-2"></th>
             </tr>
@@ -180,6 +247,9 @@ export function CurrentPaymentsTable({ items }: { items: Item[] }) {
                   />
                 </td>
                 <td className="px-3 py-2">
+                  {it.postmanName ?? <span className="text-fg-subtle">—</span>}
+                </td>
+                <td className="px-3 py-2">
                   {it.roundId ? (
                     <Link href={`/rounds/${it.roundId}`} className="link">
                       #{it.roundId}
@@ -204,5 +274,47 @@ export function CurrentPaymentsTable({ items }: { items: Item[] }) {
         </table>
       </div>
     </>
+  );
+}
+
+function SortHeader({
+  label,
+  sortKey,
+  sort,
+  dir,
+  pathname,
+  sp,
+  align = "left",
+  className = "",
+}: {
+  label: string;
+  sortKey: SortKey;
+  sort: SortKey;
+  dir: "asc" | "desc";
+  pathname: string;
+  sp: ReturnType<typeof useSearchParams>;
+  align?: "left" | "right" | "center";
+  className?: string;
+}) {
+  const active = sort === sortKey;
+  const nextDir: "asc" | "desc" = active && dir === "asc" ? "desc" : "asc";
+  const params = new URLSearchParams(sp.toString());
+  params.set("sort", sortKey);
+  params.set("dir", nextDir);
+  const arrow = active ? (dir === "asc" ? "↑" : "↓") : "";
+  const alignClass =
+    align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
+  const inlineJustify =
+    align === "right" ? "justify-end" : align === "center" ? "justify-center" : "";
+  return (
+    <th className={`${alignClass} px-3 py-2 ${className}`}>
+      <Link
+        href={`${pathname}?${params.toString()}`}
+        className={`inline-flex items-center gap-1 hover:text-fg ${inlineJustify} ${active ? "text-fg" : ""}`}
+      >
+        {label}
+        {arrow && <span className="text-xs">{arrow}</span>}
+      </Link>
+    </th>
   );
 }
