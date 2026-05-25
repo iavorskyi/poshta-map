@@ -13,14 +13,9 @@ export default async function Home() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  // "Мої" виплати: ті, що в моєму обході, або без обходу — за пенсіонером.
-  // Збігається з логікою canEditCurrentPayment у lib/permissions.
-  const mineFilter = {
-    OR: [
-      { round: { postmanId: me.id } },
-      { roundId: null, pensioner: { postmanId: me.id } },
-    ],
-  };
+  // "Мої" виплати на головній — лише пенсіонерів, закріплених за поточним
+  // листоношею. Хто фактично робив обхід не враховуємо.
+  const mineFilter = { pensioner: { postmanId: me.id } };
 
   const [
     monthGroups,
