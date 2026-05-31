@@ -6,6 +6,7 @@ import { canManageSubscriptions } from "@/lib/permissions";
 import { getCachedPublications } from "@/lib/queries";
 import { BackLink } from "@/components/BackLink";
 import { SubscriberDetailClient } from "./SubscriberDetailClient";
+import { EditSubscriberButton } from "./EditSubscriberButton";
 
 export default async function SubscriberDetailPage({
   params,
@@ -26,7 +27,7 @@ export default async function SubscriberDetailPage({
       ? yearNum
       : new Date().getFullYear();
 
-  const [subscriber, subscriptions, publications] = await Promise.all([
+  const [subscriber, subscriptions, publications, buildings] = await Promise.all([
     prisma.subscriber.findUnique({
       where: { id: subscriberId },
       include: {
@@ -41,6 +42,12 @@ export default async function SubscriberDetailPage({
       orderBy: { publication: { name: "asc" } },
     }),
     getCachedPublications(),
+    canManageSubscriptions(me)
+      ? prisma.building.findMany({
+          orderBy: [{ street: "asc" }, { number: "asc" }],
+          select: { id: true, street: true, number: true },
+        })
+      : Promise.resolve([] as { id: number; street: string; number: string }[]),
   ]);
 
   if (!subscriber) notFound();
@@ -102,6 +109,24 @@ export default async function SubscriberDetailPage({
             <div className="text-sm text-fg-subtle mt-1">{subscriber.notes}</div>
           )}
         </div>
+        {canManage && (
+          <EditSubscriberButton
+            subscriberId={subscriber.id}
+            defaultValues={{
+              fullName: subscriber.fullName,
+              isOrganization: subscriber.isOrganization,
+              phone: subscriber.phone,
+              buildingId: subscriber.buildingId,
+              streetText: subscriber.streetText,
+              numberText: subscriber.numberText,
+              corpus: subscriber.corpus,
+              apartment: subscriber.apartment,
+              deliveryMode: subscriber.deliveryMode,
+              notes: subscriber.notes,
+            }}
+            buildings={buildings}
+          />
+        )}
       </div>
 
       <YearSwitcher year={year} subscriberId={subscriberId} />

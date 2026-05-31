@@ -3,7 +3,23 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { assert, canManageSubscriptions } from "@/lib/permissions";
+import { findBuildingByAddress } from "@/lib/streetMatch";
 import { SubscriptionDeliveryMode } from "@/generated/prisma";
+
+// Якщо користувач вписав адресу як off-district, але такий будинок існує
+// в каталозі дільниці — прив'язуємо до нього замість збереження тексту.
+async function resolveBuildingFromText(
+  streetText: string | null,
+  numberText: string | null,
+): Promise<number | null> {
+  if (!streetText || !numberText) return null;
+  const buildings = await prisma.building.findMany({
+    select: { id: true, street: true, number: true },
+  });
+  const match = findBuildingByAddress(buildings, streetText, numberText);
+  if (match.kind === "exact" || match.kind === "loose") return match.id;
+  return null;
+}
 
 type Result = { error: string } | { ok: true };
 type CreateResult = { error: string } | { ok: true; id: number };
@@ -29,9 +45,9 @@ export async function createSubscriber(
   if (!fullName) return { error: "Назва/ПІБ обов'язкові" };
   const isOrganization = formData.get("isOrganization") === "on";
   const phone = String(formData.get("phone") ?? "").trim() || null;
-  const buildingId = parseBuildingId(formData.get("buildingId"));
-  const streetText = String(formData.get("streetText") ?? "").trim() || null;
-  const numberText = String(formData.get("numberText") ?? "").trim() || null;
+  let buildingId = parseBuildingId(formData.get("buildingId"));
+  let streetText = String(formData.get("streetText") ?? "").trim() || null;
+  let numberText = String(formData.get("numberText") ?? "").trim() || null;
   const corpus = String(formData.get("corpus") ?? "").trim() || null;
   const apartment = String(formData.get("apartment") ?? "").trim() || null;
   const deliveryMode = parseDeliveryMode(formData.get("deliveryMode"));
@@ -44,6 +60,16 @@ export async function createSubscriber(
     return {
       error: "Для доставки на адресу оберіть будинок або вкажіть адресу поза дільницею",
     };
+  }
+  // Якщо адресу вказано як off-district, але такий будинок є на дільниці —
+  // прив'язуємо до нього.
+  if (!buildingId) {
+    const resolved = await resolveBuildingFromText(streetText, numberText);
+    if (resolved) {
+      buildingId = resolved;
+      streetText = null;
+      numberText = null;
+    }
   }
   const sub = await prisma.subscriber.create({
     data: {
@@ -73,9 +99,9 @@ export async function updateSubscriber(
   if (!fullName) return { error: "Назва/ПІБ обов'язкові" };
   const isOrganization = formData.get("isOrganization") === "on";
   const phone = String(formData.get("phone") ?? "").trim() || null;
-  const buildingId = parseBuildingId(formData.get("buildingId"));
-  const streetText = String(formData.get("streetText") ?? "").trim() || null;
-  const numberText = String(formData.get("numberText") ?? "").trim() || null;
+  let buildingId = parseBuildingId(formData.get("buildingId"));
+  let streetText = String(formData.get("streetText") ?? "").trim() || null;
+  let numberText = String(formData.get("numberText") ?? "").trim() || null;
   const corpus = String(formData.get("corpus") ?? "").trim() || null;
   const apartment = String(formData.get("apartment") ?? "").trim() || null;
   const deliveryMode = parseDeliveryMode(formData.get("deliveryMode"));
@@ -88,6 +114,14 @@ export async function updateSubscriber(
     return {
       error: "Для доставки на адресу оберіть будинок або вкажіть адресу поза дільницею",
     };
+  }
+  if (!buildingId) {
+    const resolved = await resolveBuildingFromText(streetText, numberText);
+    if (resolved) {
+      buildingId = resolved;
+      streetText = null;
+      numberText = null;
+    }
   }
   await prisma.subscriber.update({
     where: { id },
