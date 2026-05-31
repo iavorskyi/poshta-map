@@ -52,6 +52,10 @@ export function canManagePostmen(me: Me): boolean {
   return me.isAdmin;
 }
 
+export function canManageSubscriptions(me: Me): boolean {
+  return me.isAdmin;
+}
+
 export function canImport(me: Me): boolean {
   return me.isAdmin;
 }

@@ -24,6 +24,8 @@ export default async function Home() {
     todayItems,
     pensionersCount,
     upcomingRoundsCount,
+    subscribersCount,
+    activeSubscriptionsCount,
   ] = await Promise.all([
     prisma.currentPayment.groupBy({
       by: ["isPaid"],
@@ -55,6 +57,8 @@ export default async function Home() {
     prisma.round.count({
       where: { postmanId: me.id, date: { gte: today }, closedAt: null },
     }),
+    prisma.subscriber.count(),
+    prisma.subscription.count({ where: { year: now.getFullYear() } }),
   ]);
 
   const paid = monthGroups.find((g) => g.isPaid === true);
@@ -300,6 +304,15 @@ export default async function Home() {
             href="/pensioners"
             title="Пенсіонери"
             hint={`Закріплено: ${pensionersCount}`}
+          />
+          <NavCard
+            href="/subscriptions/publications"
+            title="Передплати"
+            hint={
+              subscribersCount === 0
+                ? "Каталог видань і передплатники"
+                : `Підписників: ${subscribersCount} · підписок у ${now.getFullYear()}: ${activeSubscriptionsCount}`
+            }
           />
           {me.isAdmin && (
             <NavCard href="/postmen" title="Листоноші" hint="Управління" />

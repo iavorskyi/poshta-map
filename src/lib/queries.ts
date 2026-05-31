@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 export const CACHE_TAGS = {
   payments: "ref:payments",
   postmen: "ref:postmen",
+  publications: "ref:publications",
 } as const;
 
 /**
@@ -40,3 +41,22 @@ export const getCachedPostmen = unstable_cache(
 );
 
 export type CachedPostman = Awaited<ReturnType<typeof getCachedPostmen>>[number];
+
+/**
+ * Видання (газети/журнали). Інвалідація через
+ * revalidateTag(CACHE_TAGS.publications) у `subscriptions/publications/actions.ts`.
+ */
+export const getCachedPublications = unstable_cache(
+  async () => {
+    return prisma.publication.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, code: true, issuesPerMonth: true },
+    });
+  },
+  ["ref-publications"],
+  { tags: [CACHE_TAGS.publications] }
+);
+
+export type CachedPublication = Awaited<
+  ReturnType<typeof getCachedPublications>
+>[number];
