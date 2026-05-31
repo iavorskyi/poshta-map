@@ -30,12 +30,20 @@ export async function createSubscriber(
   const isOrganization = formData.get("isOrganization") === "on";
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const buildingId = parseBuildingId(formData.get("buildingId"));
+  const streetText = String(formData.get("streetText") ?? "").trim() || null;
+  const numberText = String(formData.get("numberText") ?? "").trim() || null;
   const corpus = String(formData.get("corpus") ?? "").trim() || null;
   const apartment = String(formData.get("apartment") ?? "").trim() || null;
   const deliveryMode = parseDeliveryMode(formData.get("deliveryMode"));
   const notes = String(formData.get("notes") ?? "").trim() || null;
-  if (deliveryMode === "ADDRESS" && !buildingId) {
-    return { error: "Для доставки на адресу оберіть будинок" };
+  if (
+    deliveryMode === "ADDRESS" &&
+    !buildingId &&
+    !(streetText && numberText)
+  ) {
+    return {
+      error: "Для доставки на адресу оберіть будинок або вкажіть адресу поза дільницею",
+    };
   }
   const sub = await prisma.subscriber.create({
     data: {
@@ -43,6 +51,8 @@ export async function createSubscriber(
       isOrganization,
       phone,
       buildingId,
+      streetText: buildingId ? null : streetText,
+      numberText: buildingId ? null : numberText,
       corpus,
       apartment,
       deliveryMode,
@@ -64,12 +74,20 @@ export async function updateSubscriber(
   const isOrganization = formData.get("isOrganization") === "on";
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const buildingId = parseBuildingId(formData.get("buildingId"));
+  const streetText = String(formData.get("streetText") ?? "").trim() || null;
+  const numberText = String(formData.get("numberText") ?? "").trim() || null;
   const corpus = String(formData.get("corpus") ?? "").trim() || null;
   const apartment = String(formData.get("apartment") ?? "").trim() || null;
   const deliveryMode = parseDeliveryMode(formData.get("deliveryMode"));
   const notes = String(formData.get("notes") ?? "").trim() || null;
-  if (deliveryMode === "ADDRESS" && !buildingId) {
-    return { error: "Для доставки на адресу оберіть будинок" };
+  if (
+    deliveryMode === "ADDRESS" &&
+    !buildingId &&
+    !(streetText && numberText)
+  ) {
+    return {
+      error: "Для доставки на адресу оберіть будинок або вкажіть адресу поза дільницею",
+    };
   }
   await prisma.subscriber.update({
     where: { id },
@@ -78,6 +96,8 @@ export async function updateSubscriber(
       isOrganization,
       phone,
       buildingId,
+      streetText: buildingId ? null : streetText,
+      numberText: buildingId ? null : numberText,
       corpus,
       apartment,
       deliveryMode,

@@ -21,6 +21,8 @@ type Subscriber = {
   phone: string | null;
   buildingId: number | null;
   building: string | null;
+  streetText: string | null;
+  numberText: string | null;
   corpus: string | null;
   apartment: string | null;
   deliveryMode: DeliveryMode;
@@ -188,6 +190,15 @@ export function SubscribersClient({
                         {s.corpus && `, корп. ${s.corpus}`}
                         {s.apartment && `, кв. ${s.apartment}`}
                       </>
+                    ) : s.streetText && s.numberText ? (
+                      <span
+                        className="text-fg-subtle italic"
+                        title="Адреса поза дільницею"
+                      >
+                        {s.streetText}, {s.numberText}
+                        {s.corpus && `, корп. ${s.corpus}`}
+                        {s.apartment && `, кв. ${s.apartment}`}
+                      </span>
                     ) : (
                       <span className="text-fg-subtle">—</span>
                     )}
@@ -259,12 +270,22 @@ function SubscriberForm({
     defaultValues?.deliveryMode ?? "ADDRESS",
   );
   const [isOrg, setIsOrg] = useState(defaultValues?.isOrganization ?? false);
+  const initialOffDistrict =
+    !defaultValues?.buildingId &&
+    Boolean(defaultValues?.streetText || defaultValues?.numberText);
+  const [offDistrict, setOffDistrict] = useState(initialOffDistrict);
 
   return (
     <form
       action={(fd) => {
-        if (buildingId !== "") fd.set("buildingId", String(buildingId));
-        else fd.delete("buildingId");
+        if (offDistrict) {
+          fd.delete("buildingId");
+        } else {
+          if (buildingId !== "") fd.set("buildingId", String(buildingId));
+          else fd.delete("buildingId");
+          fd.delete("streetText");
+          fd.delete("numberText");
+        }
         fd.set("deliveryMode", deliveryMode);
         if (isOrg) fd.set("isOrganization", "on");
         else fd.delete("isOrganization");
@@ -305,15 +326,51 @@ function SubscriberForm({
         </label>
       </div>
 
-      <div className="flex flex-col sm:col-span-3">
-        <label className="text-xs text-fg-muted">Будинок</label>
-        <BuildingCombobox
-          buildings={buildings}
-          value={buildingId}
-          onChange={setBuildingId}
-          placeholder="Оберіть будинок з дільниці"
-        />
+      <div className="sm:col-span-6 flex items-center justify-between gap-2">
+        <span className="text-xs text-fg-muted">Адреса</span>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={offDistrict}
+            onChange={(e) => setOffDistrict(e.target.checked)}
+            className="h-4 w-4 accent-brand"
+          />
+          Поза дільницею (без прив&apos;язки до будинку)
+        </label>
       </div>
+
+      {offDistrict ? (
+        <>
+          <div className="flex flex-col sm:col-span-2">
+            <label className="text-xs text-fg-muted">Вулиця *</label>
+            <input
+              name="streetText"
+              defaultValue={defaultValues?.streetText ?? ""}
+              className="input"
+              placeholder="вул. Шевченка"
+            />
+          </div>
+          <div className="flex flex-col">
+            <label className="text-xs text-fg-muted">Номер *</label>
+            <input
+              name="numberText"
+              defaultValue={defaultValues?.numberText ?? ""}
+              className="input"
+              placeholder="12А"
+            />
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-col sm:col-span-3">
+          <label className="text-xs text-fg-muted">Будинок з дільниці</label>
+          <BuildingCombobox
+            buildings={buildings}
+            value={buildingId}
+            onChange={setBuildingId}
+            placeholder="Оберіть будинок з дільниці"
+          />
+        </div>
+      )}
       <div className="flex flex-col">
         <label className="text-xs text-fg-muted">Корпус</label>
         <input

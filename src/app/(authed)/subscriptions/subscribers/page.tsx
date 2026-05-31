@@ -61,6 +61,8 @@ export default async function SubscribersPage({
           building: s.building
             ? `${s.building.street}, ${s.building.number}`
             : null,
+          streetText: s.streetText,
+          numberText: s.numberText,
           corpus: s.corpus,
           apartment: s.apartment,
           deliveryMode: s.deliveryMode,

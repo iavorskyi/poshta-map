@@ -75,6 +75,15 @@ export default async function SubscriberDetailPage({
                 {subscriber.corpus && `, корп. ${subscriber.corpus}`}
                 {subscriber.apartment && `, кв. ${subscriber.apartment}`}
               </span>
+            ) : subscriber.streetText && subscriber.numberText ? (
+              <span
+                className="text-fg-subtle italic"
+                title="Адреса поза дільницею"
+              >
+                {subscriber.streetText}, {subscriber.numberText}
+                {subscriber.corpus && `, корп. ${subscriber.corpus}`}
+                {subscriber.apartment && `, кв. ${subscriber.apartment}`}
+              </span>
             ) : (
               <span className="text-fg-subtle">адреса не вказана</span>
             )}

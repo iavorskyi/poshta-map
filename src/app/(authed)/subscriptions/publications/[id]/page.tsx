@@ -129,6 +129,16 @@ export default async function PublicationDetailPage({
                         {s.subscriber.apartment &&
                           `, кв. ${s.subscriber.apartment}`}
                       </>
+                    ) : s.subscriber.streetText && s.subscriber.numberText ? (
+                      <span
+                        className="text-fg-subtle italic"
+                        title="Адреса поза дільницею"
+                      >
+                        {s.subscriber.streetText}, {s.subscriber.numberText}
+                        {s.subscriber.corpus && `, корп. ${s.subscriber.corpus}`}
+                        {s.subscriber.apartment &&
+                          `, кв. ${s.subscriber.apartment}`}
+                      </span>
                     ) : (
                       <span className="text-fg-subtle">—</span>
                     )}

@@ -168,6 +168,8 @@ model Subscriber {
   isOrganization Boolean                  @default(false)
   phone          String?
   buildingId     Int?
+  streetText     String?
+  numberText     String?
   corpus         String?
   apartment      String?
   deliveryMode   SubscriptionDeliveryMode @default(ADDRESS)
