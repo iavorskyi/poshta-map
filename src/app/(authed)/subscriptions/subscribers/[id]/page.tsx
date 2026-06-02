@@ -141,7 +141,7 @@ export default async function SubscriberDetailPage({
           publicationCode: s.publication.code,
           publicationName: s.publication.name,
           activeMonths: Array.from({ length: 12 }, (_, i) =>
-            Boolean(s.activeMonths[i]),
+            Number(s.activeMonths[i] ?? 0),
           ),
           notes: s.notes,
         }))}

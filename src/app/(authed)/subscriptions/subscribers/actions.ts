@@ -161,12 +161,15 @@ export async function upsertSubscription(input: {
   publicationId: number;
   year: number;
   monthIndex: number;
-  active: boolean;
+  quantity: number;
 }): Promise<Result> {
   const me = await requireUser();
   assert(canManageSubscriptions(me));
-  const { subscriberId, publicationId, year, monthIndex, active } = input;
+  const { subscriberId, publicationId, year, monthIndex, quantity } = input;
   if (monthIndex < 0 || monthIndex > 11) return { error: "Невірний місяць" };
+  if (!Number.isFinite(quantity) || quantity < 0 || quantity > 999)
+    return { error: "Невірна кількість" };
+  const q = Math.floor(quantity);
   const existing = await prisma.subscription.findUnique({
     where: {
       subscriberId_publicationId_year: {
@@ -178,7 +181,7 @@ export async function upsertSubscription(input: {
   });
   if (!existing) {
     const months = Array.from({ length: 12 }, (_, i) =>
-      i === monthIndex ? active : false,
+      i === monthIndex ? q : 0,
     );
     await prisma.subscription.create({
       data: {
@@ -191,9 +194,9 @@ export async function upsertSubscription(input: {
     return { ok: true };
   }
   const months = Array.from({ length: 12 }, (_, i) =>
-    Boolean(existing.activeMonths[i]),
+    Number(existing.activeMonths[i] ?? 0),
   );
-  months[monthIndex] = active;
+  months[monthIndex] = q;
   await prisma.subscription.update({
     where: { id: existing.id },
     data: { activeMonths: months },
@@ -216,7 +219,7 @@ export async function addSubscriptionRow(input: {
   const me = await requireUser();
   assert(canManageSubscriptions(me));
   const { subscriberId, publicationId, year } = input;
-  const months = Array.from({ length: 12 }, () => false);
+  const months = Array.from({ length: 12 }, () => 0);
   try {
     await prisma.subscription.create({
       data: { subscriberId, publicationId, year, activeMonths: months },

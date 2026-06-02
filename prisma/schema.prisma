@@ -188,7 +188,7 @@ model Subscription {
   subscriberId  Int
   publicationId Int
   year          Int
-  activeMonths  Boolean[]
+  activeMonths  Int[]
   notes         String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt

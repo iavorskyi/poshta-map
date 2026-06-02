@@ -30,7 +30,7 @@ type Subscription = {
   publicationId: number;
   publicationCode: string;
   publicationName: string;
-  activeMonths: boolean[];
+  activeMonths: number[];
   notes: string | null;
 };
 
@@ -60,10 +60,10 @@ export function SubscriberDetailClient({
   const [publicationId, setPublicationId] = useState<number | "">("");
   const [optimistic, setOptimistic] = useOptimistic<
     Subscription[],
-    { type: "toggle"; subId: number; monthIndex: number; value: boolean }
+    { type: "set"; subId: number; monthIndex: number; value: number }
     | { type: "delete"; subId: number }
   >(subscriptions, (state, action) => {
-    if (action.type === "toggle") {
+    if (action.type === "set") {
       return state.map((s) =>
         s.id === action.subId
           ? {
@@ -78,15 +78,16 @@ export function SubscriberDetailClient({
     return state.filter((s) => s.id !== action.subId);
   });
 
-  const toggle = (sub: Subscription, monthIndex: number, value: boolean) => {
+  const setMonth = (sub: Subscription, monthIndex: number, value: number) => {
+    const q = Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0;
     startTransition(async () => {
-      setOptimistic({ type: "toggle", subId: sub.id, monthIndex, value });
+      setOptimistic({ type: "set", subId: sub.id, monthIndex, value: q });
       const res = await upsertSubscription({
         subscriberId,
         publicationId: sub.publicationId,
         year,
         monthIndex,
-        active: value,
+        quantity: q,
       });
       if ("error" in res) showToast(res.error, "error");
     });
@@ -144,7 +145,7 @@ export function SubscriberDetailClient({
             </thead>
             <tbody>
               {optimistic.map((sub) => {
-                const total = sub.activeMonths.filter(Boolean).length;
+                const total = sub.activeMonths.reduce((a, b) => a + b, 0);
                 return (
                   <tr key={sub.id} className="border-t border-border">
                     <td className="px-3 py-2 sticky left-0 bg-surface z-10">
@@ -158,14 +159,21 @@ export function SubscriberDetailClient({
                         {sub.publicationCode}
                       </div>
                     </td>
-                    {sub.activeMonths.map((active, i) => (
-                      <td key={i} className="px-2 py-2 text-center">
+                    {sub.activeMonths.map((qty, i) => (
+                      <td key={i} className="px-1 py-2 text-center">
                         <input
-                          type="checkbox"
-                          checked={active}
+                          type="number"
+                          min={0}
+                          max={999}
+                          step={1}
+                          value={qty || ""}
                           disabled={!canManage}
-                          onChange={(e) => toggle(sub, i, e.target.checked)}
-                          className="h-4 w-4 accent-brand"
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setMonth(sub, i, v === "" ? 0 : Number(v));
+                          }}
+                          placeholder="0"
+                          className="input w-12 px-1 text-center text-sm"
                           aria-label={`${sub.publicationName} ${MONTH_LABELS[i]}`}
                         />
                       </td>

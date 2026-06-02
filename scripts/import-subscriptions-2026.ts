@@ -6,7 +6,7 @@
 // (subscriberId, publicationId, year=2026). Видань і передплатників не дублює.
 //
 // Уточнення з обговорення:
-// - кількість >0 у клітинці місяця → true (schema має Boolean[]; кількість не зберігається)
+// - кількість у клітинці місяця зберігається в Int[] (0 = немає підписки)
 // - орг. без адреси / "Начальнику відділення" → isOrganization=true, PICKUP, без адреси
 // - Сопова Вікторія Володимирівна "Відділення ДО" → особа із самовивозом (PICKUP)
 // - рядки з усіма нулями → пропускаються (без створення Subscription)
@@ -90,11 +90,16 @@ type SubRec = {
   addr: SubAddr;
 };
 
-const M = (mask: string): boolean[] => {
-  // "111111111111" або "1 1 1 1 1 1 0 0 0 0 0 0" → boolean[12]
+const M = (mask: string): number[] => {
+  // "111111111111" або "1 1 1 1 1 1 0 0 0 0 0 0" → number[12]
+  // Кожен символ — цифра 0-9 (кількість примірників на місяць)
   const cleaned = mask.replace(/\s+/g, "");
   if (cleaned.length !== 12) throw new Error(`Bad mask "${mask}"`);
-  return cleaned.split("").map((c) => c !== "0");
+  return cleaned.split("").map((c) => {
+    const n = Number(c);
+    if (!Number.isFinite(n) || n < 0) throw new Error(`Bad digit "${c}" in "${mask}"`);
+    return n;
+  });
 };
 
 const SUBSCRIBERS: SubRec[] = [
@@ -711,7 +716,7 @@ const SUBSCRIBERS: SubRec[] = [
 // ──────────────────────────────────────────────────────────────────────────
 // Підписки (subscriberKey → publicationCode → 12-міс маска)
 // ──────────────────────────────────────────────────────────────────────────
-const SUBSCRIPTIONS: Array<{ sub: string; pub: string; months: boolean[] }> = [
+const SUBSCRIPTIONS: Array<{ sub: string; pub: string; months: number[] }> = [
   // 76027 БУВАЛЬЩИНИ
   { sub: "myronova", pub: "76027", months: M("111111111111") },
   // 76596 ОХОРОНА ПРАЦІ

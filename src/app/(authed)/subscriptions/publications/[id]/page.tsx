@@ -57,7 +57,7 @@ export default async function PublicationDetailPage({
 
   const monthTotals = Array.from({ length: 12 }, (_, i) =>
     subscriptions.reduce(
-      (sum, s) => sum + (s.activeMonths[i] ? 1 : 0),
+      (sum, s) => sum + Number(s.activeMonths[i] ?? 0),
       0,
     ),
   );
@@ -104,7 +104,10 @@ export default async function PublicationDetailPage({
           </thead>
           <tbody>
             {subscriptions.map((s) => {
-              const total = s.activeMonths.filter(Boolean).length;
+              const total = s.activeMonths.reduce(
+                (sum, n) => sum + Number(n ?? 0),
+                0,
+              );
               return (
                 <tr key={s.id} className="border-t border-border">
                   <td className="px-3 py-2 sticky left-0 bg-surface z-10">
@@ -143,16 +146,19 @@ export default async function PublicationDetailPage({
                       <span className="text-fg-subtle">—</span>
                     )}
                   </td>
-                  {s.activeMonths.map((active, i) => (
-                    <td
-                      key={i}
-                      className={`px-2 py-2 text-center ${
-                        active ? "text-success" : "text-fg-subtle"
-                      }`}
-                    >
-                      {active ? "✓" : "·"}
-                    </td>
-                  ))}
+                  {s.activeMonths.map((qty, i) => {
+                    const q = Number(qty ?? 0);
+                    return (
+                      <td
+                        key={i}
+                        className={`px-2 py-2 text-center ${
+                          q > 0 ? "text-fg font-medium" : "text-fg-subtle"
+                        }`}
+                      >
+                        {q > 0 ? q : "·"}
+                      </td>
+                    );
+                  })}
                   <td className="px-3 py-2 text-right font-medium">{total}</td>
                 </tr>
               );
