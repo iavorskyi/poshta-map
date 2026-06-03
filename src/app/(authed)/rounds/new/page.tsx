@@ -10,11 +10,8 @@ export default async function NewRoundPage() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  // Шаблони визначаємо за останніми 6 місяцями. Старіші виплати не варто
-  // тягнути — це лише сповільнює сторінку.
-  const templateWindowStart = new Date(now.getFullYear(), now.getMonth() - 6, 1);
 
-  const [pensioners, payments, postmen, monthPayments, allCps] = await Promise.all([
+  const [pensioners, payments, postmen, monthPayments] = await Promise.all([
     prisma.pensioner.findMany({
       orderBy: { fullName: "asc" },
       include: { building: true },
@@ -24,11 +21,6 @@ export default async function NewRoundPage() {
     prisma.currentPayment.findMany({
       where: { date: { gte: monthStart, lt: monthEnd } },
       orderBy: { date: "asc" },
-    }),
-    prisma.currentPayment.findMany({
-      where: { date: { gte: templateWindowStart } },
-      orderBy: { date: "desc" },
-      select: { pensionerId: true, paymentId: true, amount: true },
     }),
   ]);
 
@@ -49,15 +41,9 @@ export default async function NewRoundPage() {
     number,
     { id: number; paymentId: number; amount: number; isPaid: boolean; roundId: number | null }[]
   > = {};
-  const paidPaymentIdsByPensioner: Record<number, number[]> = {};
   const pensionerUnpaidCpDays: Record<number, number[]> = {};
   for (const cp of monthPayments) {
-    if (cp.isPaid) {
-      if (!paidPaymentIdsByPensioner[cp.pensionerId])
-        paidPaymentIdsByPensioner[cp.pensionerId] = [];
-      paidPaymentIdsByPensioner[cp.pensionerId].push(cp.paymentId);
-      continue;
-    }
+    if (cp.isPaid) continue;
     if (!pensionerMonthPayments[cp.pensionerId]) pensionerMonthPayments[cp.pensionerId] = [];
     pensionerMonthPayments[cp.pensionerId].push({
       id: cp.id,
@@ -73,23 +59,6 @@ export default async function NewRoundPage() {
     }
   }
 
-  const pensionerPaymentTemplates: Record<
-    number,
-    { paymentId: number; amount: number }[]
-  > = {};
-  const seenTemplate: Record<number, Set<number>> = {};
-  for (const cp of allCps) {
-    if (!seenTemplate[cp.pensionerId]) seenTemplate[cp.pensionerId] = new Set();
-    if (seenTemplate[cp.pensionerId].has(cp.paymentId)) continue;
-    seenTemplate[cp.pensionerId].add(cp.paymentId);
-    if (!pensionerPaymentTemplates[cp.pensionerId])
-      pensionerPaymentTemplates[cp.pensionerId] = [];
-    pensionerPaymentTemplates[cp.pensionerId].push({
-      paymentId: cp.paymentId,
-      amount: cp.amount,
-    });
-  }
-
   return (
     <div className="space-y-4">
       <div>
@@ -101,8 +70,6 @@ export default async function NewRoundPage() {
         payments={payments}
         postmen={postmen}
         pensionerMonthPayments={pensionerMonthPayments}
-        pensionerPaymentTemplates={pensionerPaymentTemplates}
-        paidPaymentIdsByPensioner={paidPaymentIdsByPensioner}
         pensionerUnpaidCpDays={pensionerUnpaidCpDays}
         isAdmin={me.isAdmin}
       />

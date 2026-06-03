@@ -53,15 +53,11 @@ type Draft = {
   items: DraftItem[];
 };
 
-type PaymentTemplate = { paymentId: number; amount: number };
-
 export function NewRoundClient({
   pensioners,
   payments,
   postmen,
   pensionerMonthPayments,
-  pensionerPaymentTemplates,
-  paidPaymentIdsByPensioner,
   pensionerUnpaidCpDays,
   isAdmin,
 }: {
@@ -69,8 +65,6 @@ export function NewRoundClient({
   payments: Payment[];
   postmen: Postman[];
   pensionerMonthPayments: Record<number, ExistingCP[]>;
-  pensionerPaymentTemplates: Record<number, PaymentTemplate[]>;
-  paidPaymentIdsByPensioner: Record<number, number[]>;
   pensionerUnpaidCpDays: Record<number, number[]>;
   isAdmin: boolean;
 }) {
@@ -98,30 +92,14 @@ export function NewRoundClient({
 
   const addPensioner = (pensionerId: number) => {
     const existing = pensionerMonthPayments[pensionerId] ?? [];
-    const templates = pensionerPaymentTemplates[pensionerId] ?? [];
-    const paidIds = paidPaymentIdsByPensioner[pensionerId] ?? [];
-    const usedPaymentIds = new Set([
-      ...existing.map((cp) => cp.paymentId),
-      ...paidIds,
-    ]);
 
-    const items: DraftItem[] = [
-      ...existing.map((cp) => ({
-        key: `${pensionerId}-ex-${cp.id}`,
-        existingId: cp.id,
-        paymentId: cp.paymentId,
-        amount: cp.amount,
-        isPaid: cp.isPaid,
-      })),
-      ...templates
-        .filter((t) => !usedPaymentIds.has(t.paymentId))
-        .map((t, i) => ({
-          key: `${pensionerId}-tmpl-${t.paymentId}-${Date.now()}-${i}`,
-          paymentId: t.paymentId,
-          amount: t.amount,
-          isPaid: false,
-        })),
-    ];
+    const items: DraftItem[] = existing.map((cp) => ({
+      key: `${pensionerId}-ex-${cp.id}`,
+      existingId: cp.id,
+      paymentId: cp.paymentId,
+      amount: cp.amount,
+      isPaid: cp.isPaid,
+    }));
 
     if (items.length === 0) {
       items.push({
