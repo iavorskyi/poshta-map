@@ -35,12 +35,20 @@ export default async function Home() {
     }),
     prisma.currentPayment.groupBy({
       by: ["isPaid"],
-      where: { ...mineFilter, isPaid: false, date: { lt: today } },
+      where: {
+        ...mineFilter,
+        isPaid: false,
+        date: { gte: monthStart, lt: today },
+      },
       _count: { _all: true },
       _sum: { amount: true },
     }),
     prisma.currentPayment.findMany({
-      where: { ...mineFilter, isPaid: false, date: { lt: today } },
+      where: {
+        ...mineFilter,
+        isPaid: false,
+        date: { gte: monthStart, lt: today },
+      },
       include: {
         pensioner: { include: { building: true } },
         payment: true,
