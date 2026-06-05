@@ -249,73 +249,32 @@ export async function addPensionerToRound(roundId: number, pensionerId: number) 
     },
   });
 
-  const paidIds = new Set(
-    monthCps.filter((cp) => cp.isPaid).map((cp) => cp.paymentId)
-  );
-
   const unpaidToAttach = monthCps.filter(
     (cp) =>
       !cp.isPaid && cp.roundId !== roundId && !inRoundPaymentIds.has(cp.paymentId)
   );
 
-  // Шаблони — за останні 6 місяців, щоб не тягнути всю історію.
-  const templateWindowStart = new Date(
-    round.date.getFullYear(),
-    round.date.getMonth() - 6,
-    1
-  );
-  const allCps = await prisma.currentPayment.findMany({
-    where: { pensionerId, date: { gte: templateWindowStart } },
-    orderBy: { date: "desc" },
-    select: { paymentId: true, amount: true },
-  });
-  const seen = new Set<number>();
-  const templates: { paymentId: number; amount: number }[] = [];
-  for (const cp of allCps) {
-    if (seen.has(cp.paymentId)) continue;
-    seen.add(cp.paymentId);
-    templates.push({ paymentId: cp.paymentId, amount: cp.amount });
-  }
-  const willAttachIds = new Set(unpaidToAttach.map((cp) => cp.paymentId));
-  const templatesToCreate = templates.filter(
-    (t) =>
-      !paidIds.has(t.paymentId) &&
-      !inRoundPaymentIds.has(t.paymentId) &&
-      !willAttachIds.has(t.paymentId)
-  );
-
-  if (unpaidToAttach.length === 0 && templatesToCreate.length === 0) {
+  if (unpaidToAttach.length === 0) {
     return {
       error:
         "Немає виплат для додавання. Усі поточні виплати вже оплачено або вже в обході.",
     };
   }
 
-  await prisma.$transaction([
-    ...unpaidToAttach.map((cp) =>
+  await prisma.$transaction(
+    unpaidToAttach.map((cp) =>
       prisma.currentPayment.update({
         where: { id: cp.id },
         data: { roundId },
       })
-    ),
-    ...templatesToCreate.map((t) =>
-      prisma.currentPayment.create({
-        data: {
-          roundId,
-          pensionerId,
-          paymentId: t.paymentId,
-          amount: t.amount,
-          date: round.date,
-        },
-      })
-    ),
-  ]);
+    )
+  );
 
   revalidatePath(`/rounds/${roundId}`);
   return {
     ok: true,
     attached: unpaidToAttach.length,
-    created: templatesToCreate.length,
+    created: 0,
   };
 }
 
