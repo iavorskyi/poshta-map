@@ -34,7 +34,10 @@ export default async function RoundPage({
         },
       },
     }),
-    prisma.pensioner.findMany({ orderBy: { fullName: "asc" } }),
+    prisma.pensioner.findMany({
+      include: { building: true },
+      orderBy: { fullName: "asc" },
+    }),
     getCachedPayments(),
     getCachedPostmen(),
   ]);
@@ -108,6 +111,50 @@ export default async function RoundPage({
     if (missing.length > 0) suggestedByPensioner[pid] = missing;
   }
 
+  // Пропозиції пенсіонерів для додавання в обхід: ті, в яких є невиплачений
+  // CurrentPayment у місяці обходу з днем = дню обходу. Виключаємо вже доданих
+  // і (для адміна) фільтруємо по листоноші обходу.
+  const roundDay = round.date.getDate();
+  const roundMonthStart = new Date(
+    round.date.getFullYear(),
+    round.date.getMonth(),
+    1
+  );
+  const roundMonthEnd = new Date(
+    round.date.getFullYear(),
+    round.date.getMonth() + 1,
+    1
+  );
+  const pensionerIdsInRoundSet = new Set(pensionerIdsInRound);
+
+  const dayCps = await prisma.currentPayment.findMany({
+    where: {
+      isPaid: false,
+      date: { gte: roundMonthStart, lt: roundMonthEnd },
+    },
+    select: { pensionerId: true, date: true },
+  });
+  const suggestedPensionerIds = new Set<number>();
+  for (const cp of dayCps) {
+    if (cp.date.getDate() !== roundDay) continue;
+    if (pensionerIdsInRoundSet.has(cp.pensionerId)) continue;
+    suggestedPensionerIds.add(cp.pensionerId);
+  }
+
+  const suggestedPensioners = pensioners
+    .filter((p) => suggestedPensionerIds.has(p.id))
+    .filter((p) => {
+      if (!round.postmanId) return true;
+      return p.postmanId === round.postmanId;
+    })
+    .map((p) => ({
+      id: p.id,
+      fullName: p.fullName,
+      address: `${p.building.street}, ${p.building.number}${
+        p.apartment ? `, кв. ${p.apartment}` : ""
+      }`,
+    }));
+
   return (
     <div className="space-y-4">
       <div>
@@ -139,6 +186,7 @@ export default async function RoundPage({
           isPaid: cp.isPaid,
         }))}
         pensioners={pensioners.map((p) => ({ id: p.id, fullName: p.fullName }))}
+        suggestedPensioners={suggestedPensioners}
         payments={payments}
         postmen={postmen}
         suggestedByPensioner={suggestedByPensioner}

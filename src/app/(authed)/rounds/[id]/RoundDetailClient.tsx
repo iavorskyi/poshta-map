@@ -73,6 +73,7 @@ export function RoundDetailClient({
   round,
   items,
   pensioners,
+  suggestedPensioners,
   payments,
   postmen,
   suggestedByPensioner,
@@ -82,6 +83,7 @@ export function RoundDetailClient({
   round: Round;
   items: Item[];
   pensioners: { id: number; fullName: string }[];
+  suggestedPensioners: { id: number; fullName: string; address: string }[];
   payments: Payment[];
   postmen: Postman[];
   suggestedByPensioner: Record<number, SuggestedItem[]>;
@@ -367,14 +369,10 @@ export function RoundDetailClient({
     });
   };
 
-  const handleAddPensioner = () => {
+  const addPensionerById = (pensionerId: number) => {
     setError(null);
-    if (!addPensionerId) {
-      setError("Оберіть пенсіонера");
-      return;
-    }
     startTransition(async () => {
-      const res = await addPensionerToRound(round.id, Number(addPensionerId));
+      const res = await addPensionerToRound(round.id, pensionerId);
       if (res?.error) {
         setError(res.error);
         showToast(res.error, "error");
@@ -391,6 +389,20 @@ export function RoundDetailClient({
       setShowAddPensioner(false);
     });
   };
+
+  const handleAddPensioner = () => {
+    if (!addPensionerId) {
+      setError("Оберіть пенсіонера");
+      return;
+    }
+    addPensionerById(Number(addPensionerId));
+  };
+
+  const availableSuggestedPensioners = useMemo(
+    () =>
+      suggestedPensioners.filter((p) => !pensionerIdsInRound.has(p.id)),
+    [suggestedPensioners, pensionerIdsInRound]
+  );
 
   const addItem = () => {
     setError(null);
@@ -599,6 +611,27 @@ export function RoundDetailClient({
                   ✕
                 </button>
               </div>
+              {availableSuggestedPensioners.length > 0 && (
+                <div className="rounded-lg border border-brand bg-brand/10 p-3 space-y-2">
+                  <div className="font-medium text-sm">
+                    Пропозиції на {new Date(round.date).getDate()}-е число (невиплачені виплати, {availableSuggestedPensioners.length}):
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {availableSuggestedPensioners.map((pensioner) => (
+                      <button
+                        type="button"
+                        key={pensioner.id}
+                        onClick={() => addPensionerById(pensioner.id)}
+                        disabled={isPending}
+                        className="text-left rounded border border-border bg-surface px-3 py-2 text-sm hover:border-brand hover:bg-brand/10 transition-colors disabled:opacity-60"
+                      >
+                        <div className="font-medium">{pensioner.fullName}</div>
+                        <div className="text-xs text-fg-subtle">{pensioner.address}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2 items-end">
                 <label className="flex flex-col gap-1 text-sm">
                   <span className="text-xs text-fg-muted">Пенсіонер</span>
