@@ -7,6 +7,7 @@ import { parseCurrentPaymentsXlsx } from "@/lib/currentPaymentImport";
 import { requireAdmin, requireUser } from "@/lib/auth";
 import { canEditCurrentPayment, canEditPensioner } from "@/lib/permissions";
 import { findBuildingByAddress } from "@/lib/streetMatch";
+import { findPensionerInBuilding, type NameMatchCandidate } from "@/lib/nameMatch";
 
 export async function createCurrentPayment(data: {
   pensionerId: number;
@@ -79,74 +80,78 @@ export async function updateCurrentPaymentFields(
   return { ok: true };
 }
 
-export type CpImportResult = {
-  created: number;
-  createdPensioners: {
-    id: number;
-    fullName: string;
-    street: string;
-    house: string;
-  }[];
-  errors: { rowNumber: number; message: string }[];
-  warnings: { rowNumber: number; message: string }[];
+// Двокроковий імпорт: preview + apply.
+//
+// Раніше імпорт «тихо» створював нового пенсіонера, якщо точний матч за
+// ФІО+будинком не знайдено. На практиці Excel-файли містять одруківки
+// («Петренкo» з латинською o), і це призводило до дублів. Тепер сервер
+// повертає preview зі статусом кожного рядка та fuzzy-кандидатами в межах
+// будинку; користувач у UI вирішує, до кого прив'язати виплату або
+// створити нового; apply записує підтверджені рішення.
+
+export type CpPreviewBuildingError =
+  | { kind: "ambiguous"; candidates: { id: number; street: string; number: string }[] }
+  | { kind: "none" }
+  | { kind: "row_invalid"; message: string };
+
+export type CpPreviewPensionerStatus =
+  | { kind: "exact"; id: number; fullName: string }
+  | { kind: "fuzzy"; candidates: NameMatchCandidate[] }
+  | { kind: "ambiguous"; candidates: NameMatchCandidate[] }
+  | { kind: "none" };
+
+export type CpPreviewRow = {
+  rowNumber: number;
+  fullName: string;
+  street: string;
+  house: string;
+  day: number;
+  amount: number;
+  isPaid: boolean;
+  // Якщо building не вдалось резолвити, pensioner-резолв не виконуємо.
+  building:
+    | { kind: "ok"; id: number; street: string; number: string; matchedStreet?: string }
+    | { kind: "error"; error: CpPreviewBuildingError };
+  pensioner: CpPreviewPensionerStatus | null;
+  // Всі пенсіонери знайденого будинку — для ручного вибору в UI.
+  buildingOptions: { id: number; fullName: string }[];
+  // Бейдж: у цьому місяці для розпізнаного пенсіонера вже є виплата на цей день.
+  dupInMonth: boolean;
 };
+
+export type CpPreview = {
+  paymentId: number;
+  paymentName: string;
+  paymentCode: string;
+  year: number;
+  month: number;
+  rows: CpPreviewRow[];
+  parseErrors: { rowNumber: number; message: string }[];
+};
+
+export type CpPreviewResponse =
+  | { ok: true; preview: CpPreview }
+  | { ok: false; error: string; parseErrors?: { rowNumber: number; message: string }[] };
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
-function normalizeKey(s: string) {
-  return s.trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-export async function importCurrentPayments(formData: FormData): Promise<CpImportResult> {
+export async function previewCurrentPaymentsImport(
+  formData: FormData
+): Promise<CpPreviewResponse> {
   await requireAdmin();
   const file = formData.get("file");
   const paymentIdRaw = String(formData.get("paymentId") ?? "");
   const yearRaw = String(formData.get("year") ?? "");
-  const monthRaw = String(formData.get("month") ?? ""); // 1..12
+  const monthRaw = String(formData.get("month") ?? "");
 
-  if (!(file instanceof File)) {
-    return {
-      created: 0,
-      createdPensioners: [],
-      warnings: [],
-      errors: [{ rowNumber: 0, message: "Файл не надіслано" }],
-    };
-  }
-  if (file.size === 0) {
-    return {
-      created: 0,
-      createdPensioners: [],
-      warnings: [],
-      errors: [{ rowNumber: 0, message: "Файл порожній" }],
-    };
-  }
-  if (file.size > MAX_FILE_BYTES) {
-    return {
-      created: 0,
-      createdPensioners: [],
-      warnings: [],
-      errors: [{ rowNumber: 0, message: "Файл більше 10 МБ" }],
-    };
-  }
+  if (!(file instanceof File)) return { ok: false, error: "Файл не надіслано" };
+  if (file.size === 0) return { ok: false, error: "Файл порожній" };
+  if (file.size > MAX_FILE_BYTES) return { ok: false, error: "Файл більше 10 МБ" };
 
   const paymentId = Number(paymentIdRaw);
-  if (!paymentId) {
-    return {
-      created: 0,
-      createdPensioners: [],
-      warnings: [],
-      errors: [{ rowNumber: 0, message: "Оберіть тип виплати" }],
-    };
-  }
+  if (!paymentId) return { ok: false, error: "Оберіть тип виплати" };
   const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
-  if (!payment) {
-    return {
-      created: 0,
-      createdPensioners: [],
-      warnings: [],
-      errors: [{ rowNumber: 0, message: "Тип виплати не знайдено" }],
-    };
-  }
+  if (!payment) return { ok: false, error: "Тип виплати не знайдено" };
 
   const now = new Date();
   const year = yearRaw ? Number(yearRaw) : now.getFullYear();
@@ -159,12 +164,7 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
     month < 1 ||
     month > 12
   ) {
-    return {
-      created: 0,
-      createdPensioners: [],
-      warnings: [],
-      errors: [{ rowNumber: 0, message: "Некоректний місяць/рік" }],
-    };
+    return { ok: false, error: "Некоректний місяць/рік" };
   }
   const daysInMonth = new Date(year, month, 0).getDate();
 
@@ -174,38 +174,28 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
     parsed = await parseCurrentPaymentsXlsx(buffer);
   } catch (e) {
     return {
-      created: 0,
-      createdPensioners: [],
-      warnings: [],
-      errors: [
-        {
-          rowNumber: 0,
-          message: `Не вдалось прочитати файл: ${e instanceof Error ? e.message : "невідома помилка"}`,
-        },
-      ],
+      ok: false,
+      error: `Не вдалось прочитати файл: ${e instanceof Error ? e.message : "невідома помилка"}`,
     };
   }
 
   if (parsed.errors.length && parsed.rows.length === 0) {
-    return { created: 0, createdPensioners: [], warnings: [], errors: parsed.errors };
+    return { ok: false, error: "Файл містить лише помилки", parseErrors: parsed.errors };
   }
 
-  // Pre-load buildings + pensioners for matching
   const buildings = await prisma.building.findMany({
     select: { id: true, street: true, number: true },
   });
   const pensioners = await prisma.pensioner.findMany({
     select: { id: true, fullName: true, buildingId: true },
   });
-  const pensIndex = new Map<string, number[]>();
+  const pensionersByBuilding = new Map<number, { id: number; fullName: string }[]>();
   for (const p of pensioners) {
-    const key = `${normalizeKey(p.fullName)}|${p.buildingId}`;
-    const list = pensIndex.get(key) ?? [];
-    list.push(p.id);
-    pensIndex.set(key, list);
+    const list = pensionersByBuilding.get(p.buildingId) ?? [];
+    list.push({ id: p.id, fullName: p.fullName });
+    pensionersByBuilding.set(p.buildingId, list);
   }
 
-  // Pre-load existing payments in this month for this paymentId to detect dups
   const monthStart = new Date(year, month - 1, 1);
   const monthEnd = new Date(year, month, 1);
   const existing = await prisma.currentPayment.findMany({
@@ -213,74 +203,297 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
     select: { pensionerId: true, date: true },
   });
   const existingKey = new Set<string>();
-  for (const e of existing) {
-    existingKey.add(`${e.pensionerId}|${e.date.getDate()}`);
+  for (const e of existing) existingKey.add(`${e.pensionerId}|${e.date.getDate()}`);
+
+  const rows: CpPreviewRow[] = [];
+  for (const r of parsed.rows) {
+    // День у межах місяця — критична помилка рядка, без pensioner-резолву.
+    if (r.day > daysInMonth) {
+      rows.push({
+        rowNumber: r.rowNumber,
+        fullName: r.fullName,
+        street: r.street,
+        house: r.house,
+        day: r.day,
+        amount: r.amount,
+        isPaid: r.isPaid,
+        building: {
+          kind: "error",
+          error: {
+            kind: "row_invalid",
+            message: `День ${r.day} не існує в ${month}/${year} (днів: ${daysInMonth})`,
+          },
+        },
+        pensioner: null,
+        buildingOptions: [],
+        dupInMonth: false,
+      });
+      continue;
+    }
+
+    const match = findBuildingByAddress(buildings, r.street, r.house);
+    if (match.kind === "ambiguous") {
+      rows.push({
+        rowNumber: r.rowNumber,
+        fullName: r.fullName,
+        street: r.street,
+        house: r.house,
+        day: r.day,
+        amount: r.amount,
+        isPaid: r.isPaid,
+        building: {
+          kind: "error",
+          error: { kind: "ambiguous", candidates: match.candidates },
+        },
+        pensioner: null,
+        buildingOptions: [],
+        dupInMonth: false,
+      });
+      continue;
+    }
+    if (match.kind === "none") {
+      rows.push({
+        rowNumber: r.rowNumber,
+        fullName: r.fullName,
+        street: r.street,
+        house: r.house,
+        day: r.day,
+        amount: r.amount,
+        isPaid: r.isPaid,
+        building: { kind: "error", error: { kind: "none" } },
+        pensioner: null,
+        buildingOptions: [],
+        dupInMonth: false,
+      });
+      continue;
+    }
+
+    const buildingId = match.id;
+    const buildingRow = buildings.find((b) => b.id === buildingId);
+    const buildingOptions = pensionersByBuilding.get(buildingId) ?? [];
+    const matchResult = findPensionerInBuilding(buildingOptions, r.fullName);
+
+    // dupInMonth — лише для exact/fuzzy/ambiguous-вибору з першим кандидатом.
+    let dupCandidatePid: number | null = null;
+    if (matchResult.kind === "exact") dupCandidatePid = matchResult.id;
+    else if (matchResult.kind === "fuzzy" || matchResult.kind === "ambiguous") {
+      dupCandidatePid = matchResult.candidates[0]?.id ?? null;
+    }
+    const dupInMonth =
+      dupCandidatePid != null && existingKey.has(`${dupCandidatePid}|${r.day}`);
+
+    rows.push({
+      rowNumber: r.rowNumber,
+      fullName: r.fullName,
+      street: r.street,
+      house: r.house,
+      day: r.day,
+      amount: r.amount,
+      isPaid: r.isPaid,
+      building: {
+        kind: "ok",
+        id: buildingId,
+        street: buildingRow?.street ?? r.street,
+        number: buildingRow?.number ?? r.house,
+        matchedStreet:
+          match.kind === "loose" ? match.matchedStreet : undefined,
+      },
+      pensioner: matchResult,
+      buildingOptions,
+      dupInMonth,
+    });
   }
 
-  let created = 0;
-  const errors = [...parsed.errors];
-  const warnings: CpImportResult["warnings"] = [];
-  const touchedPensionerIds = new Set<number>();
-  const createdPensioners: CpImportResult["createdPensioners"] = [];
+  return {
+    ok: true,
+    preview: {
+      paymentId,
+      paymentName: payment.name,
+      paymentCode: payment.code,
+      year,
+      month,
+      rows,
+      parseErrors: parsed.errors,
+    },
+  };
+}
 
-  for (const r of parsed.rows) {
-    if (r.day > daysInMonth) {
-      errors.push({
+export type CpRowPayload = {
+  rowNumber: number;
+  fullName: string;
+  street: string;
+  house: string;
+  day: number;
+  amount: number;
+  isPaid: boolean;
+};
+
+export type CpDecision =
+  | { rowNumber: number; action: "use_existing"; pensionerId: number }
+  | { rowNumber: number; action: "create_new" }
+  | { rowNumber: number; action: "skip" };
+
+export type CpApplyInput = {
+  paymentId: number;
+  year: number;
+  month: number;
+  rows: CpRowPayload[];
+  decisions: CpDecision[];
+};
+
+export type CpApplyResult = {
+  created: number;
+  createdPensioners: {
+    id: number;
+    fullName: string;
+    street: string;
+    house: string;
+  }[];
+  errors: { rowNumber: number; message: string }[];
+  warnings: { rowNumber: number; message: string }[];
+};
+
+export async function applyCurrentPaymentsImport(
+  input: CpApplyInput
+): Promise<CpApplyResult> {
+  await requireAdmin();
+
+  const result: CpApplyResult = {
+    created: 0,
+    createdPensioners: [],
+    errors: [],
+    warnings: [],
+  };
+
+  const { paymentId, year, month, rows, decisions } = input;
+  if (!paymentId || !Number.isInteger(paymentId)) {
+    result.errors.push({ rowNumber: 0, message: "Невірний paymentId" });
+    return result;
+  }
+  if (
+    !Number.isInteger(year) ||
+    year < 2000 ||
+    year > 2100 ||
+    !Number.isInteger(month) ||
+    month < 1 ||
+    month > 12
+  ) {
+    result.errors.push({ rowNumber: 0, message: "Некоректний місяць/рік" });
+    return result;
+  }
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+  if (!payment) {
+    result.errors.push({ rowNumber: 0, message: "Тип виплати не знайдено" });
+    return result;
+  }
+
+  const decisionByRow = new Map<number, CpDecision>();
+  for (const d of decisions) decisionByRow.set(d.rowNumber, d);
+
+  // Свіжий стан: захист від races (інший адмін паралельно імпортує / є manual CP).
+  const buildings = await prisma.building.findMany({
+    select: { id: true, street: true, number: true },
+  });
+  const pensioners = await prisma.pensioner.findMany({
+    select: { id: true, fullName: true, buildingId: true },
+  });
+  const pensionersById = new Map<number, { id: number; fullName: string; buildingId: number }>();
+  for (const p of pensioners) pensionersById.set(p.id, p);
+
+  const monthStart = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 1);
+  const existing = await prisma.currentPayment.findMany({
+    where: { paymentId, date: { gte: monthStart, lt: monthEnd } },
+    select: { pensionerId: true, date: true },
+  });
+  const existingKey = new Set<string>();
+  for (const e of existing) existingKey.add(`${e.pensionerId}|${e.date.getDate()}`);
+
+  const touched = new Set<number>();
+
+  for (const r of rows) {
+    const decision = decisionByRow.get(r.rowNumber);
+    if (!decision) {
+      result.errors.push({
+        rowNumber: r.rowNumber,
+        message: "Немає рішення для рядка",
+      });
+      continue;
+    }
+    if (decision.action === "skip") {
+      result.warnings.push({ rowNumber: r.rowNumber, message: "Пропущено вручну" });
+      continue;
+    }
+    if (r.day < 1 || r.day > daysInMonth) {
+      result.errors.push({
         rowNumber: r.rowNumber,
         message: `День ${r.day} не існує в ${month}/${year} (днів: ${daysInMonth})`,
       });
       continue;
     }
+
     const match = findBuildingByAddress(buildings, r.street, r.house);
-    let buildingId: number;
-    if (match.kind === "exact") {
-      buildingId = match.id;
-    } else if (match.kind === "loose") {
-      buildingId = match.id;
-      warnings.push({
+    if (match.kind === "ambiguous") {
+      result.errors.push({
         rowNumber: r.rowNumber,
-        message: `Розпізнано "${r.street}" як "${match.matchedStreet}"`,
-      });
-    } else if (match.kind === "ambiguous") {
-      const list = match.candidates
-        .map((c) => `"${c.street}, ${c.number}"`)
-        .join(", ");
-      errors.push({
-        rowNumber: r.rowNumber,
-        message: `Кілька будинків можуть відповідати "${r.street}, ${r.house}": ${list}`,
+        message: `Кілька будинків можуть відповідати "${r.street}, ${r.house}" — уточніть у файлі`,
       });
       continue;
-    } else {
-      errors.push({
+    }
+    if (match.kind === "none") {
+      result.errors.push({
         rowNumber: r.rowNumber,
         message: `Будинок не знайдено в дільниці: ${r.street}, ${r.house}`,
       });
       continue;
     }
-    const key = `${normalizeKey(r.fullName)}|${buildingId}`;
-    let matches = pensIndex.get(key);
-    if (!matches || matches.length === 0) {
-      // Авто-створення пенсіонера: беремо ФІО + buildingId; pensionPaymentDay
-      // ставимо як день з рядка (це найкращий доступний здогад при імпорті виплат).
+    const buildingId = match.id;
+
+    let pensionerId: number;
+    if (decision.action === "use_existing") {
+      const p = pensionersById.get(decision.pensionerId);
+      if (!p) {
+        result.errors.push({
+          rowNumber: r.rowNumber,
+          message: `Обраного пенсіонера #${decision.pensionerId} не знайдено`,
+        });
+        continue;
+      }
+      if (p.buildingId !== buildingId) {
+        result.errors.push({
+          rowNumber: r.rowNumber,
+          message: `Обраний пенсіонер не належить до будинку ${r.street}, ${r.house}`,
+        });
+        continue;
+      }
+      pensionerId = p.id;
+    } else {
+      // create_new
       try {
         const newP = await prisma.pensioner.create({
           data: {
             fullName: r.fullName.trim(),
             buildingId,
             pensionPaymentDay: r.day,
-            notes: "Авто-створено при імпорті поточних виплат",
+            notes: "Створено при імпорті виплат (підтверджено)",
           },
         });
-        pensIndex.set(key, [newP.id]);
-        matches = [newP.id];
-        createdPensioners.push({
+        pensionerId = newP.id;
+        pensionersById.set(newP.id, {
+          id: newP.id,
+          fullName: newP.fullName,
+          buildingId,
+        });
+        result.createdPensioners.push({
           id: newP.id,
           fullName: newP.fullName,
           street: r.street,
           house: r.house,
         });
       } catch (e) {
-        errors.push({
+        result.errors.push({
           rowNumber: r.rowNumber,
           message: `Не вдалось створити пенсіонера "${r.fullName}, ${r.street}, ${r.house}": ${
             e instanceof Error ? e.message : "невідома помилка"
@@ -289,17 +502,10 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
         continue;
       }
     }
-    if (matches.length > 1) {
-      errors.push({
-        rowNumber: r.rowNumber,
-        message: `Знайдено кілька пенсіонерів за "${r.fullName}, ${r.street}, ${r.house}" — уточніть адресу`,
-      });
-      continue;
-    }
-    const pensionerId = matches[0];
+
     const dupKey = `${pensionerId}|${r.day}`;
     if (existingKey.has(dupKey)) {
-      warnings.push({
+      result.warnings.push({
         rowNumber: r.rowNumber,
         message: `Пропущено (вже існує): ${r.fullName}, ${r.day}.${String(month).padStart(2, "0")}.${year}`,
       });
@@ -317,27 +523,23 @@ export async function importCurrentPayments(formData: FormData): Promise<CpImpor
         },
       });
       existingKey.add(dupKey);
-      touchedPensionerIds.add(pensionerId);
-      created++;
+      touched.add(pensionerId);
+      result.created++;
     } catch (e) {
-      errors.push({
+      result.errors.push({
         rowNumber: r.rowNumber,
         message: `БД: ${e instanceof Error ? e.message : "невідома помилка"}`,
       });
     }
   }
 
-  if (created > 0 || createdPensioners.length > 0) {
+  if (result.created > 0 || result.createdPensioners.length > 0) {
     revalidatePath("/current-payments");
-    if (createdPensioners.length > 0) {
-      revalidatePath("/pensioners");
-    }
-    for (const pid of touchedPensionerIds) {
-      revalidatePath(`/pensioners/${pid}`);
-    }
+    if (result.createdPensioners.length > 0) revalidatePath("/pensioners");
+    for (const pid of touched) revalidatePath(`/pensioners/${pid}`);
   }
 
-  return { created, createdPensioners, warnings, errors };
+  return result;
 }
 
 export async function deleteCurrentPayment(id: number) {
