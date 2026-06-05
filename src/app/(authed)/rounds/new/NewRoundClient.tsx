@@ -23,6 +23,7 @@ type Pensioner = {
   fullName: string;
   address: string;
   pensionPaymentDay: number;
+  postmanId: number | null;
   buildingStreet: string;
   buildingNumber: string;
   buildingLatitude: number | null;
@@ -85,10 +86,11 @@ export function NewRoundClient({
     if (selectedDay == null) return [];
     return pensioners.filter((p) => {
       if (drafts.some((d) => d.pensionerId === p.id)) return false;
+      if (isAdmin && postmanId !== "" && p.postmanId !== postmanId) return false;
       const days = pensionerUnpaidCpDays[p.id] ?? [];
       return days.includes(selectedDay);
     });
-  }, [pensioners, selectedDay, drafts, pensionerUnpaidCpDays]);
+  }, [pensioners, selectedDay, drafts, pensionerUnpaidCpDays, isAdmin, postmanId]);
 
   const addPensioner = (pensionerId: number) => {
     const existing = pensionerMonthPayments[pensionerId] ?? [];

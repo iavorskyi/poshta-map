@@ -31,6 +31,7 @@ export default async function NewRoundPage() {
     fullName: p.fullName,
     address: `${p.building.street}, ${p.building.number}${p.apartment ? `, кв. ${p.apartment}` : ""}`,
     pensionPaymentDay: p.pensionPaymentDay,
+    postmanId: p.postmanId,
     buildingStreet: p.building.street,
     buildingNumber: p.building.number,
     buildingLatitude: p.building.latitude,
