@@ -169,3 +169,53 @@ export function findPensionerInBuilding(
   if (candidates.length === 1) return { kind: "fuzzy", candidates };
   return { kind: "ambiguous", candidates };
 }
+
+export type PensionerForBroadMatch = {
+  id: number;
+  fullName: string;
+  buildingId: number;
+};
+
+export type BroadNameMatchCandidate = {
+  id: number;
+  fullName: string;
+  buildingId: number;
+  distance: number;
+};
+
+// Пошук найближчих ФІО серед усіх пенсіонерів (не обмежений будинком).
+// Використовується, коли пенсіонера не знайдено в очікуваному будинку або
+// коли сам будинок не вдалось зрезолвити — імовірно, у файлі помилка в
+// адресі, але по ФІО можна знайти правильного пенсіонера в іншому будинку.
+// Метрика — повний Levenshtein на нормалізованому, відсортованому за токенами
+// рядку (без per-token бюджету): тут не вирішуємо «матч/не матч», лише
+// ранжуємо для UI; кінцеве рішення завжди робить користувач.
+export function findClosestPensionersByName(
+  pensioners: PensionerForBroadMatch[],
+  fullName: string,
+  k: number
+): BroadNameMatchCandidate[] {
+  if (pensioners.length === 0 || k <= 0) return [];
+  const target = tokenizeName(fullName);
+  if (target.length === 0) return [];
+  const targetStr = target.join(" ");
+
+  const scored: BroadNameMatchCandidate[] = [];
+  for (const p of pensioners) {
+    const pt = tokenizeName(p.fullName);
+    if (pt.length === 0) continue;
+    const ptStr = pt.join(" ");
+    const d = levenshtein(targetStr, ptStr);
+    scored.push({
+      id: p.id,
+      fullName: p.fullName,
+      buildingId: p.buildingId,
+      distance: d,
+    });
+  }
+  scored.sort(
+    (a, b) =>
+      a.distance - b.distance || a.fullName.localeCompare(b.fullName, "uk")
+  );
+  return scored.slice(0, k);
+}

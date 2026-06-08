@@ -5,6 +5,7 @@ import {
   applyCurrentPaymentsImport,
   type CpApplyResult,
   type CpDecision,
+  type CpNameSuggestion,
   type CpPreview,
   type CpPreviewRow,
 } from "./actions";
@@ -18,7 +19,13 @@ type DecisionMap = Record<
 >;
 
 function defaultDecision(row: CpPreviewRow): DecisionMap[number] | null {
-  if (row.building.kind !== "ok") return null;
+  if (row.building.kind !== "ok") {
+    // Помилка будинку: за замовчуванням пропускаємо, але користувач може
+    // явно обрати пенсіонера з підказок ФІО (тоді ми ігноруємо неправильну
+    // адресу й привʼязуємо до обраного існуючого пенсіонера).
+    // row_invalid (день поза місяцем) — неможливо відновити, теж skip.
+    return { action: "skip" };
+  }
   if (!row.pensioner) return null;
   switch (row.pensioner.kind) {
     case "exact":
@@ -36,12 +43,24 @@ function defaultDecision(row: CpPreviewRow): DecisionMap[number] | null {
   }
 }
 
-function rowIsError(row: CpPreviewRow): boolean {
-  return row.building.kind === "error";
+// Чи рядок не може бути імпортований ні за яких обставин (день поза місяцем).
+function rowIsHardError(row: CpPreviewRow): boolean {
+  return (
+    row.building.kind === "error" && row.building.error.kind === "row_invalid"
+  );
+}
+
+// Чи рядок має проблему з будинком (none / ambiguous), але користувач все ще
+// може врятувати його, обравши існуючого пенсіонера з підказок ФІО.
+function rowHasBuildingError(row: CpPreviewRow): boolean {
+  return (
+    row.building.kind === "error" && row.building.error.kind !== "row_invalid"
+  );
 }
 
 function rowNeedsDecision(row: CpPreviewRow): boolean {
-  if (rowIsError(row)) return false;
+  if (rowIsHardError(row)) return false;
+  if (rowHasBuildingError(row)) return false; // дефолт = skip, нічого вимагати
   if (!row.pensioner) return false;
   return row.pensioner.kind === "ambiguous";
 }
@@ -97,15 +116,26 @@ export function CurrentPaymentsPreview({
   const apply = () => {
     setError(null);
     setResult(null);
+    // hard-error рядки (день поза місяцем) ніколи не імпортуються — пропускаємо.
+    // Building-error рядки відправляємо лише якщо користувач обрав існуючого
+    // пенсіонера (use_existing). Інакше сервер їх все одно відхилить.
+    const sendable = (r: CpPreviewRow) => {
+      if (rowIsHardError(r)) return false;
+      if (rowHasBuildingError(r)) {
+        const d = decisions[r.rowNumber];
+        return d?.action === "use_existing";
+      }
+      return true;
+    };
     const decisionList: CpDecision[] = [];
     for (const r of preview.rows) {
-      if (rowIsError(r)) continue;
+      if (!sendable(r)) continue;
       const d = decisions[r.rowNumber];
       if (!d) continue;
       decisionList.push({ rowNumber: r.rowNumber, ...d });
     }
     const rowsPayload = preview.rows
-      .filter((r) => !rowIsError(r))
+      .filter(sendable)
       .map((r) => ({
         rowNumber: r.rowNumber,
         fullName: r.fullName,
@@ -319,26 +349,45 @@ function PreviewRowCard({
 
   if (row.building.kind === "error") {
     const err = row.building.error;
-    let msg = "";
-    if (err.kind === "ambiguous") {
-      const list = err.candidates
-        .map((c) => `"${c.street}, ${c.number}"`)
-        .join(", ");
-      msg = `Кілька будинків можуть відповідати: ${list}. Уточніть у файлі та повторіть імпорт.`;
-    } else if (err.kind === "none") {
-      msg = "Будинок не знайдено в дільниці. Виправте у файлі та повторіть імпорт.";
-    } else {
-      msg = err.message;
+    // row_invalid (день поза місяцем) — рядок невідновлюваний, без рішень.
+    if (err.kind === "row_invalid") {
+      return (
+        <li className="rounded border border-danger-border bg-danger-bg px-3 py-2 text-sm">
+          <div className="font-medium">
+            Рядок {row.rowNumber}: {row.fullName}
+          </div>
+          <div className="text-xs text-fg-muted">
+            {addr} · день {row.day} · {row.amount}
+          </div>
+          <div className="text-danger text-xs mt-1">{err.message}</div>
+        </li>
+      );
     }
+    // Будинок не знайдено / неоднозначний — даємо шанс врятувати рядок:
+    // якщо у файлі помилка в адресі, але ФІО близьке до існуючого пенсіонера,
+    // можна привʼязати виплату до нього напряму.
+    const msg =
+      err.kind === "ambiguous"
+        ? `Кілька будинків можуть відповідати: ${err.candidates
+            .map((c) => `"${c.street}, ${c.number}"`)
+            .join(", ")}. Виправте у файлі або оберіть існуючого пенсіонера нижче.`
+        : "Будинок не знайдено в дільниці. Виправте у файлі або оберіть існуючого пенсіонера нижче.";
     return (
-      <li className="rounded border border-danger-border bg-danger-bg px-3 py-2 text-sm">
+      <li className="rounded border border-danger-border bg-danger-bg px-3 py-2 text-sm space-y-2">
         <div className="font-medium">
           Рядок {row.rowNumber}: {row.fullName}
         </div>
         <div className="text-xs text-fg-muted">
           {addr} · день {row.day} · {row.amount}
+          {row.isPaid && " · виплачено"}
         </div>
-        <div className="text-danger text-xs mt-1">{msg}</div>
+        <div className="text-danger text-xs">{msg}</div>
+        <BuildingErrorDecisionControls
+          row={row}
+          decision={decision}
+          onChange={onChange}
+          disabled={disabled}
+        />
       </li>
     );
   }
@@ -456,12 +505,17 @@ function DecisionControls({
     </label>
   );
 
-  const otherOptions = row.buildingOptions.filter((o) => {
-    if (status.kind === "fuzzy" || status.kind === "ambiguous") {
-      return !status.candidates.some((c) => c.id === o.id);
-    }
-    return true;
-  });
+  // Для fuzzy/ambiguous: dropdown «іншого в будинку» допомагає, коли fuzzy-
+  // кандидат явно не той, а правильний — інший житель того ж будинку.
+  // Для "none": сусідів по будинку НЕ показуємо — якщо тут ніхто не схожий
+  // на імпортоване ФІО, ймовірніше помилка в адресі, а не в імені.
+  // Натомість пропонуємо топ-N найближчих ФІО з усієї бази (`nameSuggestions`).
+  const otherBuildingOptions =
+    status.kind === "fuzzy" || status.kind === "ambiguous"
+      ? row.buildingOptions.filter(
+          (o) => !status.candidates.some((c) => c.id === o.id)
+        )
+      : [];
 
   return (
     <div className="space-y-1 pl-1">
@@ -483,14 +537,25 @@ function DecisionControls({
         </span>
       </label>
 
-      {otherOptions.length > 0 && (
+      {status.kind === "none" && row.nameSuggestions.length > 0 && (
+        <NameSuggestionRadios
+          rowKey={rowKey}
+          suggestions={row.nameSuggestions}
+          isUseExisting={isUseExisting}
+          onChange={onChange}
+          disabled={disabled}
+          label="Або обрати найближчого за ФІО"
+        />
+      )}
+
+      {otherBuildingOptions.length > 0 && (
         <div className="flex items-center gap-2 text-xs">
           <span>Або обрати іншого в будинку:</span>
           <select
             disabled={disabled}
             value={
               decision?.action === "use_existing" &&
-              otherOptions.some((o) => o.id === decision.pensionerId)
+              otherBuildingOptions.some((o) => o.id === decision.pensionerId)
                 ? decision.pensionerId
                 : ""
             }
@@ -502,7 +567,7 @@ function DecisionControls({
             className="input py-0.5 text-xs"
           >
             <option value="">— оберіть —</option>
-            {otherOptions.map((o) => (
+            {otherBuildingOptions.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.fullName}
               </option>
@@ -511,6 +576,104 @@ function DecisionControls({
         </div>
       )}
 
+      <label className="flex items-center gap-2 text-xs cursor-pointer">
+        <input
+          type="radio"
+          name={`${rowKey}-action`}
+          checked={isSkip}
+          disabled={disabled}
+          onChange={() => onChange({ action: "skip" })}
+        />
+        <span className="text-fg-muted">Пропустити цей рядок</span>
+      </label>
+    </div>
+  );
+}
+
+// Топ-N найближчих ФІО з усієї бази — як радіо-опції. Показує адресу
+// кандидата, бо він зазвичай з іншого будинку (інакше потрапив би в
+// fuzzy/ambiguous-кандидати по будинку).
+function NameSuggestionRadios({
+  rowKey,
+  suggestions,
+  isUseExisting,
+  onChange,
+  disabled,
+  label,
+}: {
+  rowKey: string;
+  suggestions: CpNameSuggestion[];
+  isUseExisting: (id: number) => boolean;
+  onChange: (d: DecisionMap[number]) => void;
+  disabled: boolean;
+  label: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="text-xs text-fg-muted">{label}:</div>
+      {suggestions.map((s) => (
+        <label
+          key={s.id}
+          className="flex items-center gap-2 text-xs cursor-pointer pl-3"
+        >
+          <input
+            type="radio"
+            name={`${rowKey}-action`}
+            checked={isUseExisting(s.id)}
+            disabled={disabled}
+            onChange={() =>
+              onChange({ action: "use_existing", pensionerId: s.id })
+            }
+          />
+          <span>
+            <strong>{s.fullName}</strong>
+            {(s.street || s.number) && (
+              <span className="text-fg-subtle">
+                {" "}— {s.street}
+                {s.number ? `, № ${s.number}` : ""}
+              </span>
+            )}
+            {s.distance > 0 && (
+              <span className="text-fg-subtle"> (відстань {s.distance})</span>
+            )}
+          </span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+// Рішення для рядка з невирішеним будинком. Без «створити нового» (нема
+// куди прикріплювати). Або обираємо існуючого пенсіонера за ФІО з усієї
+// бази, або пропускаємо (за замовчуванням).
+function BuildingErrorDecisionControls({
+  row,
+  decision,
+  onChange,
+  disabled,
+}: {
+  row: CpPreviewRow;
+  decision: DecisionMap[number] | null;
+  onChange: (d: DecisionMap[number]) => void;
+  disabled: boolean;
+}) {
+  const rowKey = `r${row.rowNumber}`;
+  const isUseExisting = (id: number) =>
+    decision?.action === "use_existing" && decision.pensionerId === id;
+  const isSkip = decision?.action === "skip" || decision == null;
+
+  return (
+    <div className="space-y-1 pl-1">
+      {row.nameSuggestions.length > 0 && (
+        <NameSuggestionRadios
+          rowKey={rowKey}
+          suggestions={row.nameSuggestions}
+          isUseExisting={isUseExisting}
+          onChange={onChange}
+          disabled={disabled}
+          label="Найближчі за ФІО"
+        />
+      )}
       <label className="flex items-center gap-2 text-xs cursor-pointer">
         <input
           type="radio"

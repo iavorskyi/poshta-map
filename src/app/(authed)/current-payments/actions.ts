@@ -7,7 +7,23 @@ import { parseCurrentPaymentsXlsx } from "@/lib/currentPaymentImport";
 import { requireAdmin, requireUser } from "@/lib/auth";
 import { canEditCurrentPayment, canEditPensioner } from "@/lib/permissions";
 import { findBuildingByAddress } from "@/lib/streetMatch";
-import { findPensionerInBuilding, type NameMatchCandidate } from "@/lib/nameMatch";
+import {
+  findPensionerInBuilding,
+  findClosestPensionersByName,
+  type NameMatchCandidate,
+} from "@/lib/nameMatch";
+
+// Скільки топ-кандидатів по ФІО показуємо в UI, коли пенсіонера не знайдено
+// в очікуваному будинку або коли будинок не зрезолвлено.
+const NAME_SUGGESTION_LIMIT = 3;
+
+export type CpNameSuggestion = {
+  id: number;
+  fullName: string;
+  distance: number;
+  street: string;
+  number: string;
+};
 
 export async function createCurrentPayment(data: {
   pensionerId: number;
@@ -114,7 +130,14 @@ export type CpPreviewRow = {
     | { kind: "error"; error: CpPreviewBuildingError };
   pensioner: CpPreviewPensionerStatus | null;
   // Всі пенсіонери знайденого будинку — для ручного вибору в UI.
+  // Залишається порожнім для рядків з building-error.
   buildingOptions: { id: number; fullName: string }[];
+  // Топ-N найближчих ФІО серед УСІХ пенсіонерів дільниці. Заповнюємо для
+  // рядків, де пенсіонера в очікуваному будинку не знайдено
+  // (`pensioner.kind === "none"`), або де сам будинок не зрезолвлено
+  // (building.kind === "error"). UI пропонує ці варіанти як можливі «справжні»
+  // отримувачі, коли у файлі помилка адреси.
+  nameSuggestions: CpNameSuggestion[];
   // Бейдж: у цьому місяці для розпізнаного пенсіонера вже є виплата на цей день.
   dupInMonth: boolean;
 };
@@ -195,6 +218,34 @@ export async function previewCurrentPaymentsImport(
     list.push({ id: p.id, fullName: p.fullName });
     pensionersByBuilding.set(p.buildingId, list);
   }
+  // Плоский список для broad name-search (для випадку "пенсіонера в цьому
+  // будинку не знайдено" — підкажемо найближчі ФІО з інших будинків).
+  const allPensionersForBroadMatch = pensioners.map((p) => ({
+    id: p.id,
+    fullName: p.fullName,
+    buildingId: p.buildingId,
+  }));
+  const buildingById = new Map<number, { street: string; number: string }>();
+  for (const b of buildings) {
+    buildingById.set(b.id, { street: b.street, number: b.number });
+  }
+  const toNameSuggestions = (fullName: string): CpNameSuggestion[] => {
+    const top = findClosestPensionersByName(
+      allPensionersForBroadMatch,
+      fullName,
+      NAME_SUGGESTION_LIMIT
+    );
+    return top.map((c) => {
+      const b = buildingById.get(c.buildingId);
+      return {
+        id: c.id,
+        fullName: c.fullName,
+        distance: c.distance,
+        street: b?.street ?? "",
+        number: b?.number ?? "",
+      };
+    });
+  };
 
   const monthStart = new Date(year, month - 1, 1);
   const monthEnd = new Date(year, month, 1);
@@ -226,6 +277,9 @@ export async function previewCurrentPaymentsImport(
         },
         pensioner: null,
         buildingOptions: [],
+        // День невалідний — навіть якщо вгадати пенсіонера, дату не виправити;
+        // підказки тут не допоможуть.
+        nameSuggestions: [],
         dupInMonth: false,
       });
       continue;
@@ -247,6 +301,7 @@ export async function previewCurrentPaymentsImport(
         },
         pensioner: null,
         buildingOptions: [],
+        nameSuggestions: toNameSuggestions(r.fullName),
         dupInMonth: false,
       });
       continue;
@@ -263,6 +318,7 @@ export async function previewCurrentPaymentsImport(
         building: { kind: "error", error: { kind: "none" } },
         pensioner: null,
         buildingOptions: [],
+        nameSuggestions: toNameSuggestions(r.fullName),
         dupInMonth: false,
       });
       continue;
@@ -300,6 +356,10 @@ export async function previewCurrentPaymentsImport(
       },
       pensioner: matchResult,
       buildingOptions,
+      // Підказки за ФІО потрібні лише коли в очікуваному будинку ніхто не
+      // нагадує імпортоване імʼя — на випадок помилки адреси у файлі.
+      nameSuggestions:
+        matchResult.kind === "none" ? toNameSuggestions(r.fullName) : [],
       dupInMonth,
     });
   }
@@ -434,25 +494,12 @@ export async function applyCurrentPaymentsImport(
       continue;
     }
 
-    const match = findBuildingByAddress(buildings, r.street, r.house);
-    if (match.kind === "ambiguous") {
-      result.errors.push({
-        rowNumber: r.rowNumber,
-        message: `Кілька будинків можуть відповідати "${r.street}, ${r.house}" — уточніть у файлі`,
-      });
-      continue;
-    }
-    if (match.kind === "none") {
-      result.errors.push({
-        rowNumber: r.rowNumber,
-        message: `Будинок не знайдено в дільниці: ${r.street}, ${r.house}`,
-      });
-      continue;
-    }
-    const buildingId = match.id;
-
     let pensionerId: number;
     if (decision.action === "use_existing") {
+      // Користувач явно обрав пенсіонера — довіряємо вибору, навіть якщо
+      // адреса у файлі не зрезолвилась або відрізняється від адреси цього
+      // пенсіонера в БД. Імовірно, у файлі помилка адреси, а ФІО правильне.
+      // Будинок не перевіряємо: запис CurrentPayment зберігає лише pensionerId.
       const p = pensionersById.get(decision.pensionerId);
       if (!p) {
         result.errors.push({
@@ -461,16 +508,25 @@ export async function applyCurrentPaymentsImport(
         });
         continue;
       }
-      if (p.buildingId !== buildingId) {
+      pensionerId = p.id;
+    } else {
+      // create_new — без розпізнаного будинку створювати нового не можемо.
+      const match = findBuildingByAddress(buildings, r.street, r.house);
+      if (match.kind === "ambiguous") {
         result.errors.push({
           rowNumber: r.rowNumber,
-          message: `Обраний пенсіонер не належить до будинку ${r.street}, ${r.house}`,
+          message: `Кілька будинків можуть відповідати "${r.street}, ${r.house}" — уточніть у файлі або оберіть існуючого пенсіонера`,
         });
         continue;
       }
-      pensionerId = p.id;
-    } else {
-      // create_new
+      if (match.kind === "none") {
+        result.errors.push({
+          rowNumber: r.rowNumber,
+          message: `Будинок не знайдено в дільниці: ${r.street}, ${r.house} — виправте у файлі або оберіть існуючого пенсіонера`,
+        });
+        continue;
+      }
+      const buildingId = match.id;
       try {
         const newP = await prisma.pensioner.create({
           data: {
