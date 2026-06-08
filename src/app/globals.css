@@ -242,6 +242,7 @@ a[aria-busy="true"] {
 .slip-items li {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: 4mm;
   font-size: 10.5pt;
 }
@@ -249,6 +250,10 @@ a[aria-busy="true"] {
 .slip-item-name {
   flex: 1;
   min-width: 0;
+  /* Довгі назви типів виплат (напр. «Допомога…») мають переноситись усередині
+     бігунка, інакше сума виштовхується праворуч і ламає сітку. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .slip-item-code {
