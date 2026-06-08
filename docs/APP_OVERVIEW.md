@@ -298,7 +298,7 @@ Authed layout: [src/app/(authed)/layout.tsx](src/app/(authed)/layout.tsx) — `s
 
 ### 7.6. Імпорт XLSX
 [src/lib/currentPaymentImport.ts](src/lib/currentPaymentImport.ts), [src/lib/nameMatch.ts](src/lib/nameMatch.ts), [actions.ts](src/app/(authed)/current-payments/actions.ts), [ImportCurrentPayments.tsx](src/app/(authed)/current-payments/ImportCurrentPayments.tsx), [CurrentPaymentsPreview.tsx](src/app/(authed)/current-payments/CurrentPaymentsPreview.tsx)
-- Колонки: **ФІО, Вулиця, Будинок, День, Сума, Виплачено**
+- Колонки: **ФІО, Вулиця, Будинок, Квартира (опц.), День, Сума, Виплачено**. Якщо вказана квартира — спершу шукаємо пенсіонера лише серед її жителів (нормалізація: lowercase + без пробілів, тож "12А" = "12а" = "12 А"); fallback на весь будинок, коли в БД нікому ще не виставлено квартиру. На `create_new` квартира з файлу зберігається в новому пенсіонері
 - `parseBool`: `1 / true / так / yes / y / + / ✓ / ✔ / виплачено / оплачено`
 - Параметри форми: `paymentId`, `year`, `month`
 - **Двокроковий потік** (preview → apply): `previewCurrentPaymentsImport` повертає для кожного рядка резолв будинку (`exact|loose|ambiguous|none`) та резолв пенсіонера у межах будинку (`exact|fuzzy|ambiguous|none`); користувач у UI підтверджує рішення (прийняти запропонованого / обрати іншого з будинку / створити нового / обрати найближчого за ФІО з усієї бази / пропустити); `applyCurrentPaymentsImport` створює `CurrentPayment` за підтвердженими рішеннями. Ніяких неявних auto-create пенсіонерів — лише за явним «Створити нового»

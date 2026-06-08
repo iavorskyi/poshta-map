@@ -141,6 +141,7 @@ export function CurrentPaymentsPreview({
         fullName: r.fullName,
         street: r.street,
         house: r.house,
+        apartment: r.apartment,
         day: r.day,
         amount: r.amount,
         isPaid: r.isPaid,
@@ -345,7 +346,7 @@ function PreviewRowCard({
   onChange: (d: DecisionMap[number]) => void;
   disabled: boolean;
 }) {
-  const addr = `${row.street}, ${row.house}`;
+  const addr = `${row.street}, ${row.house}${row.apartment ? ` кв. ${row.apartment}` : ""}`;
 
   if (row.building.kind === "error") {
     const err = row.building.error;
@@ -570,6 +571,7 @@ function DecisionControls({
             {otherBuildingOptions.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.fullName}
+                {o.apartment ? ` (кв. ${o.apartment})` : ""}
               </option>
             ))}
           </select>
@@ -631,6 +633,7 @@ function NameSuggestionRadios({
               <span className="text-fg-subtle">
                 {" "}— {s.street}
                 {s.number ? `, № ${s.number}` : ""}
+                {s.apartment ? ` кв. ${s.apartment}` : ""}
               </span>
             )}
             {s.distance > 0 && (

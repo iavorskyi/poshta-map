@@ -23,7 +23,16 @@ export type CpNameSuggestion = {
   distance: number;
   street: string;
   number: string;
+  apartment: string | null;
 };
+
+// Нормалізація номера квартири для порівняння: викидаємо пробіли, lowercase.
+// Дозволяє матчити "12А" з "12а" і "12 А". Розділювачі типу "/" та "-"
+// зберігаємо — "12/1" і "12-1" це різні квартири.
+function normalizeApartment(input: string | null | undefined): string {
+  if (!input) return "";
+  return String(input).toLowerCase().replace(/\s+/g, "").trim();
+}
 
 export async function createCurrentPayment(data: {
   pensionerId: number;
@@ -121,6 +130,7 @@ export type CpPreviewRow = {
   fullName: string;
   street: string;
   house: string;
+  apartment: string | null;
   day: number;
   amount: number;
   isPaid: boolean;
@@ -131,7 +141,7 @@ export type CpPreviewRow = {
   pensioner: CpPreviewPensionerStatus | null;
   // Всі пенсіонери знайденого будинку — для ручного вибору в UI.
   // Залишається порожнім для рядків з building-error.
-  buildingOptions: { id: number; fullName: string }[];
+  buildingOptions: { id: number; fullName: string; apartment: string | null }[];
   // Топ-N найближчих ФІО серед УСІХ пенсіонерів дільниці. Заповнюємо для
   // рядків, де пенсіонера в очікуваному будинку не знайдено
   // (`pensioner.kind === "none"`), або де сам будинок не зрезолвлено
@@ -210,12 +220,15 @@ export async function previewCurrentPaymentsImport(
     select: { id: true, street: true, number: true },
   });
   const pensioners = await prisma.pensioner.findMany({
-    select: { id: true, fullName: true, buildingId: true },
+    select: { id: true, fullName: true, buildingId: true, apartment: true },
   });
-  const pensionersByBuilding = new Map<number, { id: number; fullName: string }[]>();
+  const pensionersByBuilding = new Map<
+    number,
+    { id: number; fullName: string; apartment: string | null }[]
+  >();
   for (const p of pensioners) {
     const list = pensionersByBuilding.get(p.buildingId) ?? [];
-    list.push({ id: p.id, fullName: p.fullName });
+    list.push({ id: p.id, fullName: p.fullName, apartment: p.apartment });
     pensionersByBuilding.set(p.buildingId, list);
   }
   // Плоский список для broad name-search (для випадку "пенсіонера в цьому
@@ -225,6 +238,8 @@ export async function previewCurrentPaymentsImport(
     fullName: p.fullName,
     buildingId: p.buildingId,
   }));
+  const apartmentById = new Map<number, string | null>();
+  for (const p of pensioners) apartmentById.set(p.id, p.apartment);
   const buildingById = new Map<number, { street: string; number: string }>();
   for (const b of buildings) {
     buildingById.set(b.id, { street: b.street, number: b.number });
@@ -243,6 +258,7 @@ export async function previewCurrentPaymentsImport(
         distance: c.distance,
         street: b?.street ?? "",
         number: b?.number ?? "",
+        apartment: apartmentById.get(c.id) ?? null,
       };
     });
   };
@@ -265,6 +281,7 @@ export async function previewCurrentPaymentsImport(
         fullName: r.fullName,
         street: r.street,
         house: r.house,
+        apartment: r.apartment,
         day: r.day,
         amount: r.amount,
         isPaid: r.isPaid,
@@ -292,6 +309,7 @@ export async function previewCurrentPaymentsImport(
         fullName: r.fullName,
         street: r.street,
         house: r.house,
+        apartment: r.apartment,
         day: r.day,
         amount: r.amount,
         isPaid: r.isPaid,
@@ -312,6 +330,7 @@ export async function previewCurrentPaymentsImport(
         fullName: r.fullName,
         street: r.street,
         house: r.house,
+        apartment: r.apartment,
         day: r.day,
         amount: r.amount,
         isPaid: r.isPaid,
@@ -327,7 +346,18 @@ export async function previewCurrentPaymentsImport(
     const buildingId = match.id;
     const buildingRow = buildings.find((b) => b.id === buildingId);
     const buildingOptions = pensionersByBuilding.get(buildingId) ?? [];
-    const matchResult = findPensionerInBuilding(buildingOptions, r.fullName);
+    // Якщо у файлі вказана квартира, спочатку шукаємо лише серед жителів цієї
+    // квартири — це різко зменшує шанс плутанини в багатоквартирних будинках.
+    // Fallback на весь будинок: коли у БД ще нікому не виставлено квартиру
+    // (стара база) або номер не збігається — все одно показуємо матч,
+    // користувач підтвердить вручну.
+    const aptN = normalizeApartment(r.apartment);
+    const aptFiltered = aptN
+      ? buildingOptions.filter((p) => normalizeApartment(p.apartment) === aptN)
+      : buildingOptions;
+    const candidatesForMatch =
+      aptFiltered.length > 0 ? aptFiltered : buildingOptions;
+    const matchResult = findPensionerInBuilding(candidatesForMatch, r.fullName);
 
     // dupInMonth — лише для exact/fuzzy/ambiguous-вибору з першим кандидатом.
     let dupCandidatePid: number | null = null;
@@ -343,6 +373,7 @@ export async function previewCurrentPaymentsImport(
       fullName: r.fullName,
       street: r.street,
       house: r.house,
+      apartment: r.apartment,
       day: r.day,
       amount: r.amount,
       isPaid: r.isPaid,
@@ -383,6 +414,7 @@ export type CpRowPayload = {
   fullName: string;
   street: string;
   house: string;
+  apartment: string | null;
   day: number;
   amount: number;
   isPaid: boolean;
@@ -527,11 +559,13 @@ export async function applyCurrentPaymentsImport(
         continue;
       }
       const buildingId = match.id;
+      const apartment = r.apartment?.trim() || null;
       try {
         const newP = await prisma.pensioner.create({
           data: {
             fullName: r.fullName.trim(),
             buildingId,
+            apartment,
             pensionPaymentDay: r.day,
             notes: "Створено при імпорті виплат (підтверджено)",
           },

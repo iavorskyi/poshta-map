@@ -5,6 +5,7 @@ export type ParsedCpRow = {
   fullName: string;
   street: string;
   house: string;
+  apartment: string | null;
   day: number;
   amount: number;
   isPaid: boolean;
@@ -12,10 +13,14 @@ export type ParsedCpRow = {
 
 export type CpRowError = { rowNumber: number; message: string };
 
+// "Квартира" — опціональна колонка. Старі файли без неї працюють як раніше;
+// нові файли з нею допомагають однозначно знайти пенсіонера у багатоквартирному
+// будинку та зберегти квартиру при створенні нового.
 export const CP_COLUMN_HEADERS = [
   "ФІО",
   "Вулиця",
   "Будинок",
+  "Квартира",
   "День",
   "Сума",
   "Виплачено",
@@ -29,6 +34,9 @@ const HEADER_ALIASES: Record<string, string> = {
   "вулиця": "Вулиця",
   "будинок": "Будинок",
   "буд": "Будинок",
+  "квартира": "Квартира",
+  "кв": "Квартира",
+  "кв.": "Квартира",
   "день": "День",
   "число": "День",
   "день місяця": "День",
@@ -138,6 +146,7 @@ export async function parseCurrentPaymentsXlsx(buffer: ArrayBuffer): Promise<CpP
     const fullName = get("ФІО");
     const street = get("Вулиця");
     const house = get("Будинок");
+    const apartment = get("Квартира") || null;
     const dayRaw = get("День");
     const amountRaw = get("Сума");
     const paidRaw = get("Виплачено");
@@ -172,6 +181,7 @@ export async function parseCurrentPaymentsXlsx(buffer: ArrayBuffer): Promise<CpP
       fullName,
       street,
       house,
+      apartment,
       day,
       amount,
       isPaid: parseBool(paidRaw),
@@ -188,13 +198,24 @@ export async function buildCurrentPaymentsTemplate(): Promise<Buffer> {
     header: h,
     key: h,
     width:
-      h === "ФІО" ? 28 : h === "Вулиця" ? 22 : h === "Сума" ? 14 : h === "Виплачено" ? 12 : 10,
+      h === "ФІО"
+        ? 28
+        : h === "Вулиця"
+          ? 22
+          : h === "Сума"
+            ? 14
+            : h === "Виплачено"
+              ? 12
+              : h === "Квартира"
+                ? 10
+                : 10,
   }));
   ws.getRow(1).font = { bold: true };
   ws.addRow({
     "ФІО": "Петренко Марія Іванівна",
     "Вулиця": "вул. Шевченка",
     "Будинок": "12",
+    "Квартира": "5",
     "День": 5,
     "Сума": 3500,
     "Виплачено": "так",
@@ -203,6 +224,7 @@ export async function buildCurrentPaymentsTemplate(): Promise<Buffer> {
     "ФІО": "Коваль Олексій Петрович",
     "Вулиця": "вул. Франка",
     "Будинок": "4",
+    "Квартира": "",
     "День": 12,
     "Сума": 4100,
     "Виплачено": "",
