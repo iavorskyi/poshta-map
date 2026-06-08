@@ -598,6 +598,63 @@ export async function applyCurrentPaymentsImport(
   return result;
 }
 
+// Перенесення виплати на іншого пенсіонера. Сценарій: випадково створили
+// дубль пенсіонера (через одруківку), на нього записались виплати — треба
+// злити в існуючого. Адресу/будинок не перевіряємо: запис CurrentPayment
+// тримає лише `pensionerId`. `roundId` лишаємо як є — якщо новий пенсіонер
+// під іншим листоношею, ніж round, користувач сам розбереться (видалить з
+// обходу або переприсвоїть). Дубль-перевірку (вже є виплата на цю дату для
+// нового пенсіонера) не робимо: ручне перенесення — це вже усвідомлена дія.
+export async function moveCurrentPaymentToPensioner(
+  id: number,
+  newPensionerId: number
+) {
+  const me = await requireUser();
+  if (!Number.isInteger(id) || id <= 0) return { error: "Невірний id виплати" };
+  if (!Number.isInteger(newPensionerId) || newPensionerId <= 0) {
+    return { error: "Оберіть пенсіонера" };
+  }
+
+  const existing = await prisma.currentPayment.findUnique({
+    where: { id },
+    select: {
+      pensionerId: true,
+      roundId: true,
+      round: { select: { postmanId: true } },
+      pensioner: { select: { postmanId: true } },
+    },
+  });
+  if (!existing) return { error: "Виплату не знайдено" };
+  if (!canEditCurrentPayment(me, existing)) {
+    return { error: "Недостатньо прав" };
+  }
+  if (existing.pensionerId === newPensionerId) {
+    return { error: "Це той самий пенсіонер" };
+  }
+
+  const target = await prisma.pensioner.findUnique({
+    where: { id: newPensionerId },
+    select: { id: true, postmanId: true },
+  });
+  if (!target) return { error: "Цільового пенсіонера не знайдено" };
+  // Не даємо «віддати» виплату пенсіонерові, на якого користувач не має
+  // прав. Адміни проходять цю перевірку автоматично.
+  if (!canEditPensioner(me, target)) {
+    return { error: "Не можна перенести на цього пенсіонера" };
+  }
+
+  const updated = await prisma.currentPayment.update({
+    where: { id },
+    data: { pensionerId: newPensionerId },
+  });
+
+  revalidatePath("/current-payments");
+  revalidatePath(`/pensioners/${existing.pensionerId}`);
+  revalidatePath(`/pensioners/${newPensionerId}`);
+  if (updated.roundId) revalidatePath(`/rounds/${updated.roundId}`);
+  return { ok: true };
+}
+
 export async function deleteCurrentPayment(id: number) {
   const me = await requireUser();
   const existing = await prisma.currentPayment.findUnique({

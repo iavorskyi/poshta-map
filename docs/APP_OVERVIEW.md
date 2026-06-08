@@ -294,7 +294,7 @@ Authed layout: [src/app/(authed)/layout.tsx](src/app/(authed)/layout.tsx) — `s
 ### 7.5. Таблиця (inline-edit)
 - Колонки: Дата, Пенсіонер, Тип, Сума (input number, `onBlur` save), Виплачено (checkbox), Листоноша, Обхід, дії
 - Permission per item: якщо `!canEdit` — input/checkbox `disabled`
-- Видалення з підтвердженням, тост-фідбек
+- Дії: «Перенести» (відкриває інлайн-панель з `PensionerCombobox` для переносу виплати на іншого пенсіонера — кейс випадкового дубля з одруківкою) + «Видалити» (з нативним `confirm`). Сервер `moveCurrentPaymentToPensioner` перевіряє `canEditCurrentPayment` для джерела І `canEditPensioner` для цілі (щоб не «віддавати» виплати чужим). Адресу/будинок при переносі не зачіпаємо; `roundId` лишається — користувач сам розбирається, якщо новий пенсіонер під іншим листоношею. Список цілей: для адміна — усі пенсіонери, для звичайного — лише editable
 
 ### 7.6. Імпорт XLSX
 [src/lib/currentPaymentImport.ts](src/lib/currentPaymentImport.ts), [src/lib/nameMatch.ts](src/lib/nameMatch.ts), [actions.ts](src/app/(authed)/current-payments/actions.ts), [ImportCurrentPayments.tsx](src/app/(authed)/current-payments/ImportCurrentPayments.tsx), [CurrentPaymentsPreview.tsx](src/app/(authed)/current-payments/CurrentPaymentsPreview.tsx)

@@ -26,21 +26,29 @@ export default async function EditPensionerPage({
   const sp = await searchParams;
   const { from, to, fromStr, toStr } = parseRange(sp.from, sp.to);
 
-  const [pensioner, payments, currentPayments, buildings, postmen] = await Promise.all([
-    prisma.pensioner.findUnique({ where: { id } }),
-    getCachedPayments(),
-    prisma.currentPayment.findMany({
-      where: { pensionerId: id, date: { gte: from, lte: to } },
-      include: {
-        pensioner: { select: { id: true, fullName: true, postmanId: true } },
-        payment: true,
-        round: { select: { id: true, postmanId: true } },
-      },
-      orderBy: [{ date: "asc" }, { id: "asc" }],
-    }),
-    prisma.building.findMany({ orderBy: [{ street: "asc" }, { number: "asc" }] }),
-    getCachedPostmen(),
-  ]);
+  const [pensioner, payments, currentPayments, buildings, postmen, allPensioners] =
+    await Promise.all([
+      prisma.pensioner.findUnique({ where: { id } }),
+      getCachedPayments(),
+      prisma.currentPayment.findMany({
+        where: { pensionerId: id, date: { gte: from, lte: to } },
+        include: {
+          pensioner: { select: { id: true, fullName: true, postmanId: true } },
+          payment: true,
+          round: { select: { id: true, postmanId: true } },
+        },
+        orderBy: [{ date: "asc" }, { id: "asc" }],
+      }),
+      prisma.building.findMany({ orderBy: [{ street: "asc" }, { number: "asc" }] }),
+      getCachedPostmen(),
+      // Список цілей для «перенести виплату» — на цій сторінці часто й
+      // помічають дубль, тож тримаємо доступним. Сервер усе одно перевірить
+      // canEditPensioner.
+      prisma.pensioner.findMany({
+        select: { id: true, fullName: true, postmanId: true },
+        orderBy: { fullName: "asc" },
+      }),
+    ]);
 
   if (!pensioner) notFound();
 
@@ -130,6 +138,10 @@ export default async function EditPensionerPage({
                 pensioner: it.pensioner,
               }),
             }))}
+            transferTargets={(me.isAdmin
+              ? allPensioners
+              : allPensioners.filter((p) => canEditPensioner(me, p))
+            ).map((p) => ({ id: p.id, fullName: p.fullName }))}
           />
         )}
       </div>

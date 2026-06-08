@@ -2,10 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
-import { deleteCurrentPayment, updateCurrentPaymentFields } from "./actions";
+import { useState, useTransition } from "react";
+import {
+  deleteCurrentPayment,
+  moveCurrentPaymentToPensioner,
+  updateCurrentPaymentFields,
+} from "./actions";
 import { formatDate, formatUAH } from "@/lib/format";
 import { useGlobalPending } from "@/components/RouteProgress";
+import { PensionerCombobox } from "@/components/PensionerCombobox";
 
 export type SortKey =
   | "date"
@@ -31,10 +36,12 @@ type Item = {
 
 export function CurrentPaymentsTable({
   items,
+  transferTargets,
   sort = "date",
   dir = "asc",
 }: {
   items: Item[];
+  transferTargets: { id: number; fullName: string }[];
   sort?: SortKey;
   dir?: "asc" | "desc";
 }) {
@@ -42,6 +49,11 @@ export function CurrentPaymentsTable({
   useGlobalPending(isPending);
   const pathname = usePathname();
   const sp = useSearchParams();
+  // id рядка, для якого відкрита панель «перенести на іншого пенсіонера».
+  // Зберігаємо також локальний вибір комбобокса, щоб не зливати з умовним value.
+  const [movingId, setMovingId] = useState<number | null>(null);
+  const [moveTargetId, setMoveTargetId] = useState<number | "">("");
+  const [moveError, setMoveError] = useState<string | null>(null);
 
   if (items.length === 0) return null;
 
@@ -61,6 +73,32 @@ export function CurrentPaymentsTable({
     if (!confirm("Видалити цю виплату?")) return;
     startTransition(async () => {
       await deleteCurrentPayment(id);
+    });
+  };
+
+  const openMove = (id: number) => {
+    setMovingId(id);
+    setMoveTargetId("");
+    setMoveError(null);
+  };
+  const cancelMove = () => {
+    setMovingId(null);
+    setMoveTargetId("");
+    setMoveError(null);
+  };
+  const submitMove = (id: number) => {
+    if (typeof moveTargetId !== "number") {
+      setMoveError("Оберіть пенсіонера");
+      return;
+    }
+    setMoveError(null);
+    startTransition(async () => {
+      const res = await moveCurrentPaymentToPensioner(id, moveTargetId);
+      if (res?.error) {
+        setMoveError(res.error);
+        return;
+      }
+      cancelMove();
     });
   };
 
@@ -135,6 +173,17 @@ export function CurrentPaymentsTable({
               />
               {it.canEdit && (
                 <button
+                  onClick={() => openMove(it.id)}
+                  className="text-fg-muted hover:text-fg text-sm px-2 py-1"
+                  aria-label="Перенести на іншого пенсіонера"
+                  title="Перенести на іншого пенсіонера"
+                  disabled={isPending}
+                >
+                  ↔
+                </button>
+              )}
+              {it.canEdit && (
+                <button
                   onClick={() => removeItem(it.id)}
                   className="text-danger text-sm px-2 py-1"
                   aria-label="Видалити"
@@ -143,6 +192,17 @@ export function CurrentPaymentsTable({
                 </button>
               )}
             </div>
+            {movingId === it.id && (
+              <MovePanel
+                targets={transferTargets.filter((t) => t.id !== it.pensionerId)}
+                value={moveTargetId}
+                onChange={setMoveTargetId}
+                onCancel={cancelMove}
+                onSubmit={() => submitMove(it.id)}
+                disabled={isPending}
+                error={moveError}
+              />
+            )}
           </li>
         ))}
       </ul>
@@ -208,7 +268,7 @@ export function CurrentPaymentsTable({
             </tr>
           </thead>
           <tbody>
-            {items.map((it) => (
+            {items.flatMap((it) => [
               <tr key={it.id} className="border-t border-border">
                 <td className="px-3 py-2">{formatDate(it.date)}</td>
                 <td className="px-3 py-2">
@@ -258,18 +318,45 @@ export function CurrentPaymentsTable({
                     <span className="text-fg-subtle">—</span>
                   )}
                 </td>
-                <td className="px-3 py-2 text-right">
+                <td className="px-3 py-2 text-right whitespace-nowrap">
                   {it.canEdit && (
-                    <button
-                      onClick={() => removeItem(it.id)}
-                      className="text-danger hover:underline text-sm"
-                    >
-                      Видалити
-                    </button>
+                    <>
+                      <button
+                        onClick={() => openMove(it.id)}
+                        className="text-fg-muted hover:text-fg hover:underline text-sm mr-3"
+                        disabled={isPending}
+                        title="Перенести на іншого пенсіонера"
+                      >
+                        Перенести
+                      </button>
+                      <button
+                        onClick={() => removeItem(it.id)}
+                        className="text-danger hover:underline text-sm"
+                      >
+                        Видалити
+                      </button>
+                    </>
                   )}
                 </td>
-              </tr>
-            ))}
+              </tr>,
+              movingId === it.id ? (
+                <tr key={`${it.id}-move`} className="border-t border-border bg-elevated">
+                  <td colSpan={8} className="px-3 py-2">
+                    <MovePanel
+                      targets={transferTargets.filter(
+                        (t) => t.id !== it.pensionerId
+                      )}
+                      value={moveTargetId}
+                      onChange={setMoveTargetId}
+                      onCancel={cancelMove}
+                      onSubmit={() => submitMove(it.id)}
+                      disabled={isPending}
+                      error={moveError}
+                    />
+                  </td>
+                </tr>
+              ) : null,
+            ])}
           </tbody>
         </table>
       </div>
@@ -316,5 +403,58 @@ function SortHeader({
         {arrow && <span className="text-xs">{arrow}</span>}
       </Link>
     </th>
+  );
+}
+
+// Інлайн-панель для перенесення виплати на іншого пенсіонера. Показується
+// під рядком (мобільна картка) або в наступному `<tr colSpan=8>` (десктоп).
+function MovePanel({
+  targets,
+  value,
+  onChange,
+  onCancel,
+  onSubmit,
+  disabled,
+  error,
+}: {
+  targets: { id: number; fullName: string }[];
+  value: number | "";
+  onChange: (id: number | "") => void;
+  onCancel: () => void;
+  onSubmit: () => void;
+  disabled: boolean;
+  error: string | null;
+}) {
+  return (
+    <div className="space-y-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-fg-muted whitespace-nowrap">Перенести на:</span>
+        <div className="min-w-[16rem] flex-1">
+          <PensionerCombobox
+            pensioners={targets}
+            value={value}
+            onChange={onChange}
+            placeholder="Почніть вводити ФІО…"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={onSubmit}
+          disabled={disabled || typeof value !== "number"}
+          className="btn-primary"
+        >
+          Перенести
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={disabled}
+          className="btn-secondary"
+        >
+          Скасувати
+        </button>
+      </div>
+      {error && <div className="text-danger text-xs">{error}</div>}
+    </div>
   );
 }

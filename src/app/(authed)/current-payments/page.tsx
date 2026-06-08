@@ -152,6 +152,13 @@ export default async function CurrentPaymentsPage({
             pensioner: it.pensioner,
           }),
         }))}
+        // Список цілей для «перенести виплату». Для адміна — усі пенсіонери;
+        // для звичайного користувача — лише ті, на яких він має edit-права
+        // (сервер усе одно це перевірить, але показувати чужих немає сенсу).
+        transferTargets={(me.isAdmin ? pensioners : editablePensioners).map((p) => ({
+          id: p.id,
+          fullName: p.fullName,
+        }))}
         sort={sort}
         dir={dir}
       />
