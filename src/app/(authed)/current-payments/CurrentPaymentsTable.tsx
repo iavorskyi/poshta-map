@@ -208,7 +208,7 @@ export function CurrentPaymentsTable({
       </ul>
 
       {/* Desktop: table */}
-      <div className="hidden md:block card overflow-hidden">
+      <div className="hidden md:block card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-elevated text-fg-muted">
             <tr>
@@ -279,9 +279,11 @@ export function CurrentPaymentsTable({
                     {it.pensionerName}
                   </Link>
                 </td>
-                <td className="px-3 py-2">
-                  {it.paymentName}{" "}
-                  <span className="font-mono text-xs text-fg-subtle">({it.paymentCode})</span>
+                <td className="px-3 py-2 align-top">
+                  <div className="max-w-[16rem] break-words">
+                    {it.paymentName}{" "}
+                    <span className="font-mono text-xs text-fg-subtle">({it.paymentCode})</span>
+                  </div>
                 </td>
                 <td className="px-3 py-2 text-right">
                   <input
@@ -320,22 +322,25 @@ export function CurrentPaymentsTable({
                 </td>
                 <td className="px-3 py-2 text-right whitespace-nowrap">
                   {it.canEdit && (
-                    <>
+                    <div className="inline-flex items-center gap-2">
                       <button
                         onClick={() => openMove(it.id)}
-                        className="text-fg-muted hover:text-fg hover:underline text-sm mr-3"
+                        className="text-fg-muted hover:text-fg text-base leading-none"
                         disabled={isPending}
+                        aria-label="Перенести на іншого пенсіонера"
                         title="Перенести на іншого пенсіонера"
                       >
-                        Перенести
+                        ↔
                       </button>
                       <button
                         onClick={() => removeItem(it.id)}
-                        className="text-danger hover:underline text-sm"
+                        className="text-danger text-base leading-none"
+                        aria-label="Видалити"
+                        title="Видалити"
                       >
-                        Видалити
+                        ✕
                       </button>
-                    </>
+                    </div>
                   )}
                 </td>
               </tr>,
