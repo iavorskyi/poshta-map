@@ -15,6 +15,13 @@ import { usePathname, useSearchParams } from "next/navigation";
 const START_EVENT = "app:pending-start";
 const END_EVENT = "app:pending-end";
 
+// Скільки часу чекаємо «реальної» події після інкременту з кліку/сабміту.
+// Click/submit — лише здогадка про завантаження. Якщо за цей час URL не
+// змінився і не зʼявився useGlobalPending, вважаємо інкремент застряглим
+// (наприклад, форма зробила preventDefault і пішла через useTransition,
+// чи Link клікнули, але навігація не відбулась) і скидаємо.
+const INFERRED_TIMEOUT_MS = 8000;
+
 export function RouteProgress() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -26,6 +33,16 @@ export function RouteProgress() {
   }, [pathname, searchParams]);
 
   useEffect(() => {
+    const safetyTimers = new Set<number>();
+    const bumpWithSafety = () => {
+      setCount((c) => c + 1);
+      const t = window.setTimeout(() => {
+        safetyTimers.delete(t);
+        setCount((c) => Math.max(0, c - 1));
+      }, INFERRED_TIMEOUT_MS);
+      safetyTimers.add(t);
+    };
+
     const onClick = (e: MouseEvent) => {
       // Тільки прості ліві кліки без модифікаторів
       if (e.defaultPrevented) return;
@@ -50,12 +67,12 @@ export function RouteProgress() {
       ) {
         return;
       }
-      setCount((c) => c + 1);
+      bumpWithSafety();
     };
 
     const onSubmit = (e: SubmitEvent) => {
       if (e.defaultPrevented) return;
-      setCount((c) => c + 1);
+      bumpWithSafety();
     };
 
     const onStart = () => setCount((c) => c + 1);
@@ -70,6 +87,8 @@ export function RouteProgress() {
       document.removeEventListener("submit", onSubmit, true);
       document.removeEventListener(START_EVENT, onStart);
       document.removeEventListener(END_EVENT, onEnd);
+      safetyTimers.forEach((t) => clearTimeout(t));
+      safetyTimers.clear();
     };
   }, []);
 
