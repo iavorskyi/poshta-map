@@ -20,10 +20,11 @@ export async function createOrganization(formData: FormData): Promise<CreateResu
   if (!name) return { error: "Назва обов'язкова" };
   const address = strOrNull(formData.get("address"));
   const description = strOrNull(formData.get("description"));
+  const storageLocation = strOrNull(formData.get("storageLocation"));
   const picksUpMail = formData.get("picksUpMail") === "on";
 
   const org = await prisma.organization.create({
-    data: { name, address, description, picksUpMail },
+    data: { name, address, description, picksUpMail, storageLocation },
     select: { id: true },
   });
   revalidatePath("/organizations");
@@ -40,11 +41,12 @@ export async function updateOrganization(
   if (!name) return { error: "Назва обов'язкова" };
   const address = strOrNull(formData.get("address"));
   const description = strOrNull(formData.get("description"));
+  const storageLocation = strOrNull(formData.get("storageLocation"));
   const picksUpMail = formData.get("picksUpMail") === "on";
 
   await prisma.organization.update({
     where: { id },
-    data: { name, address, description, picksUpMail },
+    data: { name, address, description, picksUpMail, storageLocation },
   });
   revalidatePath("/organizations");
   revalidatePath(`/organizations/${id}`);

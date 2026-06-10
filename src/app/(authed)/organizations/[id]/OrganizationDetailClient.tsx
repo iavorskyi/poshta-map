@@ -26,6 +26,7 @@ type Org = {
   address: string | null;
   description: string | null;
   picksUpMail: boolean;
+  storageLocation: string | null;
   contacts: Contact[];
 };
 
@@ -48,6 +49,7 @@ type Candidate = {
   name: string;
   address: string | null;
   description: string | null;
+  storageLocation: string | null;
   contacts: { name: string; phone: string | null; note: string | null }[];
 };
 
@@ -200,6 +202,7 @@ export function OrganizationDetailClient({
             address: org.address,
             description: org.description,
             picksUpMail: org.picksUpMail,
+            storageLocation: org.storageLocation,
           }}
           onSubmit={handleUpdate}
           onCancel={() => setEditing(false)}
@@ -223,6 +226,12 @@ export function OrganizationDetailClient({
           {org.address && (
             <div className="text-sm text-fg-muted">
               <span className="text-fg-subtle">Адреса:</span> {org.address}
+            </div>
+          )}
+          {org.storageLocation && (
+            <div className="text-sm">
+              <span className="text-fg-subtle">Локація комірки:</span>{" "}
+              <span className="font-medium">{org.storageLocation}</span>
             </div>
           )}
           {org.description && (

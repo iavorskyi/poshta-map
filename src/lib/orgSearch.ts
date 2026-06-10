@@ -12,6 +12,7 @@ export type OrgSearchInput = {
   name: string;
   address: string | null;
   description: string | null;
+  storageLocation: string | null;
   contacts: { name: string; phone: string | null; note: string | null }[];
 };
 
@@ -96,6 +97,7 @@ export function searchOrganizations<T extends OrgSearchInput>(
     consider(scoreText(qNorm, org.name), "name");
     consider(scoreText(qNorm, org.address), "address");
     consider(scoreText(qNorm, org.description), "address");
+    consider(scoreText(qNorm, org.storageLocation), "address");
 
     // Контакти: ФІО + примітка fuzzy; телефон — лише substring по цифрам.
     for (const c of org.contacts) {

@@ -83,6 +83,7 @@ export default async function OrganizationDetailPage({
       name: true,
       address: true,
       description: true,
+      storageLocation: true,
       contacts: {
         orderBy: { id: "asc" },
         select: { name: true, phone: true, note: true },
@@ -99,6 +100,7 @@ export default async function OrganizationDetailPage({
         address: org.address,
         description: org.description,
         picksUpMail: org.picksUpMail,
+        storageLocation: org.storageLocation,
         contacts: org.contacts.map((c) => ({
           id: c.id,
           name: c.name,
@@ -126,6 +128,7 @@ export default async function OrganizationDetailPage({
         name: c.name,
         address: c.address,
         description: c.description,
+        storageLocation: c.storageLocation,
         contacts: c.contacts.map((cc) => ({
           name: cc.name,
           phone: cc.phone,

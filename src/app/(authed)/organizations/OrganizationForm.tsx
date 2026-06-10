@@ -7,6 +7,7 @@ export type OrganizationFormValues = {
   address: string | null;
   description: string | null;
   picksUpMail: boolean;
+  storageLocation: string | null;
 };
 
 // Інлайн-форма (без модалок) — використовується і для створення, і для
@@ -67,6 +68,15 @@ export function OrganizationForm({
           className="input w-full"
           rows={2}
           placeholder="Чим займаються, особливості доставки тощо"
+        />
+      </div>
+      <div>
+        <label className="block text-xs text-fg-muted mb-1">Локація комірки</label>
+        <input
+          name="storageLocation"
+          defaultValue={defaultValues?.storageLocation ?? ""}
+          className="input w-full"
+          placeholder="Коробка №3, шухляда зліва, а/с 17…"
         />
       </div>
       <label className="flex items-center gap-2 text-sm">

@@ -44,6 +44,7 @@ export default async function OrganizationsPage({
           address: h.org.address,
           description: h.org.description,
           picksUpMail: h.org.picksUpMail,
+          storageLocation: h.org.storageLocation,
           contacts: h.org.contacts,
           matchedOn: h.matchedOn,
         }))}

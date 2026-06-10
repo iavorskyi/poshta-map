@@ -16,6 +16,7 @@ type Org = {
   address: string | null;
   description: string | null;
   picksUpMail: boolean;
+  storageLocation: string | null;
   contacts: Contact[];
   matchedOn: "name" | "address" | "contact" | "phone";
 };
@@ -135,6 +136,12 @@ export function OrganizationsClient({
                   {o.address && (
                     <div className="text-sm text-fg-muted mt-0.5">
                       {o.address}
+                    </div>
+                  )}
+                  {o.storageLocation && (
+                    <div className="text-xs mt-0.5">
+                      <span className="text-fg-subtle">Комірка:</span>{" "}
+                      <span className="font-medium">{o.storageLocation}</span>
                     </div>
                   )}
                   {o.description && (

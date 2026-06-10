@@ -192,6 +192,7 @@ model Organization {
   address      String?
   description  String?
   picksUpMail  Boolean                @default(false)
+  storageLocation String?
   createdAt    DateTime               @default(now())
   updatedAt    DateTime               @updatedAt
   contacts     OrganizationContact[]
