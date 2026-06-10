@@ -285,12 +285,19 @@ export async function removePensionerFromRound(
   const check = await loadRoundAndCheck(roundId);
   if ("error" in check) return { error: check.error };
   try {
-    const result = await prisma.currentPayment.deleteMany({
+    // Прибирання пенсіонера з обходу — лише відвʼязка від раунду, без
+    // видалення виплат. CurrentPayment — самостійна сутність (бачимо її на
+    // /current-payments), `roundId` опціональний. Раніше тут стояв deleteMany,
+    // що знищував виплати, — це втрачало дані, особливо для імпортованих
+    // виплат, які адмін випадково додав не в той обхід.
+    const result = await prisma.currentPayment.updateMany({
       where: { roundId, pensionerId },
+      data: { roundId: null, roundPosition: 0 },
     });
     // Не інвалідуємо /rounds/${roundId} — клієнт оновлюється оптимістично.
     revalidatePath("/current-payments");
-    return { ok: true, deleted: result.count };
+    revalidatePath(`/pensioners/${pensionerId}`);
+    return { ok: true, detached: result.count };
   } catch (e) {
     return {
       error: `Не вдалося прибрати пенсіонера: ${

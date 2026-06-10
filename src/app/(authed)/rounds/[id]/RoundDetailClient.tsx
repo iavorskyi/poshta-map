@@ -336,7 +336,12 @@ export function RoundDetailClient({
   };
 
   const removePensioner = (pensionerId: number, name: string) => {
-    if (!confirm(`Прибрати ${name} з обходу разом з усіма його виплатами?`)) return;
+    if (
+      !confirm(
+        `Прибрати ${name} з обходу? Виплати залишаться (їх можна побачити на сторінці поточних виплат).`
+      )
+    )
+      return;
     const prev = localItems;
     setLocalItems((arr) => arr.filter((it) => it.pensionerId !== pensionerId));
     startTransition(async () => {
