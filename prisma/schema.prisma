@@ -187,16 +187,35 @@ model Subscriber {
 // Окремо від Subscriber: тут не йдеться про передплати газет, а лише
 // контактні дані + адреса + чи носимо пошту, чи забирають самі.
 model Organization {
-  id           Int                   @id @default(autoincrement())
+  id           Int                    @id @default(autoincrement())
   name         String
   address      String?
   description  String?
-  picksUpMail  Boolean               @default(false)
-  createdAt    DateTime              @default(now())
-  updatedAt    DateTime              @updatedAt
+  picksUpMail  Boolean                @default(false)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
   contacts     OrganizationContact[]
+  relationsA   OrganizationRelation[] @relation("OrgRelA")
+  relationsB   OrganizationRelation[] @relation("OrgRelB")
 
   @@index([name])
+}
+
+// Симетричний звʼязок між двома організаціями (для випадку, коли по одній
+// неможливо додзвонитись — є запасні контакти у звʼязаної). Зберігаємо
+// один запис на пару, де `aId < bId` (інваріант підтримує код у actions).
+model OrganizationRelation {
+  id        Int          @id @default(autoincrement())
+  aId       Int
+  bId       Int
+  note      String?
+  createdAt DateTime     @default(now())
+  a         Organization @relation("OrgRelA", fields: [aId], references: [id], onDelete: Cascade)
+  b         Organization @relation("OrgRelB", fields: [bId], references: [id], onDelete: Cascade)
+
+  @@unique([aId, bId])
+  @@index([aId])
+  @@index([bId])
 }
 
 model OrganizationContact {

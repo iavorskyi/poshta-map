@@ -116,3 +116,67 @@ export async function deleteContact(id: number): Promise<Result> {
   revalidatePath("/organizations");
   return { ok: true };
 }
+
+// Звʼязки організацій. Інваріант: у БД зберігаємо пару впорядковано
+// (aId < bId), щоб не дублювати симетричні рядки і unique-ключ працював
+// в обидва боки.
+function orderedPair(a: number, b: number): [number, number] {
+  return a < b ? [a, b] : [b, a];
+}
+
+export async function linkOrganization(
+  fromId: number,
+  toId: number,
+  noteRaw?: FormDataEntryValue | null
+): Promise<Result> {
+  const me = await requireUser();
+  assert(canManageOrganizations(me));
+  if (fromId === toId) return { error: "Не можна звʼязати організацію саму з собою" };
+  const [aId, bId] = orderedPair(fromId, toId);
+  const note = strOrNull(noteRaw ?? null);
+  try {
+    await prisma.organizationRelation.upsert({
+      where: { aId_bId: { aId, bId } },
+      create: { aId, bId, note },
+      update: note ? { note } : {},
+    });
+  } catch (e) {
+    return {
+      error: `Не вдалося звʼязати: ${
+        e instanceof Error ? e.message : "невідома помилка"
+      }`,
+    };
+  }
+  revalidatePath(`/organizations/${fromId}`);
+  revalidatePath(`/organizations/${toId}`);
+  return { ok: true };
+}
+
+export async function unlinkOrganization(relationId: number): Promise<Result> {
+  const me = await requireUser();
+  assert(canManageOrganizations(me));
+  const rel = await prisma.organizationRelation.delete({
+    where: { id: relationId },
+    select: { aId: true, bId: true },
+  });
+  revalidatePath(`/organizations/${rel.aId}`);
+  revalidatePath(`/organizations/${rel.bId}`);
+  return { ok: true };
+}
+
+export async function updateRelationNote(
+  relationId: number,
+  noteRaw: FormDataEntryValue | null
+): Promise<Result> {
+  const me = await requireUser();
+  assert(canManageOrganizations(me));
+  const note = strOrNull(noteRaw);
+  const rel = await prisma.organizationRelation.update({
+    where: { id: relationId },
+    data: { note },
+    select: { aId: true, bId: true },
+  });
+  revalidatePath(`/organizations/${rel.aId}`);
+  revalidatePath(`/organizations/${rel.bId}`);
+  return { ok: true };
+}
