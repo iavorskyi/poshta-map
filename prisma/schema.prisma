@@ -183,6 +183,34 @@ model Subscriber {
   @@index([fullName])
 }
 
+// Організація — юридична особа, якій листоноша доставляє/видає пошту.
+// Окремо від Subscriber: тут не йдеться про передплати газет, а лише
+// контактні дані + адреса + чи носимо пошту, чи забирають самі.
+model Organization {
+  id           Int                   @id @default(autoincrement())
+  name         String
+  address      String?
+  description  String?
+  picksUpMail  Boolean               @default(false)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  contacts     OrganizationContact[]
+
+  @@index([name])
+}
+
+model OrganizationContact {
+  id             Int          @id @default(autoincrement())
+  organizationId Int
+  name           String
+  phone          String?
+  note           String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
 model Subscription {
   id            Int         @id @default(autoincrement())
   subscriberId  Int
