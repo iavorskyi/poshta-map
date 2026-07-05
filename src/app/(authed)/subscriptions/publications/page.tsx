@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { canManageSubscriptions } from "@/lib/permissions";
 import { PublicationsClient } from "./PublicationsClient";
 import { SubscriptionsTabs } from "../SubscriptionsTabs";
+import { ImportSubscriptions } from "../ImportSubscriptions";
 
 export default async function PublicationsPage({
   searchParams,
@@ -44,6 +45,7 @@ export default async function PublicationsPage({
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-semibold">Передплати</h1>
+        {canManage && <ImportSubscriptions />}
       </div>
 
       <SubscriptionsTabs />
