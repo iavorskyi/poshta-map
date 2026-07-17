@@ -7,6 +7,7 @@ import { useGlobalPending } from "@/components/RouteProgress";
 import { useToast } from "@/components/Toast";
 import { OrganizationForm } from "./OrganizationForm";
 import { createOrganization, deleteOrganization } from "./actions";
+import { MessengerButtons } from "@/components/MessengerButtons";
 
 type Contact = { id: number; name: string; phone: string | null; note: string | null };
 
@@ -155,13 +156,20 @@ export function OrganizationsClient({
                         <li key={c.id}>
                           <strong className="text-fg">{c.name}</strong>
                           {c.phone && (
-                            <a
-                              href={`tel:${c.phone}`}
-                              className="ml-1 link"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {c.phone}
-                            </a>
+                            <>
+                              <a
+                                href={`tel:${c.phone}`}
+                                className="ml-1 link"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {c.phone}
+                              </a>
+                              <MessengerButtons
+                                phone={c.phone}
+                                variant="compact"
+                                stopPropagation
+                              />
+                            </>
                           )}
                         </li>
                       ))}
