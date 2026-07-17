@@ -216,6 +216,7 @@ Authed layout: [src/app/(authed)/layout.tsx](src/app/(authed)/layout.tsx) — `s
   /organizations                    — реєстр організацій (fuzzy-пошук: назва/адреса/контакт/телефон)
   /organizations/[id]               — деталь організації + контакти
   /api/pensioners/template          — XLSX-шаблон імпорту пенсіонерів
+  /api/pensioners/vcard             — vCard-експорт контактів пенсіонерів (?scope=mine|all)
   /api/current-payments/template    — XLSX-шаблон імпорту виплат
   /api/subscriptions/template       — XLSX-шаблон імпорту передплат
 ```
@@ -273,7 +274,7 @@ Authed layout: [src/app/(authed)/layout.tsx](src/app/(authed)/layout.tsx) — `s
 
 **Список**: для кожного пенсіонера показується **badge `X/Y`** — `paid/total` виплат поточного місяця (агрегація через `prisma.currentPayment.groupBy`).
 
-Кнопки в шапці: «+ Додати пенсіонера», «Імпортувати з XLSX» (admin).
+Кнопки в шапці: «+ Додати пенсіонера», «Імпортувати з XLSX» (admin), «Зберегти контакти» (експорт vCard, див. 6.5).
 
 ### 6.2. Форма пенсіонера
 [src/app/(authed)/pensioners/PensionerForm.tsx](src/app/(authed)/pensioners/PensionerForm.tsx)
@@ -291,6 +292,12 @@ Authed layout: [src/app/(authed)/layout.tsx](src/app/(authed)/layout.tsx) — `s
 - [actions.ts](src/app/(authed)/pensioners/actions.ts) — `createPensioner`, `updatePensioner`, `deletePensioner` (всі перевіряють `canEditPensioner`)
 - [ImportPensioners.tsx](src/app/(authed)/pensioners/ImportPensioners.tsx) + [src/lib/pensionerImport.ts](src/lib/pensionerImport.ts) — XLSX-імпорт з дедупом за `normalize(fullName) + buildingId + normalize(apartment)`, auto-create будинків
 - [api/pensioners/template/route.ts](src/app/api/pensioners/template/route.ts) — генерація `pensioners-template.xlsx`
+
+### 6.5. Експорт контактів у телефон (vCard)
+Кнопка «Зберегти контакти» ([ExportContacts.tsx](src/app/(authed)/pensioners/ExportContacts.tsx)) з вибором **Мої** / **Усі** пенсіонери → завантажує `.vcf`, який телефон пропонує додати в книгу.
+- [api/pensioners/vcard/route.ts](src/app/api/pensioners/vcard/route.ts) (`?scope=mine|all`) — тягне пенсіонерів з телефоном (`mine` = `postmanId = me.id`), будує файл через [buildPensionersVCard](src/lib/vcard.ts); `Content-Type: text/vcard`. Доступно всім залогіненим, не лише admin
+- vCard 3.0, багатоконтактний: `FN`/`N` (ФІО), `TEL;TYPE=CELL` (номер → `+380…` через `normalizePhone`), опційно `ADR` (адреса), `ORG:Пенсіонери`-тег, стабільний `UID:pensioner-<id>@poshta-map`
+- **Дедуплікація за номером — не робиться з вебу** (веб не має доступу до телефонної книги; Contact Picker API лише в Android Chrome). Дублікати вирішує ОС при імпорті: iOS не дедупить за номером (може створити дублі + ручне «Обʼєднати»), Android/Google Контакти зазвичай пропонує merge. `UID` допомагає CardDAV-клієнтам оновлювати, а не дублювати
 
 ---
 

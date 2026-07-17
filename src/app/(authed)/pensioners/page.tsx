@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma";
 import { ImportPensioners } from "./ImportPensioners";
+import { ExportContacts } from "./ExportContacts";
 import { PensionersFilter } from "./PensionersFilter";
 import { requireUser } from "@/lib/auth";
 import { getCachedPostmen } from "@/lib/queries";
@@ -143,6 +144,7 @@ export default async function PensionersPage({
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-semibold">Пенсіонери</h1>
         <div className="flex items-center gap-2 flex-wrap">
+          <ExportContacts />
           {me.isAdmin && <ImportPensioners />}
           <Link
             href="/pensioners/new"
