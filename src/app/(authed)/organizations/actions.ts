@@ -4,13 +4,41 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { assert, canManageOrganizations } from "@/lib/permissions";
+import { DEFAULT_ORG_MESSAGE_TEMPLATE } from "@/lib/messengerLinks";
 
 type Result = { error: string } | { ok: true };
 type CreateResult = { error: string } | { ok: true; id: number };
 
+const MSG_TEMPLATE_KEY = "orgMessageTemplateDefault";
+
 function strOrNull(raw: FormDataEntryValue | null): string | null {
   const s = String(raw ?? "").trim();
   return s || null;
+}
+
+// Глобальний дефолтний шаблон повідомлення для нових організацій.
+// Зберігається в AppSetting; якщо ще не задано — хардкод-фолбек.
+export async function getOrgMessageTemplateDefault(): Promise<string> {
+  const row = await prisma.appSetting.findUnique({
+    where: { key: MSG_TEMPLATE_KEY },
+  });
+  return row?.value ?? DEFAULT_ORG_MESSAGE_TEMPLATE;
+}
+
+export async function setOrgMessageTemplateDefault(
+  formData: FormData
+): Promise<Result> {
+  const me = await requireUser();
+  assert(canManageOrganizations(me));
+  const value = String(formData.get("value") ?? "").trim();
+  if (!value) return { error: "Шаблон не може бути порожнім" };
+  await prisma.appSetting.upsert({
+    where: { key: MSG_TEMPLATE_KEY },
+    create: { key: MSG_TEMPLATE_KEY, value },
+    update: { value },
+  });
+  revalidatePath("/organizations");
+  return { ok: true };
 }
 
 export async function createOrganization(formData: FormData): Promise<CreateResult> {
@@ -22,9 +50,21 @@ export async function createOrganization(formData: FormData): Promise<CreateResu
   const description = strOrNull(formData.get("description"));
   const storageLocation = strOrNull(formData.get("storageLocation"));
   const picksUpMail = formData.get("picksUpMail") === "on";
+  // Snapshot глобального дефолту в момент створення; якщо адмін ввів свій —
+  // беремо його.
+  const messageTemplate =
+    strOrNull(formData.get("messageTemplate")) ??
+    (await getOrgMessageTemplateDefault());
 
   const org = await prisma.organization.create({
-    data: { name, address, description, picksUpMail, storageLocation },
+    data: {
+      name,
+      address,
+      description,
+      picksUpMail,
+      storageLocation,
+      messageTemplate,
+    },
     select: { id: true },
   });
   revalidatePath("/organizations");
@@ -43,10 +83,18 @@ export async function updateOrganization(
   const description = strOrNull(formData.get("description"));
   const storageLocation = strOrNull(formData.get("storageLocation"));
   const picksUpMail = formData.get("picksUpMail") === "on";
+  const messageTemplate = strOrNull(formData.get("messageTemplate"));
 
   await prisma.organization.update({
     where: { id },
-    data: { name, address, description, picksUpMail, storageLocation },
+    data: {
+      name,
+      address,
+      description,
+      picksUpMail,
+      storageLocation,
+      messageTemplate,
+    },
   });
   revalidatePath("/organizations");
   revalidatePath(`/organizations/${id}`);

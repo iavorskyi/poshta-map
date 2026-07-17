@@ -8,6 +8,7 @@ export type OrganizationFormValues = {
   description: string | null;
   picksUpMail: boolean;
   storageLocation: string | null;
+  messageTemplate: string | null;
 };
 
 // Інлайн-форма (без модалок) — використовується і для створення, і для
@@ -78,6 +79,21 @@ export function OrganizationForm({
           className="input w-full"
           placeholder="Коробка №3, шухляда зліва, а/с 17…"
         />
+      </div>
+      <div>
+        <label className="block text-xs text-fg-muted mb-1">
+          Шаблон повідомлення
+        </label>
+        <textarea
+          name="messageTemplate"
+          defaultValue={defaultValues?.messageTemplate ?? ""}
+          className="input w-full"
+          rows={3}
+          placeholder="Текст для копіювання при звʼязку з контактами"
+        />
+        <p className="text-xs text-fg-subtle mt-1">
+          {"{організація}"} підставиться назвою організації.
+        </p>
       </div>
       <label className="flex items-center gap-2 text-sm">
         <input

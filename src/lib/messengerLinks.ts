@@ -1,3 +1,19 @@
+/** Токен у шаблоні повідомлення, що замінюється назвою організації. */
+export const ORG_NAME_TOKEN = "{організація}";
+
+/** Дефолтний шаблон, якщо глобальне налаштування ще не задане. */
+export const DEFAULT_ORG_MESSAGE_TEMPLATE =
+  `Доброго дня! Це ваш листоноша. Для організації «${ORG_NAME_TOKEN}» є пошта у відділенні. Просимо забрати за зручної нагоди. Дякую!`;
+
+/** Підставляє назву організації замість токена у шаблоні. */
+export function renderTemplate(
+  template: string | null | undefined,
+  orgName: string
+): string {
+  if (!template) return "";
+  return template.split(ORG_NAME_TOKEN).join(orgName);
+}
+
 /**
  * Нормалізує телефон до цифр з кодом країни (для deep-links месенджерів).
  * Українські номери у форматі 0XXXXXXXXX приводяться до 380XXXXXXXXX.

@@ -193,6 +193,7 @@ model Organization {
   description  String?
   picksUpMail  Boolean                @default(false)
   storageLocation String?
+  messageTemplate String?
   createdAt    DateTime               @default(now())
   updatedAt    DateTime               @updatedAt
   contacts     OrganizationContact[]
@@ -229,6 +230,14 @@ model OrganizationContact {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
+}
+
+// Глобальні налаштування застосунку (key-value). Наразі зберігає дефолтний
+// шаблон повідомлення для нових організацій (ключ "orgMessageTemplateDefault").
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 model Subscription {

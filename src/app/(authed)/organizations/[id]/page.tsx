@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { canManageOrganizations } from "@/lib/permissions";
+import { renderTemplate } from "@/lib/messengerLinks";
+import { getOrgMessageTemplateDefault } from "../actions";
 import { OrganizationDetailClient } from "./OrganizationDetailClient";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +30,7 @@ export default async function OrganizationDetailPage({
               name: true,
               address: true,
               picksUpMail: true,
+              messageTemplate: true,
               contacts: {
                 orderBy: { id: "asc" },
                 select: { id: true, name: true, phone: true },
@@ -44,6 +47,7 @@ export default async function OrganizationDetailPage({
               name: true,
               address: true,
               picksUpMail: true,
+              messageTemplate: true,
               contacts: {
                 orderBy: { id: "asc" },
                 select: { id: true, name: true, phone: true },
@@ -55,6 +59,8 @@ export default async function OrganizationDetailPage({
     },
   });
   if (!org) notFound();
+
+  const globalTemplate = await getOrgMessageTemplateDefault();
 
   // Збираємо звʼязки в єдиний список «інша сторона». Інваріант aId<bId
   // означає, що `relationsA` — інша сторона має більший id, `relationsB` —
@@ -101,6 +107,11 @@ export default async function OrganizationDetailPage({
         description: org.description,
         picksUpMail: org.picksUpMail,
         storageLocation: org.storageLocation,
+        messageTemplate: org.messageTemplate,
+        messageText: renderTemplate(
+          org.messageTemplate ?? globalTemplate,
+          org.name
+        ),
         contacts: org.contacts.map((c) => ({
           id: c.id,
           name: c.name,
@@ -116,6 +127,10 @@ export default async function OrganizationDetailPage({
           name: r.other.name,
           address: r.other.address,
           picksUpMail: r.other.picksUpMail,
+          messageText: renderTemplate(
+            r.other.messageTemplate ?? globalTemplate,
+            r.other.name
+          ),
           contacts: r.other.contacts.map((c) => ({
             id: c.id,
             name: c.name,

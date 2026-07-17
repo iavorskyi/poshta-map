@@ -6,7 +6,11 @@ import { useState, useTransition } from "react";
 import { useGlobalPending } from "@/components/RouteProgress";
 import { useToast } from "@/components/Toast";
 import { OrganizationForm } from "./OrganizationForm";
-import { createOrganization, deleteOrganization } from "./actions";
+import {
+  createOrganization,
+  deleteOrganization,
+  setOrgMessageTemplateDefault,
+} from "./actions";
 import { MessengerButtons } from "@/components/MessengerButtons";
 
 type Contact = { id: number; name: string; phone: string | null; note: string | null };
@@ -19,6 +23,7 @@ type Org = {
   picksUpMail: boolean;
   storageLocation: string | null;
   contacts: Contact[];
+  messageText: string;
   matchedOn: "name" | "address" | "contact" | "phone";
 };
 
@@ -26,10 +31,12 @@ export function OrganizationsClient({
   orgs,
   q,
   canManage,
+  globalTemplate,
 }: {
   orgs: Org[];
   q: string;
   canManage: boolean;
+  globalTemplate: string;
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -37,6 +44,18 @@ export function OrganizationsClient({
   useGlobalPending(isPending);
   const { showToast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
+  const [showTemplate, setShowTemplate] = useState(false);
+
+  const handleSaveTemplate = (formData: FormData) => {
+    startTransition(async () => {
+      const res = await setOrgMessageTemplateDefault(formData);
+      if ("error" in res) showToast(res.error, "error");
+      else {
+        showToast("Дефолтний шаблон збережено", "success");
+        setShowTemplate(false);
+      }
+    });
+  };
 
   const setQuery = (value: string) => {
     const next = new URLSearchParams(sp.toString());
@@ -86,10 +105,57 @@ export function OrganizationsClient({
             {showCreate ? "Скасувати" : "+ Організація"}
           </button>
         )}
+        {canManage && (
+          <button
+            type="button"
+            onClick={() => setShowTemplate((v) => !v)}
+            className="btn-secondary"
+          >
+            Шаблон повідомлення
+          </button>
+        )}
       </div>
+
+      {canManage && showTemplate && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSaveTemplate(new FormData(e.currentTarget));
+          }}
+          className="space-y-2 rounded-lg border border-border bg-elevated p-3"
+        >
+          <label className="block text-sm font-medium">
+            Дефолтний шаблон для нових організацій
+          </label>
+          <textarea
+            name="value"
+            defaultValue={globalTemplate}
+            className="input w-full"
+            rows={3}
+          />
+          <p className="text-xs text-fg-subtle">
+            {"{організація}"} підставиться назвою організації. Застосовується до
+            нових організацій; наявні мають власний шаблон.
+          </p>
+          <div className="flex items-center gap-2">
+            <button type="submit" className="btn-primary" disabled={isPending}>
+              Зберегти
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowTemplate(false)}
+              className="btn-secondary"
+              disabled={isPending}
+            >
+              Скасувати
+            </button>
+          </div>
+        </form>
+      )}
 
       {canManage && showCreate && (
         <OrganizationForm
+          defaultValues={{ messageTemplate: globalTemplate }}
           onSubmit={handleCreate}
           onCancel={() => setShowCreate(false)}
           submitLabel="Додати"
@@ -168,6 +234,7 @@ export function OrganizationsClient({
                                 phone={c.phone}
                                 variant="compact"
                                 stopPropagation
+                                copyText={o.messageText}
                               />
                             </>
                           )}

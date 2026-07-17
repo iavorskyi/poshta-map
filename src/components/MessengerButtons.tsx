@@ -1,4 +1,25 @@
+"use client";
+
 import { telegramLink, viberLink } from "@/lib/messengerLinks";
+import { useToast } from "@/components/Toast";
+
+function CopyIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+    </svg>
+  );
+}
 
 function ViberIcon({ className }: { className?: string }) {
   return (
@@ -20,13 +41,17 @@ type Props = {
   phone: string | null | undefined;
   variant?: "card" | "compact";
   stopPropagation?: boolean;
+  /** Готовий текст повідомлення для копіювання (вже з підставленою назвою). */
+  copyText?: string;
 };
 
 export function MessengerButtons({
   phone,
   variant = "card",
   stopPropagation = false,
+  copyText,
 }: Props) {
+  const { showToast } = useToast();
   const viber = viberLink(phone);
   const telegram = telegramLink(phone);
   if (!viber && !telegram) return null;
@@ -34,6 +59,17 @@ export function MessengerButtons({
   const onClick = stopPropagation
     ? (e: React.MouseEvent) => e.stopPropagation()
     : undefined;
+
+  const text = copyText?.trim() || "";
+  const handleCopy = async (e: React.MouseEvent) => {
+    if (stopPropagation) e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast("Текст скопійовано", "success");
+    } catch {
+      showToast("Не вдалося скопіювати", "error");
+    }
+  };
 
   if (variant === "compact") {
     return (
@@ -60,12 +96,23 @@ export function MessengerButtons({
             <TelegramIcon className="h-4 w-4" />
           </a>
         )}
+        {text && (
+          <button
+            type="button"
+            onClick={handleCopy}
+            title="Скопіювати текст повідомлення"
+            aria-label="Скопіювати текст повідомлення"
+            className="text-fg-muted hover:text-fg"
+          >
+            <CopyIcon className="h-4 w-4" />
+          </button>
+        )}
       </span>
     );
   }
 
   return (
-    <div className="mt-1 flex flex-wrap gap-2">
+    <div className="mt-1 flex flex-wrap items-center gap-2">
       {viber && (
         <a
           href={viber}
@@ -85,6 +132,17 @@ export function MessengerButtons({
           <TelegramIcon className="h-4 w-4" />
           Telegram
         </a>
+      )}
+      {text && (
+        <button
+          type="button"
+          onClick={handleCopy}
+          title="Скопіювати текст повідомлення"
+          aria-label="Скопіювати текст повідомлення"
+          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs text-fg-muted hover:text-fg"
+        >
+          <CopyIcon className="h-4 w-4" />
+        </button>
       )}
     </div>
   );

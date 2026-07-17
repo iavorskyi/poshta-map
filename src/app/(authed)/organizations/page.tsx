@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { canManageOrganizations } from "@/lib/permissions";
 import { searchOrganizations } from "@/lib/orgSearch";
+import { renderTemplate } from "@/lib/messengerLinks";
+import { getOrgMessageTemplateDefault } from "./actions";
 import { OrganizationsClient } from "./OrganizationsClient";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +32,7 @@ export default async function OrganizationsPage({
 
   const hits = searchOrganizations(orgs, q);
   const canManage = canManageOrganizations(me);
+  const globalTemplate = await getOrgMessageTemplateDefault();
 
   return (
     <div className="space-y-4">
@@ -46,10 +49,15 @@ export default async function OrganizationsPage({
           picksUpMail: h.org.picksUpMail,
           storageLocation: h.org.storageLocation,
           contacts: h.org.contacts,
+          messageText: renderTemplate(
+            h.org.messageTemplate ?? globalTemplate,
+            h.org.name
+          ),
           matchedOn: h.matchedOn,
         }))}
         q={q}
         canManage={canManage}
+        globalTemplate={globalTemplate}
       />
 
       {hits.length === 0 && (

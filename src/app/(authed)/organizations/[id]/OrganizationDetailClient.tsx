@@ -28,6 +28,8 @@ type Org = {
   description: string | null;
   picksUpMail: boolean;
   storageLocation: string | null;
+  messageTemplate: string | null;
+  messageText: string;
   contacts: Contact[];
 };
 
@@ -36,6 +38,7 @@ type RelatedOrg = {
   name: string;
   address: string | null;
   picksUpMail: boolean;
+  messageText: string;
   contacts: { id: number; name: string; phone: string | null }[];
 };
 
@@ -204,6 +207,7 @@ export function OrganizationDetailClient({
             description: org.description,
             picksUpMail: org.picksUpMail,
             storageLocation: org.storageLocation,
+            messageTemplate: org.messageTemplate,
           }}
           onSubmit={handleUpdate}
           onCancel={() => setEditing(false)}
@@ -296,7 +300,11 @@ export function OrganizationDetailClient({
                         <a href={`tel:${c.phone}`} className="link">
                           {c.phone}
                         </a>
-                        <MessengerButtons phone={c.phone} variant="card" />
+                        <MessengerButtons
+                          phone={c.phone}
+                          variant="card"
+                          copyText={org.messageText}
+                        />
                       </div>
                     )}
                     {c.note && (
@@ -436,7 +444,11 @@ export function OrganizationDetailClient({
                                 <a href={`tel:${c.phone}`} className="ml-1 link">
                                   {c.phone}
                                 </a>
-                                <MessengerButtons phone={c.phone} variant="compact" />
+                                <MessengerButtons
+                                  phone={c.phone}
+                                  variant="compact"
+                                  copyText={r.other.messageText}
+                                />
                               </>
                             )}
                           </li>
