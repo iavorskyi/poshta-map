@@ -366,7 +366,7 @@ Mobile cards / desktop table з колонками: Дата (link), Листо�
 - **Stat**: Заплановано / Виплачено / Залишок
 - **Список виплат, групи по пенсіонеру**, відсортовані `roundPosition` (DnD-перетягування — `@dnd-kit` через [SortableList.tsx](src/components/SortableList.tsx))
   - Спочатку незакриті / неповністю оплачені, потім повністю оплачені під роздільником
-  - Item: checkbox `isPaid`, inline-edit `amount`, кнопка видалення
+  - Item: checkbox `isPaid`, inline-edit `amount`, кнопка видалення, бейдж **дня виплати** (`CurrentPayment.date.getDate()` → «N-го») після коду типу
   - Бейдж **Спосіб отримання** (OFFICE / HOME) поряд з ФІО (комміт `a106074`)
   - Адреса — link на пенсіонера
 - **Optimistic UI** (комміт `a2081f4`): локальний стан `localItems` — toggle, edit, remove застосовуються миттєво, потім узгоджуються з сервером; `useGlobalPending(isPending)` повідомляє топ-прогрес-бар

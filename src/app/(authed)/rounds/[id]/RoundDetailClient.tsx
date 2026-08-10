@@ -47,6 +47,7 @@ type Item = {
   paymentId: number;
   paymentName: string;
   paymentCode: string;
+  paymentDay: number;
   amount: number;
   isPaid: boolean;
 };
@@ -927,9 +928,14 @@ function PensionerGroupCard({
           >
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-sm">
-                  {it.paymentName}{" "}
-                  <span className="font-mono text-xs text-fg-subtle">({it.paymentCode})</span>
+                <div className="text-sm flex items-center gap-1.5 flex-wrap">
+                  <span>
+                    {it.paymentName}{" "}
+                    <span className="font-mono text-xs text-fg-subtle">({it.paymentCode})</span>
+                  </span>
+                  <span className="shrink-0 rounded-full bg-elevated px-1.5 py-0.5 text-[11px] leading-none text-fg-subtle tabular-nums">
+                    {it.paymentDay}-го
+                  </span>
                 </div>
               </div>
               <input

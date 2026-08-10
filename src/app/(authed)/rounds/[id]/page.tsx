@@ -182,6 +182,7 @@ export default async function RoundPage({
           paymentId: cp.paymentId,
           paymentName: cp.payment.name,
           paymentCode: cp.payment.code,
+          paymentDay: cp.date.getDate(),
           amount: cp.amount,
           isPaid: cp.isPaid,
         }))}
