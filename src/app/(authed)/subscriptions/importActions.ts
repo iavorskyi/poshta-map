@@ -13,9 +13,16 @@ import {
 import {
   findClosestPensionersByName,
   tokenizeName,
+  normalizeName,
+  levenshtein,
   type NameMatchCandidate,
 } from "@/lib/nameMatch";
 import { parseSubscriptionsXlsx, type ParsedSubRow } from "@/lib/subscriptionImport";
+import {
+  isRawSubscriptionsFormat,
+  parseRawSubscriptionsXlsx,
+} from "@/lib/subscriptionRawImport";
+import ExcelJS from "exceljs";
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const NAME_SUGGESTION_LIMIT = 5;
@@ -127,12 +134,40 @@ export type SubImportPreviewRow = {
   willUpdate: boolean;
 };
 
+// Кандидат на зняття: підписка в БД (за роком), яку файл не підтвердив
+// точним матчем. За замовчуванням лишаємо — рішення за користувачем.
+export type SubRemovalCandidate = {
+  subscriptionId: number;
+  subscriberId: number;
+  subscriberName: string;
+  addressLabel: string;
+  publicationId: number;
+  publicationCode: string;
+  publicationName: string;
+  year: number;
+  months: number[];
+  monthsTotal: number;
+};
+
+// Попередження про можливі дублі/різне написання ПІБ у самому файлі:
+// кілька близьких (але не тотожних) ПІБ на одній адресі × виданні.
+export type SubDuplicateWarning = {
+  publicationCode: string;
+  publicationName: string;
+  addressLabel: string;
+  names: { rowNumber: number; fullName: string }[];
+};
+
 export type SubImportPreview = {
   year: number;
+  format: "template" | "raw";
   rows: SubImportPreviewRow[];
   parseErrors: { rowNumber: number; message: string }[];
   skippedEmpty: number;
   newPublications: { code: string; name: string }[];
+  removals: SubRemovalCandidate[];
+  duplicateWarnings: SubDuplicateWarning[];
+  mergedPeriods: number;
 };
 
 export type SubImportPreviewResponse =
@@ -167,9 +202,23 @@ export async function previewSubscriptionsImport(
   if (file.size > MAX_FILE_BYTES) return { ok: false, error: "Файл більше 10 МБ" };
 
   let parsed;
+  let format: "template" | "raw" = "template";
+  let mergedPeriods = 0;
   try {
     const buffer = await file.arrayBuffer();
-    parsed = await parseSubscriptionsXlsx(buffer);
+    // Автовизначення формату: спершу дивимось, чи це «сирий» експорт Укрпошти
+    // (блоки «Видання:»), інакше — шаблон застосунку.
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(buffer);
+    const ws0 = wb.worksheets[0];
+    if (ws0 && isRawSubscriptionsFormat(ws0)) {
+      format = "raw";
+      const raw = await parseRawSubscriptionsXlsx(buffer);
+      parsed = raw;
+      mergedPeriods = raw.mergedPeriods;
+    } else {
+      parsed = await parseSubscriptionsXlsx(buffer);
+    }
   } catch (e) {
     return {
       ok: false,
@@ -213,11 +262,18 @@ export async function previewSubscriptionsImport(
   const subForBroad = subscribers.map((s) => ({ id: s.id, fullName: s.fullName, buildingId: s.buildingId ?? 0 }));
   const subById = new Map(subscribers.map((s) => [s.id, s]));
 
-  // Наявні підписки для перевірки "оновимо наявну".
+  // Наявні підписки для перевірки "оновимо наявну" і для розрахунку зняття.
   const years = [...new Set(parsed.rows.map((r) => r.year))];
   const existingSubs = await prisma.subscription.findMany({
     where: { year: { in: years.length ? years : [0] } },
-    select: { subscriberId: true, publicationId: true, year: true },
+    select: {
+      id: true,
+      subscriberId: true,
+      publicationId: true,
+      year: true,
+      activeMonths: true,
+      publication: { select: { code: true, name: true } },
+    },
   });
   const existingKey = new Set(existingSubs.map((e) => `${e.subscriberId}|${e.publicationId}|${e.year}`));
 
@@ -245,6 +301,9 @@ export async function previewSubscriptionsImport(
 
   const newPubCodes = new Map<string, string>();
   const rows: SubImportPreviewRow[] = [];
+  // Ключі (subscriberId|publicationId|year) підписок, підтверджених файлом
+  // точним матчем ПІБ+адреси. Проти них рахуються кандидати на зняття.
+  const coveredSubKeys = new Set<string>();
 
   for (const r of parsed.rows) {
     const addr = resolveAddress(buildings, r);
@@ -276,6 +335,8 @@ export async function previewSubscriptionsImport(
       subscriber = { kind: "exact", id: exact.id, fullName: exact.fullName };
       if (publication.kind === "existing") {
         willUpdate = existingKey.has(`${exact.id}|${publication.id}|${r.year}`);
+        // Файл підтвердив цю пару → не кандидат на зняття.
+        coveredSubKeys.add(`${exact.id}|${publication.id}|${r.year}`);
       }
     } else {
       const close = findClosestPensionersByName(subForBroad, r.fullName, NAME_SUGGESTION_LIMIT).filter(
@@ -316,15 +377,90 @@ export async function previewSubscriptionsImport(
     });
   }
 
+  // ── Кандидати на зняття ──
+  // Підписки в БД (за роками файлу), яких файл не підтвердив точним матчем.
+  // За замовчуванням лишаємо; користувач вирішує на кроці підтвердження.
+  const removals: SubRemovalCandidate[] = existingSubs
+    .filter((e) => !coveredSubKeys.has(`${e.subscriberId}|${e.publicationId}|${e.year}`))
+    .map((e) => ({
+      subscriptionId: e.id,
+      subscriberId: e.subscriberId,
+      subscriberName: subById.get(e.subscriberId)?.fullName ?? `#${e.subscriberId}`,
+      addressLabel: subAddressLabel(e.subscriberId) || "—",
+      publicationId: e.publicationId,
+      publicationCode: e.publication.code,
+      publicationName: e.publication.name,
+      year: e.year,
+      months: e.activeMonths,
+      monthsTotal: e.activeMonths.reduce((a, b) => a + b, 0),
+    }))
+    .sort(
+      (a, b) =>
+        a.publicationName.localeCompare(b.publicationName, "uk") ||
+        a.subscriberName.localeCompare(b.subscriberName, "uk"),
+    );
+
+  // ── Попередження про дублі/різне написання в самому файлі ──
+  // Групуємо рядки за (код видання + нормалізована адреса). У межах групи
+  // шукаємо близькі, але не тотожні ПІБ — імовірні артефакти написання.
+  const DUP_MAX_DISTANCE = 3;
+  const groups = new Map<string, ParsedSubRow[]>();
+  for (const r of parsed.rows) {
+    const addrK =
+      r.deliveryMode === "PICKUP"
+        ? "pickup"
+        : `${r.street ? normalizeStreet(r.street) : ""}|${r.number ? normalizeNumber(r.number) : ""}|${r.apartment ?? ""}`;
+    const key = `${r.publicationCode}::${addrK}`;
+    const arr = groups.get(key);
+    if (arr) arr.push(r);
+    else groups.set(key, [r]);
+  }
+  const duplicateWarnings: SubDuplicateWarning[] = [];
+  for (const [, arr] of groups) {
+    if (arr.length < 2) continue;
+    const flagged = new Set<number>();
+    for (let i = 0; i < arr.length; i++) {
+      for (let j = i + 1; j < arr.length; j++) {
+        const a = arr[i];
+        const b = arr[j];
+        const ta = tokenizeName(a.fullName);
+        const tb = tokenizeName(b.fullName);
+        if (tokensEqual(ta, tb)) continue; // тотожні — не варіант написання
+        const d = levenshtein(normalizeName(a.fullName), normalizeName(b.fullName), DUP_MAX_DISTANCE);
+        if (d <= DUP_MAX_DISTANCE) {
+          flagged.add(i);
+          flagged.add(j);
+        }
+      }
+    }
+    if (flagged.size >= 2) {
+      const first = arr[[...flagged][0]];
+      const pubName = parsed.publicationNames[first.publicationCode] ?? first.publicationCode;
+      const addr = resolveAddress(buildings, first);
+      duplicateWarnings.push({
+        publicationCode: first.publicationCode,
+        publicationName: pubName,
+        addressLabel: addrLabel(addr, first),
+        names: [...flagged]
+          .sort((x, y) => x - y)
+          .map((idx) => ({ rowNumber: arr[idx].rowNumber, fullName: arr[idx].fullName })),
+      });
+    }
+  }
+
   const year = rows[0]?.year ?? new Date().getFullYear();
   return {
     ok: true,
     preview: {
       year,
+      format,
       rows,
       parseErrors: parsed.errors,
       skippedEmpty: parsed.skippedEmpty,
       newPublications: [...newPubCodes.entries()].map(([code, name]) => ({ code, name })),
+      removals,
+      duplicateWarnings,
+      mergedPeriods,
     },
   };
 }
@@ -352,14 +488,22 @@ export type SubDecision =
   | { rowNumber: number; action: "create_new" }
   | { rowNumber: number; action: "skip" };
 
+// Рішення щодо кандидата на зняття. За замовчуванням "keep" (нічого не робимо).
+export type SubRemovalDecision = {
+  subscriptionId: number;
+  action: "remove" | "keep";
+};
+
 export type SubApplyInput = {
   rows: SubRowPayload[];
   decisions: SubDecision[];
+  removals?: SubRemovalDecision[];
 };
 
 export type SubApplyResult = {
   subscriptionsCreated: number;
   subscriptionsUpdated: number;
+  subscriptionsRemoved: number;
   subscribersCreated: { id: number; fullName: string }[];
   publicationsCreated: { code: string; name: string }[];
   warnings: { rowNumber: number; message: string }[];
@@ -373,6 +517,7 @@ export async function applySubscriptionsImport(input: SubApplyInput): Promise<Su
   const result: SubApplyResult = {
     subscriptionsCreated: 0,
     subscriptionsUpdated: 0,
+    subscriptionsRemoved: 0,
     subscribersCreated: [],
     publicationsCreated: [],
     warnings: [],
@@ -530,6 +675,23 @@ export async function applySubscriptionsImport(input: SubApplyInput): Promise<Su
       result.errors.push({
         rowNumber: r.rowNumber,
         message: `БД: ${e instanceof Error ? e.message : "невідома помилка"}`,
+      });
+    }
+  }
+
+  // Зняття підписок, які користувач явно позначив на видалення.
+  const toRemove = (input.removals ?? []).filter((d) => d.action === "remove");
+  if (toRemove.length > 0) {
+    try {
+      const del = await prisma.subscription.deleteMany({
+        where: { id: { in: toRemove.map((d) => d.subscriptionId) } },
+      });
+      result.subscriptionsRemoved = del.count;
+      if (del.count > 0) subsTouched = true;
+    } catch (e) {
+      result.errors.push({
+        rowNumber: 0,
+        message: `Не вдалось зняти підписки: ${e instanceof Error ? e.message : "помилка"}`,
       });
     }
   }

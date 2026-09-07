@@ -10,6 +10,7 @@ import {
   type SubImportPreviewRow,
   type SubRowPayload,
 } from "./importActions";
+import type { SubRemovalCandidate } from "./importActions";
 import { useGlobalPending } from "@/components/RouteProgress";
 
 const MONTHS_SHORT = [
@@ -62,10 +63,17 @@ export function SubscriptionImportPreview({
     for (const r of preview.rows) init[r.rowNumber] = defaultDecision(r);
     return init;
   });
+  // Рішення щодо зняття: за замовчуванням усі лишаємо (false = keep).
+  const [toRemove, setToRemove] = useState<Record<number, boolean>>({});
   const [result, setResult] = useState<SubApplyResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   useGlobalPending(isPending);
+
+  const removeCount = useMemo(
+    () => preview.removals.filter((r) => toRemove[r.subscriptionId]).length,
+    [preview.removals, toRemove],
+  );
 
   const counts = useMemo(() => {
     let exact = 0;
@@ -108,11 +116,17 @@ export function SubscriptionImportPreview({
       return { rowNumber: r.rowNumber, ...d };
     });
 
+    const removalList = preview.removals.map((r) => ({
+      subscriptionId: r.subscriptionId,
+      action: (toRemove[r.subscriptionId] ? "remove" : "keep") as "remove" | "keep",
+    }));
+
     startTransition(async () => {
       try {
         const res = await applySubscriptionsImport({
           rows: rowsPayload,
           decisions: decisionList,
+          removals: removalList,
         });
         setResult(res);
       } catch (e) {
@@ -127,6 +141,14 @@ export function SubscriptionImportPreview({
         <div>
           Рік: <strong>{preview.year}</strong> · рядків:{" "}
           <strong>{preview.rows.length}</strong>
+          <span className="text-xs text-fg-subtle">
+            {" "}· формат: {preview.format === "raw" ? "сирий експорт Укрпошти" : "шаблон"}
+          </span>
+          {preview.mergedPeriods > 0 && (
+            <span className="text-xs text-fg-subtle">
+              {" "}· зведено періодів: {preview.mergedPeriods}
+            </span>
+          )}
         </div>
         <div className="text-xs text-fg-muted mt-1">
           Точно: <strong className="text-success">{counts.exact}</strong> ·{" "}
@@ -171,6 +193,45 @@ export function SubscriptionImportPreview({
         </details>
       )}
 
+      {preview.duplicateWarnings.length > 0 && (
+        <details className="rounded border border-warning-border bg-warning-bg" open>
+          <summary className="cursor-pointer px-3 py-2 text-sm text-warning">
+            Можливі дублі / різне написання у файлі ({preview.duplicateWarnings.length})
+          </summary>
+          <div className="px-3 pb-3 text-xs text-warning space-y-2 max-h-60 overflow-y-auto">
+            <p className="text-fg-muted">
+              Схожі, але не тотожні ПІБ на одній адресі × виданні. Нічого не
+              зливається автоматично — перевірте вручну. Якщо це одна людина,
+              приберіть зайвий рядок у файлі або оберіть «Пропустити» нижче.
+            </p>
+            {preview.duplicateWarnings.map((w, i) => (
+              <div key={i} className="rounded border border-warning-border/60 px-2 py-1">
+                <div className="text-fg-muted">
+                  {w.publicationName} ({w.publicationCode}) · {w.addressLabel}
+                </div>
+                <ul className="mt-0.5 space-y-0.5">
+                  {w.names.map((n) => (
+                    <li key={n.rowNumber}>
+                      Рядок {n.rowNumber}: <strong>{n.fullName}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+
+      {preview.removals.length > 0 && (
+        <RemovalsSection
+          removals={preview.removals}
+          toRemove={toRemove}
+          setToRemove={setToRemove}
+          removeCount={removeCount}
+          disabled={isPending || !!result}
+        />
+      )}
+
       <ul className="space-y-2 max-h-[55vh] overflow-y-auto">
         {preview.rows.map((row) => (
           <PreviewRowCard
@@ -196,6 +257,12 @@ export function SubscriptionImportPreview({
             <strong className="text-success">{result.subscriptionsCreated}</strong> ·{" "}
             Оновлено:{" "}
             <strong className="text-warning">{result.subscriptionsUpdated}</strong>
+            {result.subscriptionsRemoved > 0 && (
+              <>
+                {" "}· Знято:{" "}
+                <strong className="text-danger">{result.subscriptionsRemoved}</strong>
+              </>
+            )}
             {result.subscribersCreated.length > 0 && (
               <>
                 {" "}· Нових передплатників:{" "}
@@ -282,7 +349,11 @@ export function SubscriptionImportPreview({
               disabled={isPending}
               className="btn-primary"
             >
-              {isPending ? "Імпорт…" : "Імпортувати"}
+              {isPending
+                ? "Імпорт…"
+                : removeCount > 0
+                  ? `Імпортувати (зняти ${removeCount})`
+                  : "Імпортувати"}
             </button>
             <button
               type="button"
@@ -299,6 +370,96 @@ export function SubscriptionImportPreview({
         </button>
       </div>
     </div>
+  );
+}
+
+function RemovalsSection({
+  removals,
+  toRemove,
+  setToRemove,
+  removeCount,
+  disabled,
+}: {
+  removals: SubRemovalCandidate[];
+  toRemove: Record<number, boolean>;
+  setToRemove: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
+  removeCount: number;
+  disabled: boolean;
+}) {
+  const setAll = (value: boolean) => {
+    setToRemove(() => {
+      const next: Record<number, boolean> = {};
+      for (const r of removals) next[r.subscriptionId] = value;
+      return next;
+    });
+  };
+
+  return (
+    <details className="rounded border border-danger-border bg-danger-bg" open>
+      <summary className="cursor-pointer px-3 py-2 text-sm text-danger">
+        У базі є, але немає у файлі ({removals.length})
+        {removeCount > 0 && (
+          <span className="ml-1">— познач. на зняття: {removeCount}</span>
+        )}
+      </summary>
+      <div className="px-3 pb-3 text-xs space-y-2 max-h-72 overflow-y-auto">
+        <p className="text-fg-muted">
+          Ці підписки за цей рік є в базі, але файл їх не підтвердив точним матчем
+          ПІБ + адреси. За замовчуванням <strong>лишаємо</strong> — увага, тут
+          можуть бути підписки, ПІБ яких у файлі написано інакше. Позначте лише
+          ті, які точно треба зняти.
+        </p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setAll(true)}
+            disabled={disabled}
+            className="btn-secondary text-xs py-1"
+          >
+            Зняти всі
+          </button>
+          <button
+            type="button"
+            onClick={() => setAll(false)}
+            disabled={disabled}
+            className="btn-secondary text-xs py-1"
+          >
+            Лишити всі
+          </button>
+        </div>
+        <ul className="space-y-1">
+          {removals.map((r) => (
+            <li key={r.subscriptionId}>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={!!toRemove[r.subscriptionId]}
+                  disabled={disabled}
+                  onChange={(e) =>
+                    setToRemove((prev) => ({
+                      ...prev,
+                      [r.subscriptionId]: e.target.checked,
+                    }))
+                  }
+                />
+                <span
+                  className={toRemove[r.subscriptionId] ? "line-through text-danger" : ""}
+                >
+                  <strong>{r.subscriberName}</strong> — {r.publicationName} (
+                  {r.publicationCode})
+                  <span className="text-fg-subtle">
+                    {" "}
+                    · {r.addressLabel} · {monthsLabel(r.months)} (всього{" "}
+                    {r.monthsTotal})
+                  </span>
+                </span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </details>
   );
 }
 
