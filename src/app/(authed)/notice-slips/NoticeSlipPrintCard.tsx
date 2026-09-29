@@ -12,11 +12,24 @@ export function NoticeSlipPrintCard({
 }: Omit<NoticeSlipPrintData, "key">) {
   return (
     <article className="notice-slip">
-      <div className="notice-slip-title">Укрпошта · ф.22-а</div>
-      <div>
-        <div className="notice-slip-field-label">Шановний клієнте</div>
-        <div className="notice-slip-name">{name || "—"}</div>
-        {address && <div className="notice-slip-note">{address}</div>}
+      <div className="notice-slip-header-row">
+        <div>
+          <div className="notice-slip-brand">УКРПОШТА</div>
+          <div className="notice-slip-brand-sub">Повідомлення</div>
+        </div>
+        <div className="notice-slip-form-code">Форма 22-а</div>
+      </div>
+
+      <div className="notice-slip-text">
+        Шановний клієнте{" "}
+        <span className="notice-slip-underline-inline">{name || "\u00A0"}</span>
+        {address && (
+          <>
+            {" "}
+            (<span className="notice-slip-underline-inline">{address}</span>)
+          </>
+        )}
+        , Вам надійшло поштове відправлення:
       </div>
 
       <div className="notice-slip-checkbox-row">
@@ -30,27 +43,25 @@ export function NoticeSlipPrintCard({
           <span
             className={`notice-slip-box${itemType === "REGISTERED" ? " notice-slip-box--checked" : ""}`}
           />
-          рекомендоване {itemType === "REGISTERED" && trackingNumber ? `№ ${trackingNumber}` : "№ ______________"}
+          рекомендоване №{" "}
+          <span className="notice-slip-underline-short">
+            {itemType === "REGISTERED" ? trackingNumber || "\u00A0" : "\u00A0"}
+          </span>
         </span>
       </div>
+      <div className="notice-slip-caption">(ШКІ відправлення)</div>
 
-      <div>
-        <div className="notice-slip-field-label">
-          Одержати можна у відділенні поштового зв&apos;язку за адресою
-        </div>
-        <div className="notice-slip-field-value">{branchAddress || "—"}</div>
+      <div className="notice-slip-text">
+        Одержати його Ви можете у відділенні поштового зв&apos;язку за адресою:
       </div>
+      <div className="notice-slip-underline-block">{branchAddress || "\u00A0"}</div>
 
-      {workingHours && (
-        <div>
-          <div className="notice-slip-field-label">Режим роботи</div>
-          <div className="notice-slip-field-value">{workingHours}</div>
-        </div>
-      )}
-
-      <div>
-        <div className="notice-slip-field-label">Телефон для питань і замовлення доставки додому</div>
-        <div className="notice-slip-field-value">{phone || "—"}</div>
+      <div className="notice-slip-text">
+        ми працюємо: <span className="notice-slip-underline-inline">{workingHours || "\u00A0"}</span>
+      </div>
+      <div className="notice-slip-text">
+        телефонуйте, якщо виникли питання:{" "}
+        <span className="notice-slip-underline-inline">{phone || "\u00A0"}</span>
       </div>
 
       <div className="notice-slip-note">
@@ -58,10 +69,21 @@ export function NoticeSlipPrintCard({
         що посвідчує особу. Отримати може повнолітній член родини за документом,
         що посвідчує родинні зв&apos;язки.
       </div>
+      <div className="notice-slip-text">
+        Також Ви можете замовити доставку відправлення додому
+      </div>
+      <div className="notice-slip-text">
+        за телефоном: <span className="notice-slip-underline-inline">{phone || "\u00A0"}</span>
+      </div>
 
       <div className="notice-slip-footer">
-        <span>До зустрічі. Укрпошта.</span>
-        <span>Дата вкладення: {dateStr || "—"}</span>
+        <span className="notice-slip-footer-brand">ДО ЗУСТРІЧІ. УКРПОШТА.</span>
+        <span className="notice-slip-footer-date">
+          <span className="notice-slip-underline-inline">{dateStr || "\u00A0"}</span>
+          <span className="notice-slip-caption">
+            дата вкладання повідомлення до абонентської скриньки
+          </span>
+        </span>
       </div>
     </article>
   );

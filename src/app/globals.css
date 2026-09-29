@@ -312,17 +312,66 @@ a[aria-busy="true"] {
   gap: 2.5mm;
 }
 
-.notice-slip-title {
-  font-size: 9pt;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: #64748b;
-  text-transform: uppercase;
+.notice-slip-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 4mm;
+  padding-bottom: 2mm;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.notice-slip-name {
+.notice-slip-brand {
+  font-weight: 700;
+  font-size: 13pt;
+  letter-spacing: 0.03em;
+}
+
+.notice-slip-brand-sub {
+  font-size: 9pt;
+  color: #64748b;
+}
+
+.notice-slip-form-code {
+  font-size: 9pt;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.notice-slip-text {
+  font-size: 10.5pt;
+}
+
+.notice-slip-underline-inline {
+  display: inline-block;
+  min-width: 30mm;
+  border-bottom: 1px solid #334155;
   font-weight: 600;
-  font-size: 12pt;
+  padding: 0 1mm;
+}
+
+.notice-slip-underline-short {
+  display: inline-block;
+  min-width: 20mm;
+  border-bottom: 1px solid #334155;
+  font-weight: 600;
+  padding: 0 1mm;
+}
+
+.notice-slip-underline-block {
+  display: block;
+  width: 100%;
+  min-height: 5mm;
+  border-bottom: 1px solid #334155;
+  font-weight: 600;
+  font-size: 10.5pt;
+  padding-bottom: 0.5mm;
+}
+
+.notice-slip-caption {
+  font-size: 8pt;
+  color: #64748b;
+  margin-top: -1.5mm;
 }
 
 .notice-slip-checkbox-row {
@@ -350,17 +399,6 @@ a[aria-busy="true"] {
   background: #334155;
 }
 
-.notice-slip-field-label {
-  font-size: 9pt;
-  color: #64748b;
-}
-
-.notice-slip-field-value {
-  font-size: 10.5pt;
-  border-bottom: 1px solid #cbd5e1;
-  padding-bottom: 0.5mm;
-}
-
 .notice-slip-note {
   font-size: 9pt;
   color: #64748b;
@@ -374,7 +412,19 @@ a[aria-busy="true"] {
   margin-top: 1mm;
   padding-top: 2mm;
   border-top: 1px solid #e2e8f0;
-  font-size: 9.5pt;
+  font-size: 10pt;
+}
+
+.notice-slip-footer-brand {
+  font-weight: 700;
+}
+
+.notice-slip-footer-date {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5mm;
+  text-align: right;
 }
 
 /* On-screen preview: a soft page-like canvas */
