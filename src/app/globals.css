@@ -289,6 +289,94 @@ a[aria-busy="true"] {
   margin-top: 1mm;
 }
 
+/* Повідомлення ф.22-а (Укрпошта) — текстовий бланк, довший за платіжний
+   бігунок, тому власна сітка в одну колонку. */
+.notice-slip-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6mm;
+}
+
+.notice-slip {
+  border: 1px dashed #94a3b8;
+  border-radius: 4px;
+  padding: 6mm 8mm;
+  background: white;
+  color: #0f172a;
+  font-size: 11pt;
+  line-height: 1.4;
+  page-break-inside: avoid;
+  break-inside: avoid;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5mm;
+}
+
+.notice-slip-title {
+  font-size: 9pt;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.notice-slip-name {
+  font-weight: 600;
+  font-size: 12pt;
+}
+
+.notice-slip-checkbox-row {
+  display: flex;
+  gap: 6mm;
+  align-items: baseline;
+  font-size: 10.5pt;
+}
+
+.notice-slip-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 2mm;
+}
+
+.notice-slip-box {
+  display: inline-block;
+  width: 3.5mm;
+  height: 3.5mm;
+  border: 1px solid #334155;
+  border-radius: 1px;
+}
+
+.notice-slip-box--checked {
+  background: #334155;
+}
+
+.notice-slip-field-label {
+  font-size: 9pt;
+  color: #64748b;
+}
+
+.notice-slip-field-value {
+  font-size: 10.5pt;
+  border-bottom: 1px solid #cbd5e1;
+  padding-bottom: 0.5mm;
+}
+
+.notice-slip-note {
+  font-size: 9pt;
+  color: #64748b;
+}
+
+.notice-slip-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 4mm;
+  margin-top: 1mm;
+  padding-top: 2mm;
+  border-top: 1px solid #e2e8f0;
+  font-size: 9.5pt;
+}
+
 /* On-screen preview: a soft page-like canvas */
 @media screen {
   .print-area {

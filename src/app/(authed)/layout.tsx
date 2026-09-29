@@ -31,6 +31,7 @@ export default async function AuthedLayout({
             <NavLink href="/pensioners">Пенсіонери</NavLink>
             <NavLink href="/subscriptions">Передплати</NavLink>
             <NavLink href="/organizations">Організації</NavLink>
+            <NavLink href="/notice-slips">Повідомлення</NavLink>
             {me.isAdmin && <NavLink href="/postmen">Листоноші</NavLink>}
           </div>
           <div className="flex items-center gap-2 shrink-0">

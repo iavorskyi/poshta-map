@@ -60,6 +60,10 @@ export function canManageOrganizations(me: Me): boolean {
   return me.isAdmin;
 }
 
+export function canManageNoticeSlipDefaults(me: Me): boolean {
+  return me.isAdmin;
+}
+
 export function canImport(me: Me): boolean {
   return me.isAdmin;
 }

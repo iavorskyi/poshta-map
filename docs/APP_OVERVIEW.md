@@ -140,7 +140,7 @@ Production: https://poshta-map.vercel.app
 - Unique `[aId, bId]`, індекси `aId`, `bId`
 
 ### AppSetting — глобальні key-value налаштування
-- `key @id`, `value`, `updatedAt`. Наразі один ключ: `orgMessageTemplateDefault` — дефолтний шаблон повідомлення для нових організацій (див. 12.2b)
+- `key @id`, `value`, `updatedAt`. Ключі: `orgMessageTemplateDefault` — дефолтний шаблон повідомлення для нових організацій (див. 12.2b); `noticeSlipBranchAddress`/`noticeSlipWorkingHours`/`noticeSlipPhone` — дефолти для друку ф.22-а (див. 13)
 
 ---
 
@@ -186,7 +186,7 @@ Production: https://poshta-map.vercel.app
 
 Глобальний layout: [src/app/layout.tsx](src/app/layout.tsx) — `lang="uk"`, viewport з `viewportFit: "cover"` (для iOS notch), inline-скрипт теми, `ToastProvider`, `RouteProgress` (топ-бар прогресу).
 
-Authed layout: [src/app/(authed)/layout.tsx](src/app/(authed)/layout.tsx) — `sticky top-0 z-20` шапка з логотипом «П», навігацією через `NavLink` (Обходи / Дільниця / Виплати / Пенсіонери / Типи / Листоноші — останні три приховані для не-адмінів), `ThemeToggle`, `LogoutButton`. Активна вкладка має нижній `border-b-2 border-brand` ([src/components/NavLink.tsx](src/components/NavLink.tsx)).
+Authed layout: [src/app/(authed)/layout.tsx](src/app/(authed)/layout.tsx) — `sticky top-0 z-20` шапка з логотипом «П», навігацією через `NavLink` (Обходи / Дільниця / Виплати / Пенсіонери / Передплати / Організації / Повідомлення / Листоноші — останній прихований для не-адмінів), `ThemeToggle`, `LogoutButton`. Активна вкладка має нижній `border-b-2 border-brand` ([src/components/NavLink.tsx](src/components/NavLink.tsx)).
 
 ### Дерево маршрутів
 ```
@@ -215,10 +215,12 @@ Authed layout: [src/app/(authed)/layout.tsx](src/app/(authed)/layout.tsx) — `s
   /subscriptions/subscribers/[id]   — деталь передплатника, 12-місячний редактор
   /organizations                    — реєстр організацій (fuzzy-пошук: назва/адреса/контакт/телефон)
   /organizations/[id]               — деталь організації + контакти
+  /notice-slips                     — генератор повідомлень ф.22-а (ручне заповнення + масовий друк)
   /api/pensioners/template          — XLSX-шаблон імпорту пенсіонерів
   /api/pensioners/vcard             — vCard-експорт контактів пенсіонерів (?scope=mine|all)
   /api/current-payments/template    — XLSX-шаблон імпорту виплат
   /api/subscriptions/template       — XLSX-шаблон імпорту передплат
+  /api/notice-slips/template        — XLSX-шаблон імпорту повідомлень ф.22-а
 ```
 
 ---
@@ -591,7 +593,21 @@ Deep-links не вміють одночасно і націлитись на н�
 
 ---
 
-## 13. Спільні компоненти
+## 13. Повідомлення ф.22-а `/notice-slips`
+
+[page.tsx](src/app/(authed)/notice-slips/page.tsx), [NoticeSlipsClient.tsx](src/app/(authed)/notice-slips/NoticeSlipsClient.tsx), [NoticeSlipForm.tsx](src/app/(authed)/notice-slips/NoticeSlipForm.tsx), [ImportNoticeSlips.tsx](src/app/(authed)/notice-slips/ImportNoticeSlips.tsx), [NoticeSlipPrintCard.tsx](src/app/(authed)/notice-slips/NoticeSlipPrintCard.tsx), [NoticeSlipDefaultsEditor.tsx](src/app/(authed)/notice-slips/NoticeSlipDefaultsEditor.tsx), [actions.ts](src/app/(authed)/notice-slips/actions.ts), [noticeSlipImport.ts](src/lib/noticeSlipImport.ts), [noticeSlipShared.ts](src/lib/noticeSlipShared.ts)
+
+Друкований генератор паперового повідомлення Укрпошти ф.22-а (лишається в скриньці, коли адресата не застали вдома — «заберіть відправлення у відділенні»). **Нічого не зберігається в БД** як історія — це чистий інструмент для друку; єдине, що персистить, це дефолтні значення полів.
+
+- **Дефолти** — `AppSetting` (ключі `noticeSlipBranchAddress`, `noticeSlipWorkingHours`, `noticeSlipPhone`), редагування — тільки admin (`canManageNoticeSlipDefaults`), кнопка «Редагувати дефолти» вгорі сторінки (патерн як у глобального шаблону повідомлення організацій)
+- **Один спільний телефон** підставляється і в «телефонуйте якщо виникли питання», і в «замовити доставку додому» — на бланку окремих полів для них немає
+- **Ручна форма** (`NoticeSlipForm`) — ФІО, адреса, тип (просте/рекомендоване, перемикає видимість поля ШКІ), дата вкладення (дефолт — сьогодні), і редаговані per-бланк копії дефолтів. Якщо адресу не заповнено окремо, а ФІО має хвостові дужки (`"Іванов І.І. (вул. ..., 10)"`) — адреса автоматично витягується з дужок при `onBlur` (`extractAddressFromName` у [noticeSlipShared.ts](src/lib/noticeSlipShared.ts), спільна для форми і імпорту)
+- **Масовий імпорт** (`ImportNoticeSlips`) — XLSX з колонками ФІО/Адреса/ШКІ/Тип ([noticeSlipImport.ts](src/lib/noticeSlipImport.ts), парсер за зразком `pensionerImport.ts`: нормалізація заголовків, `parseNoticeSlipXlsx` → `{ rows, errors }`, `buildNoticeSlipTemplate` для шаблону). Валідація: тип має бути «просте»/«рекомендоване», ШКІ обов'язковий для рекомендованого, адреса може підтягуватись із дужок у ФІО як і в ручній формі. Дата вкладення і дефолти (адреса відділення/графік/телефон) для пачки редагуються одним набором полів, спільним для всіх рядків
+- **Друк** — і ручний бланк (якщо ФІО непорожнє), і рядки з імпорту одночасно збираються в один `printItems` масив у `NoticeSlipsClient` і рендеряться в спільній `.print-area`/`.notice-slip-grid` — єдина кнопка «Друкувати» (`window.print()`) друкує все, що зараз заповнено. CSS `.notice-slip*` у [globals.css](src/app/globals.css) — окрема від `.slip*` (платіжні бігунки в обходах) сітка в одну колонку, бо текст бланка довший
+
+---
+
+## 14. Спільні компоненти
 
 | Файл | Призначення |
 |---|---|
@@ -610,7 +626,7 @@ Deep-links не вміють одночасно і націлитись на н�
 
 ---
 
-## 14. Утиліти
+## 15. Утиліти
 
 | Файл | Що робить |
 |---|---|
@@ -620,6 +636,8 @@ Deep-links не вміють одночасно і націлитись на н�
 | [format.ts](src/lib/format.ts) | `formatUAH`, `formatDate`, `toDateInputValue`, `fromDateInputValue` (локальний полудень — уникає UTC-shift) |
 | [dateRange.ts](src/lib/dateRange.ts) | `currentMonthRange`, `parseRange` (`to` як `23:59:59.999` для inclusive) |
 | [pensionerImport.ts](src/lib/pensionerImport.ts) | Парсер XLSX-пенсіонерів + builder шаблону |
+| [noticeSlipImport.ts](src/lib/noticeSlipImport.ts) | Парсер XLSX-повідомлень ф.22-а (ФІО/Адреса/ШКІ/Тип) + builder шаблону |
+| [noticeSlipShared.ts](src/lib/noticeSlipShared.ts) | `extractAddressFromName` — витягує адресу з дужок після ФІО, спільна для ручної форми і імпорту |
 | [currentPaymentImport.ts](src/lib/currentPaymentImport.ts) | Парсер XLSX-виплат + auto-create пенсіонерів + builder шаблону |
 | [streetMatch.ts](src/lib/streetMatch.ts) | Нормалізація і розпізнавання варіантів написання вулиць (комміт `1895e5a`) — використовується імпортами для матчингу та auto-create |
 | [geocode.ts](src/lib/geocode.ts) | Звернення до Nominatim для перетворення `street + number` → `{ lat, lon }` |
@@ -628,7 +646,7 @@ Deep-links не вміють одночасно і націлитись на н�
 
 ---
 
-## 15. Скрипти
+## 16. Скрипти
 
 | Скрипт | Що робить |
 |---|---|
@@ -640,7 +658,7 @@ Deep-links не вміють одночасно і націлитись на н�
 
 ---
 
-## 16. Бізнес-нюанси та реальні ребра
+## 17. Бізнес-нюанси та реальні ребра
 
 1. **Дашборд показує тільки моїх пенсіонерів** (`pensioner.postmanId === me.id`), включно з прострочкою — навіть якщо фактично обхід робив інший листоноша. Прострочка обмежена **поточним місяцем** (`date >= monthStart AND date < today`); неоплачені виплати попередніх місяців не тягнуться, бо «поточні» — це саме виплати цього місяця.
 2. **`closedAt` не блокує редагування.** Закритий обхід — лише прапорець для сортування і UI.
@@ -674,7 +692,7 @@ Deep-links не вміють одночасно і націлитись на н�
 
 ---
 
-## 17. Деплой / середовище
+## 18. Деплой / середовище
 
 - **Vercel**: production URL https://poshta-map.vercel.app
 - Деплой **ручний** через `vercel --prod --yes` з головного worktree (`/Users/yavorskyi/Documents/Work/projects/playground/poshta-map`). GitHub auto-deploy НЕ налаштований.
@@ -685,7 +703,7 @@ Deep-links не вміють одночасно і націлитись на н�
 
 ---
 
-## 18. Що навмисно НЕ зроблено
+## 19. Що навмисно НЕ зроблено
 
 - **Без формальних Prisma-міграцій** — `db push` достатньо для проекту такого масштабу.
 - **Без пагінації** на великих списках — на десятках тисяч записів потрібна курсорна пагінація.
@@ -695,4 +713,4 @@ Deep-links не вміють одночасно і націлитись на н�
 
 ---
 
-> Документ актуальний на 2026-05-31. Останній зафіксований комміт: `cdf022d` («Sync address round map numbering with list order»). Гілка `claude/nice-bardeen` додає модал редагування передплатника й авто-резолв адреси за каталогом дільниці.
+> Документ актуальний на 2026-09-29. Останній зафіксований комміт: `8455fa4` («Pin Vercel functions to fra1 to colocate with the EU database»). Додано розділ 13 — генератор повідомлень ф.22-а (`/notice-slips`).
