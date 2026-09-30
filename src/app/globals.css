@@ -289,108 +289,114 @@ a[aria-busy="true"] {
   margin-top: 1mm;
 }
 
-/* Повідомлення ф.22-а (Укрпошта) — текстовий бланк, довший за платіжний
-   бігунок, тому власна сітка в одну колонку. */
+/* Повідомлення ф.22-а (Укрпошта) — фізичний бланк формату А7 (74×105мм),
+   тому картка має фіксований розмір, а кілька штук розкладаються сіткою
+   на аркуші А4 (для друку й розрізання). */
 .notice-slip-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 6mm;
+  grid-template-columns: repeat(auto-fill, 74mm);
+  justify-content: start;
+  gap: 4mm 5mm;
 }
 
 .notice-slip {
+  width: 74mm;
+  height: 105mm;
+  box-sizing: border-box;
+  overflow: hidden;
   border: 1px dashed #94a3b8;
-  border-radius: 4px;
-  padding: 6mm 8mm;
+  border-radius: 3px;
+  padding: 3.5mm;
   background: white;
   color: #0f172a;
-  font-size: 11pt;
-  line-height: 1.4;
+  font-size: 7pt;
+  line-height: 1.25;
   page-break-inside: avoid;
   break-inside: avoid;
   display: flex;
   flex-direction: column;
-  gap: 2.5mm;
+  gap: 1.2mm;
 }
 
 .notice-slip-header-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 4mm;
-  padding-bottom: 2mm;
+  gap: 2mm;
+  padding-bottom: 1mm;
   border-bottom: 1px solid #e2e8f0;
 }
 
 .notice-slip-brand {
   font-weight: 700;
-  font-size: 13pt;
-  letter-spacing: 0.03em;
+  font-size: 8.5pt;
+  letter-spacing: 0.02em;
 }
 
 .notice-slip-brand-sub {
-  font-size: 9pt;
+  font-size: 6pt;
   color: #64748b;
 }
 
 .notice-slip-form-code {
-  font-size: 9pt;
+  font-size: 6pt;
   color: #64748b;
   white-space: nowrap;
 }
 
 .notice-slip-text {
-  font-size: 10.5pt;
+  font-size: 7pt;
 }
 
 .notice-slip-underline-inline {
   display: inline-block;
-  min-width: 30mm;
+  min-width: 14mm;
   border-bottom: 1px solid #334155;
   font-weight: 600;
-  padding: 0 1mm;
+  padding: 0 0.5mm;
 }
 
 .notice-slip-underline-short {
   display: inline-block;
-  min-width: 20mm;
+  min-width: 10mm;
   border-bottom: 1px solid #334155;
   font-weight: 600;
-  padding: 0 1mm;
+  padding: 0 0.5mm;
 }
 
 .notice-slip-underline-block {
   display: block;
   width: 100%;
-  min-height: 5mm;
+  min-height: 3.5mm;
   border-bottom: 1px solid #334155;
   font-weight: 600;
-  font-size: 10.5pt;
-  padding-bottom: 0.5mm;
+  font-size: 7pt;
+  padding-bottom: 0.3mm;
 }
 
 .notice-slip-caption {
-  font-size: 8pt;
+  font-size: 5.5pt;
   color: #64748b;
-  margin-top: -1.5mm;
+  margin-top: -0.8mm;
 }
 
 .notice-slip-checkbox-row {
   display: flex;
-  gap: 6mm;
+  gap: 3mm;
   align-items: baseline;
-  font-size: 10.5pt;
+  font-size: 7pt;
 }
 
 .notice-slip-checkbox {
   display: inline-flex;
   align-items: center;
-  gap: 2mm;
+  gap: 1mm;
 }
 
 .notice-slip-box {
   display: inline-block;
-  width: 3.5mm;
-  height: 3.5mm;
+  width: 2.5mm;
+  height: 2.5mm;
   border: 1px solid #334155;
   border-radius: 1px;
 }
@@ -400,7 +406,7 @@ a[aria-busy="true"] {
 }
 
 .notice-slip-note {
-  font-size: 9pt;
+  font-size: 6pt;
   color: #64748b;
 }
 
@@ -408,11 +414,11 @@ a[aria-busy="true"] {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  gap: 4mm;
-  margin-top: 1mm;
-  padding-top: 2mm;
+  gap: 2mm;
+  margin-top: auto;
+  padding-top: 1mm;
   border-top: 1px solid #e2e8f0;
-  font-size: 10pt;
+  font-size: 6.5pt;
 }
 
 .notice-slip-footer-brand {
@@ -423,7 +429,7 @@ a[aria-busy="true"] {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.5mm;
+  gap: 0.3mm;
   text-align: right;
 }
 
