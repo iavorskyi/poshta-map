@@ -290,14 +290,31 @@ a[aria-busy="true"] {
 }
 
 /* Повідомлення ф.22-а (Укрпошта) — фізичний бланк формату А6 в альбомній
-   орієнтації (148×105мм, довша сторона горизонтальна), тому картка має
-   фіксований розмір, а кілька штук розкладаються сіткою на аркуші А4
-   (для друку й розрізання). */
+   орієнтації (148×105мм). Щоб оптимально розмістити бланки на аркуші F4
+   (215×330мм), кожна картка повертається на 90° — тоді 2 колонки по 105мм
+   і 2 ряди по 148мм якраз дають 4 бланки на аркуш. "page: notice-f4"
+   застосовує окремий розмір сторінки друку лише для цієї сітки, не чіпаючи
+   @page для платіжних бігунків (.slip-grid) в інших місцях застосунку. */
+@page notice-f4 {
+  size: 215mm 330mm;
+  margin: 2mm;
+}
+
 .notice-slip-grid {
+  page: notice-f4;
   display: grid;
-  grid-template-columns: repeat(auto-fill, 148mm);
-  justify-content: start;
-  gap: 5mm 6mm;
+  grid-template-columns: repeat(2, 105mm);
+  justify-content: center;
+  gap: 6mm 0;
+}
+
+.notice-slip-cell {
+  width: 105mm;
+  height: 148mm;
+  position: relative;
+  overflow: hidden;
+  page-break-inside: avoid;
+  break-inside: avoid;
 }
 
 .notice-slip {
@@ -314,6 +331,14 @@ a[aria-busy="true"] {
   line-height: 1.3;
   page-break-inside: avoid;
   break-inside: avoid;
+  /* Обертаємо картку на 90° всередині .notice-slip-cell (105×148мм), щоб
+     розмістити її горизонтально відносно аркуша F4 — top-left лишається
+     на місці, а сама картка "розгортається" вниз у межах комірки. */
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  transform: rotate(90deg) translateY(-100%);
   display: flex;
   flex-direction: column;
   gap: 1.5mm;

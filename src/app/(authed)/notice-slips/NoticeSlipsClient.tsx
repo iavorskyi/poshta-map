@@ -125,7 +125,11 @@ export function NoticeSlipsClient({
               для друку.
             </div>
           ) : (
-            printItems.map(({ key, ...item }) => <NoticeSlipPrintCard key={key} {...item} />)
+            printItems.map(({ key, ...item }) => (
+              <div className="notice-slip-cell" key={key}>
+                <NoticeSlipPrintCard {...item} />
+              </div>
+            ))
           )}
         </div>
       </div>
