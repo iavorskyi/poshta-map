@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toDateInputValue } from "@/lib/format";
 import {
   extractAddressFromName,
@@ -11,10 +11,12 @@ import type { NoticeSlipDefaults } from "./actions";
 
 export function NoticeSlipForm({
   defaults,
-  onChange,
+  onAdd,
+  disabledReason,
 }: {
   defaults: NoticeSlipDefaults;
-  onChange: (slip: NoticeSlipPrintData | null) => void;
+  onAdd: (slip: Omit<NoticeSlipPrintData, "key">) => void;
+  disabledReason?: string | null;
 }) {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
@@ -24,14 +26,28 @@ export function NoticeSlipForm({
   const [workingHours, setWorkingHours] = useState(defaults.workingHours);
   const [phone, setPhone] = useState(defaults.phone);
   const [date, setDate] = useState(toDateInputValue(new Date()));
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const handleNameBlur = () => {
+    if (address.trim()) return;
+    const extracted = extractAddressFromName(name);
+    if (extracted.address) {
+      setName(extracted.name);
+      setAddress(extracted.address);
+    }
+  };
+
+  const handleAdd = () => {
     if (!name.trim()) {
-      onChange(null);
+      setError("Вкажіть ФІО адресата");
       return;
     }
-    onChange({
-      key: "manual",
+    if (itemType === "REGISTERED" && !trackingNumber.trim()) {
+      setError("Вкажіть ШКІ для рекомендованого відправлення");
+      return;
+    }
+    setError(null);
+    onAdd({
       name,
       address,
       itemType,
@@ -41,15 +57,10 @@ export function NoticeSlipForm({
       phone,
       dateStr: date,
     });
-  }, [name, address, itemType, trackingNumber, branchAddress, workingHours, phone, date, onChange]);
-
-  const handleNameBlur = () => {
-    if (address.trim()) return;
-    const extracted = extractAddressFromName(name);
-    if (extracted.address) {
-      setName(extracted.name);
-      setAddress(extracted.address);
-    }
+    setName("");
+    setAddress("");
+    setItemType("PLAIN");
+    setTrackingNumber("");
   };
 
   return (
@@ -140,6 +151,24 @@ export function NoticeSlipForm({
           />
         </label>
       </div>
+
+      {error && (
+        <div className="rounded border border-danger-border bg-danger-bg text-danger px-3 py-2 text-sm">
+          {error}
+        </div>
+      )}
+      {disabledReason && !error && (
+        <div className="text-sm text-fg-muted">{disabledReason}</div>
+      )}
+
+      <button
+        type="button"
+        onClick={handleAdd}
+        disabled={!!disabledReason}
+        className="btn-primary disabled:opacity-50"
+      >
+        Додати бланк до списку
+      </button>
     </div>
   );
 }
