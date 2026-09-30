@@ -289,33 +289,34 @@ a[aria-busy="true"] {
   margin-top: 1mm;
 }
 
-/* Повідомлення ф.22-а (Укрпошта) — фізичний бланк формату А7 (74×105мм),
-   тому картка має фіксований розмір, а кілька штук розкладаються сіткою
-   на аркуші А4 (для друку й розрізання). */
+/* Повідомлення ф.22-а (Укрпошта) — фізичний бланк формату А7 в альбомній
+   орієнтації (105×74мм, довша сторона горизонтальна), тому картка має
+   фіксований розмір, а кілька штук розкладаються сіткою на аркуші А4
+   (для друку й розрізання). */
 .notice-slip-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 74mm);
+  grid-template-columns: repeat(auto-fill, 105mm);
   justify-content: start;
   gap: 4mm 5mm;
 }
 
 .notice-slip {
-  width: 74mm;
-  height: 105mm;
+  width: 105mm;
+  height: 74mm;
   box-sizing: border-box;
   overflow: hidden;
   border: 1px dashed #94a3b8;
   border-radius: 3px;
-  padding: 3.5mm;
+  padding: 3mm 3.5mm;
   background: white;
   color: #0f172a;
   font-size: 7pt;
-  line-height: 1.25;
+  line-height: 1.2;
   page-break-inside: avoid;
   break-inside: avoid;
   display: flex;
   flex-direction: column;
-  gap: 1.2mm;
+  gap: 0.9mm;
 }
 
 .notice-slip-header-row {
