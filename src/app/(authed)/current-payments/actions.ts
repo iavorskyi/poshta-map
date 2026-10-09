@@ -267,10 +267,15 @@ export async function previewCurrentPaymentsImport(
   const monthEnd = new Date(year, month, 1);
   const existing = await prisma.currentPayment.findMany({
     where: { paymentId, date: { gte: monthStart, lt: monthEnd } },
-    select: { pensionerId: true, date: true },
+    select: { pensionerId: true, date: true, amount: true },
   });
-  const existingKey = new Set<string>();
-  for (const e of existing) existingKey.add(`${e.pensionerId}|${e.date.getDate()}`);
+  // Ключ pensionerId|день -> сума. Дублем вважаємо лише повний збіг
+  // (та сама сума), щоб не ховати рядки з виправленою сумою за тим самим
+  // пенсіонером/днем.
+  const existingAmountByKey = new Map<string, number>();
+  for (const e of existing) {
+    existingAmountByKey.set(`${e.pensionerId}|${e.date.getDate()}`, e.amount);
+  }
 
   const rows: CpPreviewRow[] = [];
   for (const r of parsed.rows) {
@@ -365,8 +370,11 @@ export async function previewCurrentPaymentsImport(
     else if (matchResult.kind === "fuzzy" || matchResult.kind === "ambiguous") {
       dupCandidatePid = matchResult.candidates[0]?.id ?? null;
     }
-    const dupInMonth =
-      dupCandidatePid != null && existingKey.has(`${dupCandidatePid}|${r.day}`);
+    const existingAmount =
+      dupCandidatePid != null
+        ? existingAmountByKey.get(`${dupCandidatePid}|${r.day}`)
+        : undefined;
+    const dupInMonth = existingAmount !== undefined && existingAmount === r.amount;
 
     rows.push({
       rowNumber: r.rowNumber,
@@ -498,10 +506,15 @@ export async function applyCurrentPaymentsImport(
   const monthEnd = new Date(year, month, 1);
   const existing = await prisma.currentPayment.findMany({
     where: { paymentId, date: { gte: monthStart, lt: monthEnd } },
-    select: { pensionerId: true, date: true },
+    select: { pensionerId: true, date: true, amount: true },
   });
-  const existingKey = new Set<string>();
-  for (const e of existing) existingKey.add(`${e.pensionerId}|${e.date.getDate()}`);
+  // Ключ pensionerId|день -> сума. Дублем вважаємо лише повний збіг
+  // (та сама сума) — якщо сума відрізняється, це, ймовірно, виправлена
+  // виплата, і її треба додати, а не пропустити.
+  const existingAmountByKey = new Map<string, number>();
+  for (const e of existing) {
+    existingAmountByKey.set(`${e.pensionerId}|${e.date.getDate()}`, e.amount);
+  }
 
   const touched = new Set<number>();
 
@@ -594,7 +607,8 @@ export async function applyCurrentPaymentsImport(
     }
 
     const dupKey = `${pensionerId}|${r.day}`;
-    if (existingKey.has(dupKey)) {
+    const existingAmount = existingAmountByKey.get(dupKey);
+    if (existingAmount !== undefined && existingAmount === r.amount) {
       result.warnings.push({
         rowNumber: r.rowNumber,
         message: `Пропущено (вже існує): ${r.fullName}, ${r.day}.${String(month).padStart(2, "0")}.${year}`,
@@ -612,7 +626,7 @@ export async function applyCurrentPaymentsImport(
           isPaid: r.isPaid,
         },
       });
-      existingKey.add(dupKey);
+      existingAmountByKey.set(dupKey, r.amount);
       touched.add(pensionerId);
       result.created++;
     } catch (e) {
